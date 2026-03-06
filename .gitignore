@@ -1,0 +1,26 @@
+## Build
+bin/
+obj/
+dist/
+build/
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.cache
+
+## Secrets
+.env
+.env.*
+secrets.json
+appsettings.Production.json
+
+## OS
+.DS_Store
+Thumbs.db
+
+## Logs
+*.log
