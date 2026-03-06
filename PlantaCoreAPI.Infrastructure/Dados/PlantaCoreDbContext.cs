@@ -1,0 +1,530 @@
+using Microsoft.EntityFrameworkCore;
+using PlantaCoreAPI.Domain.Entities;
+
+namespace PlantaCoreAPI.Infrastructure.Dados;
+
+public class PlantaCoreDbContext : DbContext
+{
+    public PlantaCoreDbContext(DbContextOptions<PlantaCoreDbContext> opcoes) : base(opcoes) { }
+
+    public DbSet<Usuario> Usuarios { get; set; } = null!;
+    public DbSet<Planta> Plantas { get; set; } = null!;
+    public DbSet<Post> Posts { get; set; } = null!;
+    public DbSet<Curtida> Curtidas { get; set; } = null!;
+    public DbSet<Comentario> Comentarios { get; set; } = null!;
+    public DbSet<Notificacao> Notificacoes { get; set; } = null!;
+    public DbSet<TokenRefresh> TokensRefresh { get; set; } = null!;
+
+    protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
+    {
+        base.OnConfiguring(optionsBuilder);
+        optionsBuilder.ConfigureWarnings(w => 
+        {
+            w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.MultipleCollectionIncludeWarning);
+            w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.NavigationBaseIncludeIgnored);
+        });
+        optionsBuilder.UseQueryTrackingBehavior(Microsoft.EntityFrameworkCore.QueryTrackingBehavior.NoTracking);
+    }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.Entity<Usuario>(entity =>
+        {
+            entity.ToTable("usuarios");
+            entity.HasKey(u => u.Id);
+            
+            entity.Property(u => u.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+
+            entity.Property(u => u.Nome)
+                .HasColumnName("nome")
+                .HasMaxLength(255)
+                .IsRequired();
+
+            entity.Property(u => u.Email)
+                .HasColumnName("email")
+                .IsRequired();
+
+            entity.Property(u => u.SenhaHash)
+                .HasColumnName("senha_hash")
+                .IsRequired();
+
+            entity.Property(u => u.Biografia)
+                .HasColumnName("biografia")
+                .HasMaxLength(500);
+
+            entity.Property(u => u.FotoPerfil)
+                .HasColumnName("foto_perfil");
+
+            entity.Property(u => u.EmailConfirmado)
+                .HasColumnName("email_confirmado")
+                .HasDefaultValue(false);
+
+            entity.Property(u => u.TokenConfirmacaoEmail)
+                .HasColumnName("token_confirmacao_email");
+
+            entity.Property(u => u.TokenResetarSenha)
+                .HasColumnName("token_resetar_senha");
+
+            entity.Property(u => u.DataTokenResetarSenha)
+                .HasColumnName("data_token_resetar");
+
+            entity.Property(u => u.Ativo)
+                .HasColumnName("ativo")
+                .HasDefaultValue(true);
+
+            entity.Property(u => u.DataCriacao)
+                .HasColumnName("data_criacao")
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(u => u.DataExclusao)
+                .HasColumnName("data_exclusao");
+
+            entity.HasMany(u => u.Plantas)
+                .WithOne(p => p.Usuario)
+                .HasForeignKey(p => p.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_plantas_usuarios");
+
+            entity.HasMany(u => u.Posts)
+                .WithOne(p => p.Usuario)
+                .HasForeignKey(p => p.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_posts_usuarios");
+
+            entity.HasMany(u => u.Notificacoes)
+                .WithOne(n => n.Usuario)
+                .HasForeignKey(n => n.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_notificacoes_usuarios");
+
+            entity.HasMany(u => u.Seguidores)
+                .WithMany(u => u.Seguindo)
+                .UsingEntity(
+                    "seguidores",
+                    l => l.HasOne(typeof(Usuario)).WithMany().HasForeignKey("seguidor_id").OnDelete(DeleteBehavior.Cascade),
+                    r => r.HasOne(typeof(Usuario)).WithMany().HasForeignKey("seguido_id").OnDelete(DeleteBehavior.Cascade),
+                    j =>
+                    {
+                        j.HasKey("seguidor_id", "seguido_id");
+                        j.ToTable("seguidores");
+                    });
+
+            entity.HasQueryFilter(u => u.Ativo);
+        });
+
+        modelBuilder.Entity<Planta>(entity =>
+        {
+            entity.ToTable("plantas");
+            entity.HasKey(p => p.Id);
+            
+            entity.Property(p => p.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+
+            entity.Property(p => p.UsuarioId)
+                .HasColumnName("usuario_id");
+
+            entity.Property(p => p.NomeCientifico)
+                .HasColumnName("nome_cientifico")
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(p => p.NomeComum)
+                .HasColumnName("nome_comum")
+                .HasMaxLength(300);
+
+            entity.Property(p => p.Familia)
+                .HasColumnName("familia")
+                .HasMaxLength(200);
+
+            entity.Property(p => p.Genero)
+                .HasColumnName("genero");
+
+            entity.Property(p => p.Toxica)
+                .HasColumnName("toxica")
+                .HasDefaultValue(false);
+
+            entity.Property(p => p.DescricaoToxicidade)
+                .HasColumnName("descricao_toxicidade");
+
+            entity.Property(p => p.ToxicaAnimais)
+                .HasColumnName("toxica_animais")
+                .HasDefaultValue(false);
+
+            entity.Property(p => p.DescricaoToxicidadeAnimais)
+                .HasColumnName("descricao_toxicidade_animais");
+
+            entity.Property(p => p.ToxicaCriancas)
+                .HasColumnName("toxica_criancas")
+                .HasDefaultValue(false);
+
+            entity.Property(p => p.DescricaoToxicidadeCriancas)
+                .HasColumnName("descricao_toxicidade_criancas");
+
+            entity.Property(p => p.RequisitosLuz)
+                .HasColumnName("requisitos_luz");
+
+            entity.Property(p => p.RequisitosAgua)
+                .HasColumnName("requisitos_agua");
+
+            entity.Property(p => p.RequisitosTemperatura)
+                .HasColumnName("requisitos_temperatura");
+
+            entity.Property(p => p.Cuidados)
+                .HasColumnName("cuidados");
+
+            entity.Property(p => p.FotoPlanta)
+                .HasColumnName("foto_url");
+
+            entity.Property(p => p.DadosPlantNet)
+                .HasColumnName("dados_plantnet");
+
+            entity.Property(p => p.DataIdentificacao)
+                .HasColumnName("data_identificacao");
+
+            entity.Property(p => p.DataCriacao)
+                .HasColumnName("data_criacao")
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasIndex(p => p.UsuarioId)
+                .HasDatabaseName("ix_plantas_usuario_id");
+
+            entity.HasMany(p => p.Posts)
+                .WithOne(po => po.Planta)
+                .HasForeignKey(po => po.PlantaId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_posts_plantas");
+
+            entity.HasOne(p => p.Usuario)
+                .WithMany(u => u.Plantas)
+                .HasForeignKey(p => p.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_plantas_usuarios");
+
+            entity.HasQueryFilter(p => p.Usuario != null && p.Usuario.Ativo);
+        });
+
+        modelBuilder.Entity<Post>(entity =>
+        {
+            entity.ToTable("posts");
+            entity.HasKey(p => p.Id);
+            
+            entity.Property(p => p.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+
+            entity.Property(p => p.UsuarioId)
+                .HasColumnName("usuario_id");
+
+            entity.Property(p => p.PlantaId)
+                .HasColumnName("planta_id");
+
+            entity.Property(p => p.Conteudo)
+                .HasColumnName("conteudo")
+                .IsRequired();
+
+            entity.Property(p => p.Ativo)
+                .HasColumnName("ativo")
+                .HasDefaultValue(true);
+
+            entity.Property(p => p.DataCriacao)
+                .HasColumnName("data_criacao")
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(p => p.DataAtualizacao)
+                .HasColumnName("data_atualizacao");
+
+            entity.Property(p => p.DataExclusao)
+                .HasColumnName("data_exclusao");
+
+            entity.Property(p => p.PontuacaoTotal)
+                .HasColumnName("pontuacao_total");
+
+            entity.HasIndex(p => p.UsuarioId)
+                .HasDatabaseName("ix_posts_usuario_id");
+
+            entity.HasIndex(p => p.PlantaId)
+                .HasDatabaseName("ix_posts_planta_id");
+
+            entity.HasMany(p => p.Comentarios)
+                .WithOne(c => c.Post)
+                .HasForeignKey(c => c.PostId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_comentarios_posts");
+
+            entity.HasOne(p => p.Usuario)
+                .WithMany(u => u.Posts)
+                .HasForeignKey(p => p.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_posts_usuarios");
+
+            entity.HasOne(p => p.Planta)
+                .WithMany(pl => pl.Posts)
+                .HasForeignKey(p => p.PlantaId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_posts_plantas");
+
+            entity.HasQueryFilter(p => p.Ativo);
+        });
+
+        modelBuilder.Entity<Curtida>(entity =>
+        {
+            entity.ToTable("curtidas");
+            entity.HasKey(c => c.Id);
+            
+            entity.Property(c => c.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+
+            entity.Property(c => c.PostId)
+                .HasColumnName("post_id");
+
+            entity.Property(c => c.ComentarioId)
+                .HasColumnName("comentario_id");
+
+            entity.Property(c => c.UsuarioId)
+                .HasColumnName("usuario_id");
+
+            entity.Property(c => c.DataCriacao)
+                .HasColumnName("data_criacao")
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.HasIndex(c => c.PostId)
+                .HasDatabaseName("ix_curtidas_post_id");
+
+            entity.HasIndex(c => c.UsuarioId)
+                .HasDatabaseName("ix_curtidas_usuario_id");
+
+            entity.HasIndex(c => new { c.PostId, c.UsuarioId })
+                .IsUnique()
+                .HasFilter("post_id IS NOT NULL")
+                .HasDatabaseName("ix_curtidas_post_usuario");
+
+            entity.HasIndex(c => new { c.ComentarioId, c.UsuarioId })
+                .IsUnique()
+                .HasFilter("comentario_id IS NOT NULL")
+                .HasDatabaseName("ix_curtidas_comentario_usuario");
+
+            entity.HasOne(c => c.Post)
+                .WithMany(p => p.Curtidas)
+                .HasForeignKey(c => c.PostId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_curtidas_posts")
+                .IsRequired(false);
+
+            entity.HasOne(c => c.Comentario)
+                .WithMany(cm => cm.Curtidas)
+                .HasForeignKey(c => c.ComentarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_curtidas_comentarios")
+                .IsRequired(false);
+
+            entity.HasOne(c => c.Usuario)
+                .WithMany()
+                .HasForeignKey(c => c.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_curtidas_usuarios")
+                .IsRequired(false);
+        });
+
+        modelBuilder.Entity<Comentario>(entity =>
+        {
+            entity.ToTable("comentarios");
+            entity.HasKey(c => c.Id);
+            
+            entity.Property(c => c.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+
+            entity.Property(c => c.PostId)
+                .HasColumnName("post_id");
+
+            entity.Property(c => c.UsuarioId)
+                .HasColumnName("usuario_id");
+
+            entity.Property(c => c.Conteudo)
+                .HasColumnName("conteudo")
+                .IsRequired();
+
+            entity.Property(c => c.Ativo)
+                .HasColumnName("ativo")
+                .HasDefaultValue(true);
+
+            entity.Property(c => c.DataCriacao)
+                .HasColumnName("data_criacao")
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(c => c.DataAtualizacao)
+                .HasColumnName("data_atualizacao");
+
+            entity.Property(c => c.DataExclusao)
+                .HasColumnName("data_exclusao");
+
+            entity.Property(c => c.PontuacaoTotal)
+                .HasColumnName("pontuacao_total");
+
+            entity.HasIndex(c => c.PostId)
+                .HasDatabaseName("ix_comentarios_post_id");
+
+            entity.HasIndex(c => c.UsuarioId)
+                .HasDatabaseName("ix_comentarios_usuario_id");
+
+            entity.HasOne(c => c.Post)
+                .WithMany(p => p.Comentarios)
+                .HasForeignKey(c => c.PostId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_comentarios_posts");
+
+            entity.HasOne(c => c.Usuario)
+                .WithMany()
+                .HasForeignKey(c => c.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_comentarios_usuarios");
+
+            entity.HasQueryFilter(c => c.Ativo);
+        });
+
+        modelBuilder.Entity<Notificacao>(entity =>
+        {
+            entity.ToTable("notificacoes");
+            entity.HasKey(n => n.Id);
+            
+            entity.Property(n => n.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+
+            entity.Property(n => n.UsuarioId)
+                .HasColumnName("usuario_id");
+
+            entity.Property(n => n.UsuarioOrigemId)
+                .HasColumnName("usuario_origem_id");
+
+            entity.Property(n => n.PlantaId)
+                .HasColumnName("planta_id");
+
+            entity.Property(n => n.PostId)
+                .HasColumnName("post_id");
+
+            entity.Property(n => n.Tipo)
+                .HasColumnName("tipo")
+                .HasConversion<string>();
+
+            entity.Property(n => n.Mensagem)
+                .HasColumnName("mensagem")
+                .IsRequired();
+
+            entity.Property(n => n.Lida)
+                .HasColumnName("lida")
+                .HasDefaultValue(false);
+
+            entity.Property(n => n.DataCriacao)
+                .HasColumnName("data_criacao")
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(n => n.DataLeitura)
+                .HasColumnName("data_leitura");
+
+            entity.Property(n => n.DataDelecao)
+                .HasColumnName("data_delecao");
+
+            entity.HasIndex(n => n.UsuarioId)
+                .HasDatabaseName("ix_notificacoes_usuario_id");
+
+            entity.HasIndex(n => n.UsuarioOrigemId)
+                .HasDatabaseName("ix_notificacoes_usuario_origem_id");
+
+            entity.HasIndex(n => n.PlantaId)
+                .HasDatabaseName("ix_notificacoes_planta_id");
+
+            entity.HasIndex(n => n.PostId)
+                .HasDatabaseName("ix_notificacoes_post_id");
+
+            entity.HasOne(n => n.Usuario)
+                .WithMany(u => u.Notificacoes)
+                .HasForeignKey(n => n.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_notificacoes_usuarios");
+
+            entity.HasOne(n => n.UsuarioOrigem)
+                .WithMany()
+                .HasForeignKey(n => n.UsuarioOrigemId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_notificacoes_usuarios_origem")
+                .IsRequired(false);
+
+            entity.HasOne(n => n.Planta)
+                .WithMany()
+                .HasForeignKey(n => n.PlantaId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_notificacoes_plantas")
+                .IsRequired(false);
+
+            entity.HasOne(n => n.Post)
+                .WithMany()
+                .HasForeignKey(n => n.PostId)
+                .OnDelete(DeleteBehavior.SetNull)
+                .HasConstraintName("fk_notificacoes_posts")
+                .IsRequired(false);
+
+            entity.HasQueryFilter(n => n.Usuario != null && n.Usuario.Ativo);
+        });
+
+        modelBuilder.Entity<TokenRefresh>(entity =>
+        {
+            entity.ToTable("tokens_refresh");
+            entity.HasKey(t => t.Id);
+            
+            entity.Property(t => t.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+
+            entity.Property(t => t.UsuarioId)
+                .HasColumnName("usuario_id");
+
+            entity.Property(t => t.Token)
+                .HasColumnName("token")
+                .HasMaxLength(500)
+                .IsRequired();
+
+            entity.Property(t => t.DataExpiracao)
+                .HasColumnName("data_expiracao");
+
+            entity.Property(t => t.Revogado)
+                .HasColumnName("revogado")
+                .HasDefaultValue(false);
+
+            entity.Property(t => t.DataCriacao)
+                .HasColumnName("data_criacao")
+                .ValueGeneratedOnAdd()
+                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+            entity.Property(t => t.DataRevogacao)
+                .HasColumnName("data_revogacao");
+
+            entity.HasIndex(t => t.UsuarioId)
+                .HasDatabaseName("ix_tokens_refresh_usuario_id");
+
+            entity.HasIndex(t => t.Token)
+                .IsUnique()
+                .HasDatabaseName("ix_tokens_refresh_token");
+
+            entity.HasOne(t => t.Usuario)
+                .WithMany()
+                .HasForeignKey(t => t.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_tokens_refresh_usuarios");
+
+            entity.HasQueryFilter(t => t.Usuario != null && t.Usuario.Ativo);
+        });
+    }
+}
