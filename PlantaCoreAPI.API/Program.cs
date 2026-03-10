@@ -6,7 +6,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
-    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
 if (builder.Environment.IsDevelopment())
@@ -29,24 +28,17 @@ builder.Services.AddCors(options =>
             policy.WithOrigins(
                 "http://localhost:3000",
                 "http://localhost:5173",
-                "http://localhost:5174",
-                "https://localhost:3000",
-                "https://localhost:5173",
-                "https://localhost:5174"
-            )
-            .AllowAnyMethod()
-            .AllowAnyHeader()
-            .AllowCredentials();
+                "http://localhost:5174"
+            );
         }
         else
         {
-            policy.WithOrigins(frontendUrl)
-                  .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                  .WithHeaders("Content-Type", "Authorization")
-                  .AllowCredentials();
+            policy.WithOrigins(frontendUrl);
         }
 
-        policy.SetPreflightMaxAge(TimeSpan.FromHours(1));
+        policy.AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
 });
 
@@ -83,8 +75,7 @@ builder.Services.AddSwaggerGen(options =>
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
         Title = "PlantaCoreAPI",
-        Version = "v1",
-        Description = "API de identificação e gerenciamento de plantas com IA"
+        Version = "v1"
     });
 
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -119,19 +110,9 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = string.Empty;
 });
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-}
-else
-{
-    app.UseExceptionHandler("/error");
-}
-
-app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-app.Run();app.Run();app.Run();
+app.Run();
