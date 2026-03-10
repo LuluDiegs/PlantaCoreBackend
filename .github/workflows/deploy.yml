@@ -1,36 +1,60 @@
-name: Deploy to Azure
+name: Build and deploy ASP.Net Core app to Azure Web App - plantaCoreBack
 
 on:
   push:
-    branches: [ main ]
-
-permissions:
-  id-token: write
-  contents: read
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  deploy:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup .NET
+      - name: Set up .NET Core
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
+          dotnet-version: '8.x'
 
-      - name: Publish
-        run: dotnet publish PlantaCoreAPI.API/PlantaCoreAPI.API.csproj -c Release -o ./publish
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
+
+      - name: dotnet publish
+        run: dotnet publish PlantaCoreAPI.API/PlantaCoreAPI.API.csproj -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
+
+  deploy:
+    runs-on: windows-latest
+    needs: build
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: .net-app
 
       - name: Login to Azure
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_8E8D994C70864D7BB3816078FC6933C2 }}
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F42577F5742C418AA6FB81084DC41AE3 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_78EB77F86F9E41518F48D5CFC5FFF73F }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6C1BCE7CE75C4029820A360F4B71DE5A }}
 
-      - name: Deploy to Azure
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         with:
-          app-name: plantacoreback-aub2bkffhgezapcf
-          package: ./publish
+          app-name: 'plantaCoreBack'
+          slot-name: 'Production'
+          package: .
