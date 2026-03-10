@@ -1,6 +1,6 @@
+using Microsoft.AspNetCore.Mvc;
 using PlantaCoreAPI.API.Extensions;
 using PlantaCoreAPI.Infrastructure.Services;
-using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,22 +19,37 @@ builder.Services.AddLoggingConfigurado();
 builder.Services.AddBancoDeDados(builder.Configuration);
 builder.Services.AddAutenticacaoJwt(builder.Configuration);
 
-var frontendUrl = builder.Configuration["Frontend:Url"] ?? "http://localhost:5173";
+var frontendUrl = builder.Configuration["Frontend:Url"]?.TrimEnd('/') ?? "http://localhost:5173";
 
-builder.Services.AddCors(opcoes =>
-    opcoes.AddPolicy("AllowFrontend", policy =>
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins(frontendUrl)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials()
-              .SetPreflightMaxAge(TimeSpan.FromHours(1));
-
-        if (!builder.Environment.IsProduction())
+        if (builder.Environment.IsDevelopment())
         {
-            policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5174");
+            policy.WithOrigins(
+                "http://localhost:3000",
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "https://localhost:3000",
+                "https://localhost:5173",
+                "https://localhost:5174"
+            )
+            .AllowAnyMethod()
+            .AllowAnyHeader()
+            .AllowCredentials();
         }
-    }));
+        else
+        {
+            policy.WithOrigins(frontendUrl)
+                  .WithMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                  .WithHeaders("Content-Type", "Authorization")
+                  .AllowCredentials();
+        }
+
+        policy.SetPreflightMaxAge(TimeSpan.FromHours(1));
+    });
+});
 
 builder.Services.AddRepositorios();
 builder.Services.AddServicosAplicacao(builder.Configuration);
@@ -64,23 +79,23 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(opcoes =>
+builder.Services.AddSwaggerGen(options =>
 {
-    opcoes.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
         Title = "PlantaCoreAPI",
         Version = "v1",
         Description = "API de identificação e gerenciamento de plantas com IA"
     });
 
-    opcoes.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Description = "JWT Authorization header using the Bearer scheme",
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
         Scheme = "bearer"
     });
 
-    opcoes.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
         {
             new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -120,4 +135,4 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 
-app.Run();
+app.Run();app.Run();
