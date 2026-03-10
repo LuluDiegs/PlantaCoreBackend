@@ -5,6 +5,7 @@ using PlantaCoreAPI.Application.Utils;
 using PlantaCoreAPI.Domain.Entities;
 using PlantaCoreAPI.Domain.Interfaces;
 using PlantaCoreAPI.Infrastructure.Services.External;
+using Microsoft.Extensions.Configuration;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
 
@@ -15,19 +16,22 @@ public class AuthenticationService : IAuthenticationService
     private readonly IJwtService _servicioJwt;
     private readonly IEmailService _servicioEmail;
     private readonly IPasswordHashService _passwordHashService;
+    private readonly string _urlFrontend;
 
     public AuthenticationService(
         IRepositorioUsuario repositorioUsuario,
         IRepositorioTokenRefresh repositorioTokenRefresh,
         IJwtService servicioJwt,
         IEmailService servicioEmail,
-        IPasswordHashService passwordHashService)
+        IPasswordHashService passwordHashService,
+        IConfiguration configuration)
     {
         _repositorioUsuario = repositorioUsuario;
         _repositorioTokenRefresh = repositorioTokenRefresh;
         _servicioJwt = servicioJwt;
         _servicioEmail = servicioEmail;
         _passwordHashService = passwordHashService;
+        _urlFrontend = configuration["Frontend:Url"] ?? "http://localhost:5173";
     }
 
     public async Task<Resultado<LoginDTOSaida>> RegistrarAsync(RegistroDTOEntrada entrada)
@@ -65,7 +69,7 @@ public class AuthenticationService : IAuthenticationService
             await _repositorioUsuario.SalvarMudancasAsync();
 
             var tokenConfirmacao = usuario.TokenConfirmacaoEmail;
-            var urlConfirmacao = $"http://localhost:3000/confirmar-email?usuarioId={usuario.Id}&token={tokenConfirmacao}";
+            var urlConfirmacao = $"{_urlFrontend}/confirmar-email?usuarioId={usuario.Id}&token={tokenConfirmacao}";
             var corpoEmail = EmailTemplateGenerator.GerarEmailConfirmacao(usuario.Nome, urlConfirmacao, tokenConfirmacao);
             
             try
@@ -219,7 +223,7 @@ public class AuthenticationService : IAuthenticationService
             await _repositorioUsuario.SalvarMudancasAsync();
 
             var tokenReset = usuario.TokenResetarSenha;
-            var urlReset = $"http://localhost:3000/resetar-senha?usuarioId={usuario.Id}&token={tokenReset}";
+            var urlReset = $"{_urlFrontend}/resetar-senha?usuarioId={usuario.Id}&token={tokenReset}";
             var corpoEmail = EmailTemplateGenerator.GerarEmailResetarSenha(usuario.Nome, urlReset, tokenReset);
             
             try
@@ -327,7 +331,7 @@ public class AuthenticationService : IAuthenticationService
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
 
-            var urlConfirmacao = $"http://localhost:3000/confirmar-email?usuarioId={usuario.Id}&token={usuario.TokenConfirmacaoEmail}";
+            var urlConfirmacao = $"{_urlFrontend}/confirmar-email?usuarioId={usuario.Id}&token={usuario.TokenConfirmacaoEmail}";
             var corpoEmail = EmailTemplateGenerator.GerarEmailConfirmacao(usuario.Nome, urlConfirmacao, usuario.TokenConfirmacaoEmail);
 
             try

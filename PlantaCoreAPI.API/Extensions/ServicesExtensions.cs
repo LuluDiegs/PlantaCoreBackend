@@ -4,6 +4,7 @@ using PlantaCoreAPI.Infrastructure.Repositorios;
 using PlantaCoreAPI.Infrastructure.Services;
 using PlantaCoreAPI.Infrastructure.Services.External;
 using PlantaCoreAPI.Infrastructure.Storage;
+using PlantaCoreAPI.Infrastructure.Dados;
 
 namespace PlantaCoreAPI.API.Extensions;
 
@@ -21,16 +22,30 @@ internal static class ServicesExtensions
         return services;
     }
 
-    internal static IServiceCollection AddServicosAplicacao(this IServiceCollection services)
+    internal static IServiceCollection AddServicosAplicacao(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IPasswordHashService, PasswordHashService>();
-        services.AddScoped<IAuthenticationService, AuthenticationService>();
+        services.AddScoped<IAuthenticationService>(provider =>
+            new AuthenticationService(
+                provider.GetRequiredService<IRepositorioUsuario>(),
+                provider.GetRequiredService<IRepositorioTokenRefresh>(),
+                provider.GetRequiredService<IJwtService>(),
+                provider.GetRequiredService<IEmailService>(),
+                provider.GetRequiredService<IPasswordHashService>(),
+                configuration));
+        
         services.AddScoped<IPlantService, PlantService>();
         services.AddScoped<IPostService, PostService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPlantCareReminderService, PlantCareReminderService>();
         services.AddScoped<IAccountDeletionService, AccountDeletionService>();
-        services.AddScoped<IAccountReactivationService, AccountReactivationService>();
+        services.AddScoped<IAccountReactivationService>(provider =>
+            new AccountReactivationService(
+                provider.GetRequiredService<IRepositorioUsuario>(),
+                provider.GetRequiredService<IEmailService>(),
+                provider.GetRequiredService<IPasswordHashService>(),
+                provider.GetRequiredService<PlantaCoreDbContext>(),
+                configuration));
 
         services.AddScoped<IUserService>(provider =>
             new UserService(
