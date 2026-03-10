@@ -7,6 +7,8 @@ public class PostDTOSaida
     public Guid UsuarioId { get; set; }
     public string NomeUsuario { get; set; } = null!;
     public string? FotoUsuario { get; set; }
+    public string? NomePlanta { get; set; }
+    public string? FotoPlanta { get; set; }
     public string Conteudo { get; set; } = null!;
     public int TotalCurtidas { get; set; }
     public int TotalComentarios { get; set; }

@@ -8,12 +8,19 @@ builder.Configuration.AddEnvironmentVariables();
 builder.Services.AddLoggingConfigurado();
 builder.Services.AddBancoDeDados(builder.Configuration);
 builder.Services.AddAutenticacaoJwt(builder.Configuration);
+
+// Obter URL do frontend da configuração
+var frontendUrl = builder.Configuration["Frontend:Url"] ?? "http://localhost:5173";
+
 builder.Services.AddCors(opcoes =>
-    opcoes.AddPolicy("TodosOrigenes", policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
+    opcoes.AddPolicy("AllowFrontend", policy =>
+        policy.WithOrigins(frontendUrl)
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials()));
 
 builder.Services.AddRepositorios();
-builder.Services.AddServicosAplicacao();
+builder.Services.AddServicosAplicacao(builder.Configuration);
 builder.Services.AddServicosExternos(builder.Configuration);
 
 builder.Services.AddHostedService<PlantCareReminderBackgroundService>();
@@ -30,7 +37,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-app.UseCors("TodosOrigenes");
+app.UseCors("AllowFrontend");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

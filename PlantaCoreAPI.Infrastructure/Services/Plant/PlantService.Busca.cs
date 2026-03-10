@@ -21,7 +21,13 @@ public sealed partial class PlantService
             if (resultadoTrefle == null || resultadoTrefle.Dados == null || resultadoTrefle.Dados.Count == 0)
                 return Resultado<ResultadoBuscaPlantaDTOSaida>.Erro("Nenhuma planta encontrada");
 
-            var plantas = resultadoTrefle.Dados.Select(p => new PlantaBuscaDTOSaida
+            // Deduplique por ID do Trefle
+            var plantasUnicas = resultadoTrefle.Dados
+                .GroupBy(p => p.Id)
+                .Select(g => g.First())
+                .ToList();
+
+            var plantas = plantasUnicas.Select(p => new PlantaBuscaDTOSaida
             {
                 Id = p.Id,
                 NomeComum = p.NomeComum,

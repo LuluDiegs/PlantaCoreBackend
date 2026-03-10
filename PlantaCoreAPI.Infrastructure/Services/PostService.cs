@@ -41,7 +41,7 @@ public class PostService : IPostService
             await _repositorioPost.AdicionarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
 
-            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario, false));
+            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario, planta, false));
         }
         catch (Exception ex)
         {
@@ -65,7 +65,8 @@ public class PostService : IPostService
             await _repositorioPost.SalvarMudancasAsync();
 
             var usuario = await _repositorioUsuario.ObterPorIdAsync(post.UsuarioId);
-            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario!, false));
+            var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
+            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario!, planta!, false));
         }
         catch (Exception ex)
         {
@@ -105,9 +106,10 @@ public class PostService : IPostService
                 return Resultado<PostDTOSaida>.Erro("Post não encontrado");
 
             var usuario = await _repositorioUsuario.ObterPorIdAsync(post.UsuarioId);
+            var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
             var curtiu = post.Curtidas.Any(c => c.UsuarioId == usuarioId);
 
-            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario!, curtiu));
+            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario!, planta!, curtiu));
         }
         catch (Exception ex)
         {
@@ -121,10 +123,13 @@ public class PostService : IPostService
         {
             var posts = await _repositorioPost.ObterFeedAsync(usuarioId, pagina, tamanho);
 
-            var dtos = posts
-                .Where(p => p.Usuario != null)
-                .Select(p => MapearPostPara(p, p.Usuario!, p.Curtidas.Any(c => c.UsuarioId == usuarioId)))
-                .ToList();
+            var dtos = new List<PostDTOSaida>();
+            foreach (var post in posts.Where(p => p.Usuario != null))
+            {
+                var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
+                var curtiu = post.Curtidas.Any(c => c.UsuarioId == usuarioId);
+                dtos.Add(MapearPostPara(post, post.Usuario!, planta!, curtiu));
+            }
 
             return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
         }
@@ -142,6 +147,10 @@ public class PostService : IPostService
             if (post == null)
                 return Resultado.Erro("Post não encontrado");
 
+            // Validar se o usuário está tentando curtir seu próprio post
+            if (post.UsuarioId == usuarioId)
+                return Resultado.Erro("Você não pode curtir seu próprio post");
+
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
                 return Resultado.Erro("Usuário não encontrado");
@@ -150,19 +159,16 @@ public class PostService : IPostService
             await _repositorioPost.AtualizarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
 
-            if (post.UsuarioId != usuarioId)
-            {
-                var notificacao = Notificacao.Criar(
-                    post.UsuarioId,
-                    Domain.Enums.TipoNotificacao.Curtida,
-                    $"{usuario.Nome} curtiu seu post",
-                    usuarioId,
-                    null,
-                    postId);
+            var notificacao = Notificacao.Criar(
+                post.UsuarioId,
+                Domain.Enums.TipoNotificacao.Curtida,
+                $"{usuario.Nome} curtiu seu post",
+                usuarioId,
+                null,
+                postId);
 
-                await _repositorioNotificacao.AdicionarAsync(notificacao);
-                await _repositorioNotificacao.SalvarMudancasAsync();
-            }
+            await _repositorioNotificacao.AdicionarAsync(notificacao);
+            await _repositorioNotificacao.SalvarMudancasAsync();
 
             return Resultado.Ok("Post curtido com sucesso");
         }
@@ -325,11 +331,16 @@ public class PostService : IPostService
         {
             var paginaPosts = await _repositorioPost.ObterPorUsuarioPaginadoAsync(usuarioId, pagina, tamanho);
 
+            var itens = new List<PostDTOSaida>();
+            foreach (var post in paginaPosts.Itens.Where(p => p.Usuario != null))
+            {
+                var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
+                itens.Add(MapearPostPara(post, post.Usuario!, planta!, post.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId)));
+            }
+
             return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
             {
-                Itens = paginaPosts.Itens
-                    .Where(p => p.Usuario != null)
-                    .Select(p => MapearPostPara(p, p.Usuario!, p.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId))),
+                Itens = itens,
                 Pagina = paginaPosts.Pagina,
                 TamanhoPagina = paginaPosts.TamanhoPagina,
                 Total = paginaPosts.Total
@@ -347,11 +358,16 @@ public class PostService : IPostService
         {
             var paginaPosts = await _repositorioPost.ObterExploradorAsync(pagina, tamanho);
 
+            var itens = new List<PostDTOSaida>();
+            foreach (var post in paginaPosts.Itens.Where(p => p.Usuario != null))
+            {
+                var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
+                itens.Add(MapearPostPara(post, post.Usuario!, planta!, post.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId)));
+            }
+
             return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
             {
-                Itens = paginaPosts.Itens
-                    .Where(p => p.Usuario != null)
-                    .Select(p => MapearPostPara(p, p.Usuario!, p.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId))),
+                Itens = itens,
                 Pagina = paginaPosts.Pagina,
                 TamanhoPagina = paginaPosts.TamanhoPagina,
                 Total = paginaPosts.Total
@@ -436,10 +452,12 @@ public class PostService : IPostService
         {
             var posts = await _repositorioPost.ObterPostsCurtidosPorUsuarioAsync(usuarioId);
 
-            var dtos = posts
-                .Where(p => p.Usuario != null)
-                .Select(p => MapearPostPara(p, p.Usuario!, p.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId)))
-                .ToList();
+            var dtos = new List<PostDTOSaida>();
+            foreach (var post in posts.Where(p => p.Usuario != null))
+            {
+                var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
+                dtos.Add(MapearPostPara(post, post.Usuario!, planta!, post.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId)));
+            }
 
             return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
         }
@@ -449,7 +467,7 @@ public class PostService : IPostService
         }
     }
 
-    private PostDTOSaida MapearPostPara(Post post, Usuario usuario, bool curtiu)
+    private PostDTOSaida MapearPostPara(Post post, Usuario usuario, Planta planta, bool curtiu)
     {
         return new PostDTOSaida
         {
@@ -458,6 +476,8 @@ public class PostService : IPostService
             UsuarioId = post.UsuarioId,
             NomeUsuario = usuario.Nome,
             FotoUsuario = usuario.FotoPerfil,
+            NomePlanta = planta.NomeComum ?? planta.NomeCientifico,
+            FotoPlanta = planta.FotoPlanta,
             Conteudo = post.Conteudo,
             TotalCurtidas = post.Curtidas.Count,
             TotalComentarios = post.Comentarios.Count,

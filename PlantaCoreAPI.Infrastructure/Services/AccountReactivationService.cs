@@ -4,6 +4,7 @@ using PlantaCoreAPI.Application.Utils;
 using PlantaCoreAPI.Domain.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using PlantaCoreAPI.Infrastructure.Dados;
+using Microsoft.Extensions.Configuration;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
 
@@ -19,13 +20,14 @@ public class AccountReactivationService : IAccountReactivationService
         IRepositorioUsuario repositorioUsuario,
         IEmailService emailService,
         IPasswordHashService passwordHashService,
-        PlantaCoreDbContext contexto)
+        PlantaCoreDbContext contexto,
+        IConfiguration configuration)
     {
         _repositorioUsuario = repositorioUsuario;
         _emailService = emailService;
         _passwordHashService = passwordHashService;
         _contexto = contexto;
-        _urlFrontend = "http://localhost:3000";
+        _urlFrontend = configuration["Frontend:Url"] ?? "http://localhost:5173";
     }
 
     public async Task<Resultado> SolicitarReativacaoAsync(string email)
