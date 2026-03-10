@@ -3,19 +3,16 @@ using PlantaCoreAPI.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Configuration.AddEnvironmentVariables();
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
 
 builder.Services.AddLoggingConfigurado();
 builder.Services.AddBancoDeDados(builder.Configuration);
 builder.Services.AddAutenticacaoJwt(builder.Configuration);
 
-// Obter URL do frontend da configuração
-// Em Azure: ler de Application Settings
-// Localmente: ler de user-secrets
 var frontendUrl = builder.Configuration["Frontend:Url"] ?? "http://localhost:5173";
-
-// Log para debug
-Console.WriteLine($"[CORS] Frontend URL: {frontendUrl}");
 
 builder.Services.AddCors(opcoes =>
     opcoes.AddPolicy("AllowFrontend", policy =>
@@ -36,8 +33,7 @@ builder.Services.AddSwaggerConfigurado();
 
 var app = builder.Build();
 
-// Ativar Swagger em Development E Production
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
@@ -45,7 +41,6 @@ if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 
 app.UseHttpsRedirection();
 
-// ?? CORS DEVE VIR ANTES DE Authentication
 app.UseCors("AllowFrontend");
 
 app.UseAuthentication();
