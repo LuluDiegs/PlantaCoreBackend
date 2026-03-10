@@ -10,14 +10,20 @@ builder.Services.AddBancoDeDados(builder.Configuration);
 builder.Services.AddAutenticacaoJwt(builder.Configuration);
 
 // Obter URL do frontend da configuração
+// Em Azure: ler de Application Settings
+// Localmente: ler de user-secrets
 var frontendUrl = builder.Configuration["Frontend:Url"] ?? "http://localhost:5173";
+
+// Log para debug
+Console.WriteLine($"[CORS] Frontend URL: {frontendUrl}");
 
 builder.Services.AddCors(opcoes =>
     opcoes.AddPolicy("AllowFrontend", policy =>
         policy.WithOrigins(frontendUrl)
               .AllowAnyMethod()
               .AllowAnyHeader()
-              .AllowCredentials()));
+              .AllowCredentials()
+              .SetPreflightMaxAge(TimeSpan.FromHours(1))));
 
 builder.Services.AddRepositorios();
 builder.Services.AddServicosAplicacao(builder.Configuration);
@@ -30,14 +36,18 @@ builder.Services.AddSwaggerConfigurado();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+// Ativar Swagger em Development E Production
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
+
+// ?? CORS DEVE VIR ANTES DE Authentication
 app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
