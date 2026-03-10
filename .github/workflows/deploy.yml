@@ -1,0 +1,62 @@
+name: Deploy to Azure
+
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --configuration Release --no-restore
+
+      - name: Publish
+        run: dotnet publish PlantaCoreAPI.API/PlantaCoreAPI.API.csproj -c Release -o ./publish
+
+      - name: Deploy to Azure Web App
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: plantacoreback-aub2bkffhgezapcf
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          package: ./publish
+
+      - name: Set Azure App Settings
+        uses: azure/appservice-settings@v1
+        with:
+          app-name: plantacoreback-aub2bkffhgezapcf
+          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
+          app-settings-json: |
+            [
+              { "name": "ASPNETCORE_ENVIRONMENT", "value": "Production" },
+              { "name": "Jwt__ChaveSecreta", "value": "${{ secrets.JWT_CHAVE_SECRETA }}" },
+              { "name": "Jwt__MinutosValidadeTokenAcesso", "value": "15" },
+              { "name": "ConnectionStrings__DefaultConnection", "value": "${{ secrets.DB_CONNECTION_STRING }}" },
+              { "name": "Email__SmtpHost", "value": "smtp.gmail.com" },
+              { "name": "Email__SmtpPort", "value": "587" },
+              { "name": "Email__Email", "value": "${{ secrets.EMAIL_EMAIL }}" },
+              { "name": "Email__Senha", "value": "${{ secrets.EMAIL_SENHA }}" },
+              { "name": "Frontend__Url", "value": "https://gentle-ocean-0a3fb9d10.6.azurestaticapps.net" },
+              { "name": "Gemini__ChaveApi", "value": "${{ secrets.GEMINI_CHAVE_API }}" },
+              { "name": "Gemini__Modelo", "value": "gemini-2.5-flash" },
+              { "name": "Gemini__BaseUrl", "value": "https://generativelanguage.googleapis.com" },
+              { "name": "Gemini__MaxOutputTokens", "value": "1024" },
+              { "name": "Gemini__Temperature", "value": "0.7" },
+              { "name": "Gemini__TopP", "value": "0.95" },
+              { "name": "PlantNet__ChaveApi", "value": "${{ secrets.PLANTNET_CHAVE_API }}" },
+              { "name": "Trefle__ChaveApi", "value": "${{ secrets.TREFLE_CHAVE_API }}" },
+              { "name": "Supabase__Url", "value": "${{ secrets.SUPABASE_URL }}" },
+              { "name": "Supabase__ChavePublica", "value": "${{ secrets.SUPABASE_CHAVE_PUBLICA }}" },
+              { "name": "Admin__ChaveSecreta", "value": "${{ secrets.ADMIN_CHAVE_SECRETA }}" }
+            ]
