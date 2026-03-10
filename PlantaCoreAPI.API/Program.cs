@@ -1,5 +1,6 @@
 using PlantaCoreAPI.API.Extensions;
 using PlantaCoreAPI.Infrastructure.Services;
+using Microsoft.AspNetCore.Mvc;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,11 +23,18 @@ var frontendUrl = builder.Configuration["Frontend:Url"] ?? "http://localhost:517
 
 builder.Services.AddCors(opcoes =>
     opcoes.AddPolicy("AllowFrontend", policy =>
+    {
         policy.WithOrigins(frontendUrl)
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials()
-              .SetPreflightMaxAge(TimeSpan.FromHours(1))));
+              .SetPreflightMaxAge(TimeSpan.FromHours(1));
+
+        if (!builder.Environment.IsProduction())
+        {
+            policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5174");
+        }
+    }));
 
 builder.Services.AddRepositorios();
 builder.Services.AddServicosAplicacao(builder.Configuration);
@@ -34,21 +42,80 @@ builder.Services.AddServicosExternos(builder.Configuration);
 
 builder.Services.AddHostedService<PlantCareReminderBackgroundService>();
 
-builder.Services.AddControllers();
-builder.Services.AddSwaggerConfigurado();
+builder.Services.AddControllers()
+    .ConfigureApiBehaviorOptions(options =>
+    {
+        options.InvalidModelStateResponseFactory = context =>
+        {
+            var errors = context.ModelState
+                .Where(x => x.Value?.Errors.Count > 0)
+                .ToDictionary(
+                    kvp => kvp.Key,
+                    kvp => kvp.Value?.Errors.Select(e => e.ErrorMessage).ToArray() ?? Array.Empty<string>()
+                );
+
+            return new BadRequestObjectResult(new
+            {
+                sucesso = false,
+                mensagem = "Dados de entrada inválidos",
+                erros = errors
+            });
+        };
+    });
+
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(opcoes =>
+{
+    opcoes.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "PlantaCoreAPI",
+        Version = "v1",
+        Description = "API de identificação e gerenciamento de plantas com IA"
+    });
+
+    opcoes.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.Http,
+        Scheme = "bearer"
+    });
+
+    opcoes.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 var app = builder.Build();
 
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PlantaCoreAPI v1");
+    c.RoutePrefix = string.Empty;
+});
+
 if (app.Environment.IsDevelopment())
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler("/error");
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors("AllowFrontend");
-
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
