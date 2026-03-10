@@ -47,9 +47,15 @@ public class PlantCareReminderBackgroundService : BackgroundService
 
                 if (_primeiraExecucao)
                 {
-                    _logger.LogInformation("Primeira execução: Gerando lembretes AGORA para teste em localhost!");
-                    await GerarLembretes(stoppingToken);
                     _primeiraExecucao = false;
+                    _logger.LogInformation(
+                        $"Agora (Brasil): {agoraBrasil:yyyy-MM-dd HH:mm:ss} | " +
+                        $"Próximo disparo: {proximoDisparoBrasil:yyyy-MM-dd HH:mm:ss} | " +
+                        $"em {espera.TotalHours:F1} horas"
+                    );
+                    await Task.Delay(espera, stoppingToken);
+                    await GerarLembretes(stoppingToken);
+                    continue;
                 }
 
                 _logger.LogInformation(
