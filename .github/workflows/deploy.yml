@@ -18,9 +18,15 @@ jobs:
       - name: Publish
         run: dotnet publish PlantaCoreAPI.API/PlantaCoreAPI.API.csproj -c Release -o ./publish
 
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_8E8D994C70864D7BB3816078FC6933C2 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F42577F5742C418AA6FB81084DC41AE3 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_78EB77F86F9E41518F48D5CFC5FFF73F }}
+
       - name: Deploy to Azure
         uses: azure/webapps-deploy@v3
         with:
           app-name: plantacoreback-aub2bkffhgezapcf
-          publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
           package: ./publish
