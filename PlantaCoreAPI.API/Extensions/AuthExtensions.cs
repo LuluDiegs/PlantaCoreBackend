@@ -26,7 +26,43 @@ internal static class AuthExtensions
                     ValidateAudience = true,
                     ValidAudience = "PlantaCoreAPI",
                     ValidateLifetime = true,
-                    ClockSkew = TimeSpan.Zero
+                    ClockSkew = TimeSpan.FromSeconds(30)
+                };
+
+                opcoes.Events = new JwtBearerEvents
+                {
+                    OnAuthenticationFailed = context =>
+                    {
+                        if (context.Exception is SecurityTokenExpiredException)
+                        {
+                            context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                            context.Response.ContentType = "application/json";
+                            return context.Response.WriteAsJsonAsync(new
+                            {
+                                sucesso = false,
+                                mensagem = "Token expirado"
+                            });
+                        }
+
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        return context.Response.WriteAsJsonAsync(new
+                        {
+                            sucesso = false,
+                            mensagem = "Token inválido"
+                        });
+                    },
+                    OnChallenge = context =>
+                    {
+                        context.HandleResponse();
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        return context.Response.WriteAsJsonAsync(new
+                        {
+                            sucesso = false,
+                            mensagem = "Não autorizado"
+                        });
+                    }
                 };
             });
 
