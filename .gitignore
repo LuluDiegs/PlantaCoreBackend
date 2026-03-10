@@ -12,11 +12,17 @@ build/
 *.suo
 *.cache
 
-## Secrets
+## Secrets - NUNCA COMMITE SECRETS!
 .env
 .env.*
 secrets.json
 appsettings.Production.json
+*.pfx
+*.pem
+*.key
+
+## User Secrets
+**/Properties/launchSettings.json
 
 ## OS
 .DS_Store
@@ -24,3 +30,16 @@ Thumbs.db
 
 ## Logs
 *.log
+logs/
+
+## Local database
+*.db
+*.sqlite
+*.sqlite3
+
+## Docker
+.dockerignore
+
+## Publish artifacts
+publish/
+
