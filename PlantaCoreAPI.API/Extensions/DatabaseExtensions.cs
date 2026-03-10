@@ -30,9 +30,12 @@ internal static class DatabaseExtensions
             if (string.IsNullOrEmpty(host) || IPAddress.TryParse(host, out _))
                 return connectionString;
 
-            var enderecos = Dns.GetHostAddresses(host, AddressFamily.InterNetwork);
-            if (enderecos.Length > 0)
-                builder.Host = enderecos[0].ToString();
+            var enderecos = Dns.GetHostAddresses(host);
+
+            var ipv4 = enderecos.FirstOrDefault(a => a.AddressFamily == AddressFamily.InterNetwork);
+
+            if (ipv4 != null)
+                builder.Host = ipv4.ToString();
 
             return builder.ToString();
         }
