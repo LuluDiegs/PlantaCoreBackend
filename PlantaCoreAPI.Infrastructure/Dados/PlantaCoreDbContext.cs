@@ -20,6 +20,8 @@ public class PlantaCoreDbContext : DbContext
     public DbSet<Hashtag> Hashtags { get; set; } = null!;
     public DbSet<Categoria> Categorias { get; set; } = null!;
     public DbSet<PalavraChave> PalavrasChave { get; set; } = null!;
+    public DbSet<Evento> Eventos { get; set; } = null!;
+    public DbSet<EventoParticipante> EventosParticipantes { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -374,6 +376,54 @@ public class PlantaCoreDbContext : DbContext
                 .WithMany(p => p.PalavrasChave)
                 .HasForeignKey(pc => pc.PostId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Evento>(entity =>
+        {
+            entity.ToTable("eventos");
+
+            entity.HasKey(e => e.Id);
+
+            entity.Property(e => e.Id)
+                .HasColumnName("id");
+
+            entity.Property(e => e.Titulo)
+                .HasColumnName("titulo")
+                .IsRequired();
+
+            entity.Property(e => e.Descricao)
+                .HasColumnName("descricao")
+                .IsRequired();
+
+            entity.Property(e => e.Localizacao)
+                .HasColumnName("localizacao")
+                .IsRequired();
+
+            entity.Property(e => e.DataInicio)
+                .HasColumnName("data_inicio");
+
+            entity.Property(e => e.AnfitriaoId)
+                .HasColumnName("anfitriao_id");
+
+            entity.HasOne(e => e.Anfitriao)
+                .WithMany(u => u.EventosCriados)
+                .HasForeignKey(e => e.AnfitriaoId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<EventoParticipante>(entity =>
+        {
+            entity.ToTable("evento_participantes");
+
+            entity.HasKey(ep => new { ep.EventoId, ep.UsuarioId });
+
+            entity.HasOne(ep => ep.Evento)
+                .WithMany(e => e.Participantes)
+                .HasForeignKey(ep => ep.EventoId);
+
+            entity.HasOne(ep => ep.Usuario)
+                .WithMany(u => u.EventosParticipando)
+                .HasForeignKey(ep => ep.UsuarioId);
         });
     }
 }
