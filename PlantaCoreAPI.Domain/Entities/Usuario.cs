@@ -26,19 +26,21 @@ public class Usuario
     public List<Post> Posts { get; private set; } = new();
     public List<Notificacao> Notificacoes { get; private set; } = new();
     public List<MembroComunidade> ComunidadesParticipantes { get; private set; } = new();
+    public List<Evento> EventosCriados { get; private set; } = new();
+    public List<EventoParticipante> EventosParticipando { get; private set; } = new();
 
     private Usuario() { }
 
     public static Usuario Criar(string nome, string email, string senhaHash)
     {
         if (string.IsNullOrWhiteSpace(nome))
-            throw new Exceptions.DomainException("Nome não pode estar vazio");
+            throw new Exceptions.DomainException("Nome nï¿½o pode estar vazio");
 
         if (string.IsNullOrWhiteSpace(email))
-            throw new Exceptions.DomainException("Email não pode estar vazio");
+            throw new Exceptions.DomainException("Email nï¿½o pode estar vazio");
 
         if (string.IsNullOrWhiteSpace(senhaHash))
-            throw new Exceptions.DomainException("Senha não pode estar vazia");
+            throw new Exceptions.DomainException("Senha nï¿½o pode estar vazia");
 
         ValidarEmail(email);
 
@@ -60,7 +62,7 @@ public class Usuario
     private static void ValidarEmail(string email)
     {
         if (!email.Contains("@") || !email.Contains("."))
-            throw new Exceptions.DomainException("Formato de email inválido");
+            throw new Exceptions.DomainException("Formato de email invï¿½lido");
     }
 
     public bool VerificarSenha(string senha, Func<string, string, bool> verificador)
@@ -109,7 +111,7 @@ public class Usuario
         if (biografia != null)
         {
             if (biografia.Length > 500)
-                throw new Exceptions.DomainException("Biografia não pode ter mais de 500 caracteres");
+                throw new Exceptions.DomainException("Biografia nï¿½o pode ter mais de 500 caracteres");
             Biografia = biografia;
         }
 
@@ -120,7 +122,7 @@ public class Usuario
     public void AtualizarNome(string novoNome)
     {
         if (string.IsNullOrWhiteSpace(novoNome))
-            throw new Exceptions.DomainException("Nome não pode estar vazio");
+            throw new Exceptions.DomainException("Nome nï¿½o pode estar vazio");
 
         Nome = novoNome.Trim();
     }
@@ -150,7 +152,7 @@ public class Usuario
     public void Seguir(Usuario usuario)
     {
         if (usuario.Id == Id)
-            throw new Exceptions.DomainException("Você não pode seguir a si mesmo");
+            throw new Exceptions.DomainException("Vocï¿½ nï¿½o pode seguir a si mesmo");
 
         if (!Seguindo.Contains(usuario))
             Seguindo.Add(usuario);
