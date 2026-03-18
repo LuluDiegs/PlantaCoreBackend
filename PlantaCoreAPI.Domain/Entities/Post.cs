@@ -5,8 +5,10 @@ public class Post
     public Guid Id { get; private set; }
     public Guid UsuarioId { get; private set; }
     public Usuario? Usuario { get; private set; }
-    public Guid PlantaId { get; private set; }
+    public Guid? PlantaId { get; private set; }
     public Planta? Planta { get; private set; }
+    public Guid? ComunidadeId { get; private set; }
+    public Comunidade? Comunidade { get; private set; }
     public string Conteudo { get; private set; } = null!;
     public DateTime DataCriacao { get; private set; }
     public DateTime? DataAtualizacao { get; private set; }
@@ -22,23 +24,22 @@ public class Post
 
     private Post() { }
 
-    public static Post Criar(Guid usuarioId, Guid plantaId, string conteudo)
+    public static Post Criar(Guid usuarioId, string conteudo, Guid? plantaId = null, Guid? comunidadeId = null)
     {
         if (string.IsNullOrWhiteSpace(conteudo))
             throw new Exceptions.DomainException("Conteúdo não pode estar vazio");
 
-        var post = new Post
+        return new Post
         {
             Id = Guid.NewGuid(),
             UsuarioId = usuarioId,
             PlantaId = plantaId,
+            ComunidadeId = comunidadeId,
             Conteudo = conteudo.Trim(),
             DataCriacao = DateTime.UtcNow,
             Ativo = true,
             PontuacaoTotal = 0
         };
-
-        return post;
     }
 
     public void Atualizar(string novoConteudo)
@@ -61,8 +62,7 @@ public class Post
         if (_curtidas.Any(c => c.UsuarioId == usuario.Id))
             throw new Exceptions.DomainException("Você já curtiu este post");
 
-        var curtida = Curtida.Criar(Id, usuario.Id);
-        _curtidas.Add(curtida);
+        _curtidas.Add(Curtida.Criar(Id, usuario.Id));
         PontuacaoTotal += 1;
     }
 

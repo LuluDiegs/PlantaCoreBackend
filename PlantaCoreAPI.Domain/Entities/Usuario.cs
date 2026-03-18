@@ -8,7 +8,8 @@ public class Usuario
     public string SenhaHash { get; private set; } = null!;
     public string? Biografia { get; private set; }
     public string? FotoPerfil { get; private set; }
-    
+    public bool PerfilPrivado { get; private set; }
+
     public bool EmailConfirmado { get; private set; }
     public string? TokenConfirmacaoEmail { get; private set; }
     public string? TokenResetarSenha { get; private set; }
@@ -19,9 +20,12 @@ public class Usuario
 
     public List<Usuario> Seguindo { get; private set; } = new();
     public List<Usuario> Seguidores { get; private set; } = new();
+    public List<SolicitacaoSeguir> SolicitacoesSeguirRecebidas { get; private set; } = new();
+    public List<SolicitacaoSeguir> SolicitacoesSeguirEnviadas { get; private set; } = new();
     public List<Planta> Plantas { get; private set; } = new();
     public List<Post> Posts { get; private set; } = new();
     public List<Notificacao> Notificacoes { get; private set; } = new();
+    public List<MembroComunidade> ComunidadesParticipantes { get; private set; } = new();
 
     private Usuario() { }
 
@@ -29,10 +33,10 @@ public class Usuario
     {
         if (string.IsNullOrWhiteSpace(nome))
             throw new Exceptions.DomainException("Nome não pode estar vazio");
-        
+
         if (string.IsNullOrWhiteSpace(email))
             throw new Exceptions.DomainException("Email não pode estar vazio");
-        
+
         if (string.IsNullOrWhiteSpace(senhaHash))
             throw new Exceptions.DomainException("Senha não pode estar vazia");
 
@@ -46,7 +50,8 @@ public class Usuario
             SenhaHash = senhaHash,
             DataCriacao = DateTime.UtcNow,
             EmailConfirmado = false,
-            TokenConfirmacaoEmail = Guid.NewGuid().ToString()
+            TokenConfirmacaoEmail = Guid.NewGuid().ToString(),
+            PerfilPrivado = false
         };
 
         return usuario;
@@ -60,14 +65,8 @@ public class Usuario
 
     public bool VerificarSenha(string senha, Func<string, string, bool> verificador)
     {
-        try
-        {
-            return verificador(senha, SenhaHash);
-        }
-        catch
-        {
-            return false;
-        }
+        try { return verificador(senha, SenhaHash); }
+        catch { return false; }
     }
 
     public void ConfirmarEmail()
@@ -122,13 +121,18 @@ public class Usuario
     {
         if (string.IsNullOrWhiteSpace(novoNome))
             throw new Exceptions.DomainException("Nome não pode estar vazio");
-        
+
         Nome = novoNome.Trim();
     }
 
     public void AtualizarFotoPerfil(string? urlFoto)
     {
         FotoPerfil = urlFoto;
+    }
+
+    public void AlterarPrivacidadePerfil(bool privado)
+    {
+        PerfilPrivado = privado;
     }
 
     public void Excluir()

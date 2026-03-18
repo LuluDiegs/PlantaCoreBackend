@@ -6,5 +6,9 @@ public enum TipoNotificacao
     Comentario,
     NovoSeguidor,
     AlertaToxicidade,
-    LembreteCuidado
+    LembreteCuidado,
+    PedidoSeguir,
+    PedidoSeguirAceito,
+    NovoMembroComunidade,
+    PostComunidade
 }

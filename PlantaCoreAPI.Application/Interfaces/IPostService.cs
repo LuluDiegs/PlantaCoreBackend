@@ -24,4 +24,9 @@ public interface IPostService
     Task<Resultado> ExcluirComentarioAsync(Guid usuarioId, Guid comentarioId);
     Task<Resultado> ExcluirComentarioComoDonoPostAsync(Guid donoPostId, Guid comentarioId);
     Task<Resultado<IEnumerable<ComentarioDTOSaida>>> ListarComentariosPostAsync(Guid postId, Guid usuarioAutenticadoId, int pagina = 1, int tamanho = 20);
+    Task<Resultado<PaginaResultado<PostDTOSaida>>> ObterFeedFiltradoAsync(Guid usuarioId, string ordenacao, int pagina, int tamanho);
+    Task<Resultado<PaginaResultado<PostDTOSaida>>> BuscarPostsPorPlantaAsync(string nomePlanta, int pagina, int tamanho);
+    Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorHashtagAsync(string hashtag);
+    Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorCategoriaAsync(string categoria);
+    Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorPalavraChaveAsync(string palavraChave);
 }

@@ -3,7 +3,9 @@ namespace PlantaCoreAPI.Application.DTOs.Post;
 public class PostDTOSaida
 {
     public Guid Id { get; set; }
-    public Guid PlantaId { get; set; }
+    public Guid? PlantaId { get; set; }
+    public Guid? ComunidadeId { get; set; }
+    public string? NomeComunidade { get; set; }
     public Guid UsuarioId { get; set; }
     public string NomeUsuario { get; set; } = null!;
     public string? FotoUsuario { get; set; }
@@ -19,7 +21,8 @@ public class PostDTOSaida
 
 public class CriarPostDTOEntrada
 {
-    public Guid PlantaId { get; set; }
+    public Guid? PlantaId { get; set; }
+    public Guid? ComunidadeId { get; set; }
     public string Conteudo { get; set; } = null!;
 }
 
