@@ -1,6 +1,7 @@
 using PlantaCoreAPI.Application.Comuns;
 using PlantaCoreAPI.Application.DTOs.Identificacao;
 using PlantaCoreAPI.Application.DTOs.Planta;
+using PlantaCoreAPI.Application.DTOs.Post;
 using PlantaCoreAPI.Domain.Comuns;
 
 namespace PlantaCoreAPI.Application.Interfaces;
@@ -16,4 +17,5 @@ public interface IPlantService
     Task<Resultado<PlantaDTOSaida>> ObterPlantaAsync(Guid plantaId);
     Task<Resultado<bool>> ExcluirPlantaAsync(Guid plantaId, Guid usuarioId);
     Task<Resultado<PaginaResultado<PlantaDTOSaida>>> BuscarPlantasUsuarioAsync(Guid usuarioId, string termo, int pagina, int tamanho);
+    Task<Resultado<PostDTOSaida>> PostarFotoIdentificacaoAsync(Guid usuarioId, Guid plantaId, string conteudo);
 }
