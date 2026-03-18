@@ -15,4 +15,5 @@ public interface IPlantService
     Task<Resultado<PaginaResultado<PlantaDTOSaida>>> ListarPlantasUsuarioPaginadoAsync(Guid usuarioId, int pagina, int tamanho);
     Task<Resultado<PlantaDTOSaida>> ObterPlantaAsync(Guid plantaId);
     Task<Resultado<bool>> ExcluirPlantaAsync(Guid plantaId, Guid usuarioId);
+    Task<Resultado<PaginaResultado<PlantaDTOSaida>>> BuscarPlantasUsuarioAsync(Guid usuarioId, string termo, int pagina, int tamanho);
 }

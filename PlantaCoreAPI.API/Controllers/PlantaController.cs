@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PlantaCoreAPI.Application.DTOs.Planta;
 using PlantaCoreAPI.Application.DTOs.Identificacao;
 using PlantaCoreAPI.Application.Interfaces;
+using PlantaCoreAPI.Application.DTOs.Post;
 using System.Security.Claims;
 
 namespace PlantaCoreAPI.API.Controllers;
@@ -74,6 +75,90 @@ public class PlantaController : ControllerBase
         }
     }
 
+    [HttpPost("identificar-e-postar")]
+    [Authorize]
+    [Consumes("multipart/form-data")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> IdentificarEPostar(IFormFile foto, [FromServices] IPostService postService, [FromQuery] bool criarPostagem = false)
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+
+        if (foto == null || foto.Length == 0)
+            return BadRequest(new { sucesso = false, mensagem = "Nenhuma foto enviada" });
+
+        if (!foto.ContentType.StartsWith("image/"))
+            return BadRequest(new { sucesso = false, mensagem = "Arquivo deve ser uma imagem" });
+
+        string? caminhoTemp = null;
+        string? urlFoto = null;
+
+        try
+        {
+            caminhoTemp = Path.Combine(Path.GetTempPath(), $"planta_{Guid.NewGuid()}_{foto.FileName}");
+            using (var fileStream = System.IO.File.Create(caminhoTemp))
+                await foto.CopyToAsync(fileStream);
+
+            try
+            {
+                var bytes = await System.IO.File.ReadAllBytesAsync(caminhoTemp);
+                urlFoto = await _fileStorageService.FazerUploadFotoPlantaAsync(bytes, foto.FileName, usuarioId);
+            }
+            catch { }
+
+            var resultadoIdentificacao = await _servicioPlanta.IdentificarPlantaAsync(usuarioId, new IdentificacaoDTOEntrada
+            {
+                CaminhoTemp = caminhoTemp,
+                UrlImagem = urlFoto
+            });
+
+            if (!resultadoIdentificacao.Sucesso)
+                return BadRequest(resultadoIdentificacao);
+
+            var plantaIdentificada = resultadoIdentificacao.Dados;
+
+            if (criarPostagem)
+            {
+                var resultadoPostagem = await postService.CriarPostAsync(usuarioId, new CriarPostDTOEntrada
+                {
+                    PlantaId = plantaIdentificada.Id,
+                    Conteudo = $"Identifiquei uma nova planta: {plantaIdentificada.NomeCientifico}",
+                    ComunidadeId = null
+                });
+
+                if (!resultadoPostagem.Sucesso)
+                    return BadRequest(resultadoPostagem);
+
+                return Ok(new
+                {
+                    sucesso = true,
+                    mensagem = "Planta identificada e postagem criada com sucesso",
+                    planta = plantaIdentificada,
+                    postagem = resultadoPostagem.Dados
+                });
+            }
+
+            return Ok(new
+            {
+                sucesso = true,
+                mensagem = "Planta identificada com sucesso",
+                planta = plantaIdentificada
+            });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { sucesso = false, mensagem = $"Erro ao processar imagem: {ex.Message}" });
+        }
+        finally
+        {
+            if (caminhoTemp != null && System.IO.File.Exists(caminhoTemp))
+                try { System.IO.File.Delete(caminhoTemp); } catch { }
+        }
+    }
+
     [HttpPost("buscar")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -127,6 +212,21 @@ public class PlantaController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioPlanta.ListarPlantasUsuarioPaginadoAsync(usuarioId, pagina, tamanho);
+        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpGet("minhas-plantas/buscar")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> BuscarMinhasPlantas([FromQuery] string termo, [FromQuery] int pagina = 1, [FromQuery] int tamanho = 10)
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+
+        var resultado = await _servicioPlanta.BuscarPlantasUsuarioAsync(usuarioId, termo, pagina, tamanho);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 

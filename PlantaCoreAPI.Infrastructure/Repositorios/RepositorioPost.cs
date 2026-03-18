@@ -169,6 +169,30 @@ public class RepositorioPost : IRepositorioPost
         };
     }
 
+    public async Task<PaginaResultado<Post>> ObterPorComunidadeAsync(Guid comunidadeId, int pagina, int tamanho)
+    {
+        var query = _contexto.Posts
+            .Where(p => p.ComunidadeId == comunidadeId)
+            .Include(p => p.Usuario)
+            .Include(p => p.Curtidas)
+            .Include(p => p.Comentarios);
+
+        var total = await query.CountAsync();
+        var itens = await query
+            .OrderByDescending(p => p.DataCriacao)
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToListAsync();
+
+        return new PaginaResultado<Post>
+        {
+            Itens = itens,
+            Pagina = pagina,
+            TamanhoPagina = tamanho,
+            Total = total
+        };
+    }
+
     public async Task<PaginaResultado<Post>> ObterExploradorAsync(int pagina, int tamanho)
     {
         var query = _contexto.Posts
@@ -190,5 +214,48 @@ public class RepositorioPost : IRepositorioPost
             TamanhoPagina = tamanho,
             Total = total
         };
+    }
+
+    public async Task<IEnumerable<Post>> ObterPorIdsAsync(IEnumerable<Guid> postIds)
+    {
+        return await _contexto.Posts
+            .Where(p => postIds.Contains(p.Id))
+            .Include(p => p.Usuario)
+            .Include(p => p.Curtidas)
+            .Include(p => p.Comentarios)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Post>> ObterPorHashtagAsync(string hashtag)
+    {
+        return await _contexto.Hashtags
+            .Where(h => h.Nome == hashtag)
+            .Select(h => h.Post)
+            .Include(p => p.Usuario)
+            .Include(p => p.Curtidas)
+            .Include(p => p.Comentarios)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Post>> ObterPorCategoriaAsync(string categoria)
+    {
+        return await _contexto.Categorias
+            .Where(c => c.Nome == categoria)
+            .Select(c => c.Post)
+            .Include(p => p.Usuario)
+            .Include(p => p.Curtidas)
+            .Include(p => p.Comentarios)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Post>> ObterPorPalavraChaveAsync(string palavraChave)
+    {
+        return await _contexto.PalavrasChave
+            .Where(pc => pc.Palavra == palavraChave)
+            .Select(pc => pc.Post)
+            .Include(p => p.Usuario)
+            .Include(p => p.Curtidas)
+            .Include(p => p.Comentarios)
+            .ToListAsync();
     }
 }

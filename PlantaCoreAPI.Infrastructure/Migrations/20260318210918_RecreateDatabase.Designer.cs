@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PlantaCoreAPI.Infrastructure.Dados;
@@ -11,9 +12,11 @@ using PlantaCoreAPI.Infrastructure.Dados;
 namespace PlantaCoreAPI.Infrastructure.Migrations
 {
     [DbContext(typeof(PlantaCoreDbContext))]
-    partial class PlantaCoreDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318210918_RecreateDatabase")]
+    partial class RecreateDatabase
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -21,26 +24,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
-
-            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Categoria", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("PostId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PostId");
-
-                    b.ToTable("Categorias");
-                });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Comentario", b =>
                 {
@@ -187,26 +170,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.ToTable("curtidas", (string)null);
                 });
 
-            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Hashtag", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("PostId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PostId");
-
-                    b.ToTable("Hashtags");
-                });
-
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.MembroComunidade", b =>
                 {
                     b.Property<Guid>("Id")
@@ -311,26 +274,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasDatabaseName("ix_notificacoes_usuario_origem_id");
 
                     b.ToTable("notificacoes", (string)null);
-                });
-
-            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PalavraChave", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Palavra")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<Guid>("PostId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("PostId");
-
-                    b.ToTable("PalavrasChave");
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Planta", b =>
@@ -671,17 +614,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.ToTable("seguidores", (string)null);
                 });
 
-            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Categoria", b =>
-                {
-                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", "Post")
-                        .WithMany()
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Post");
-                });
-
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Comentario", b =>
                 {
                     b.HasOne("PlantaCoreAPI.Domain.Entities.Post", "Post")
@@ -742,17 +674,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Navigation("Usuario");
                 });
 
-            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Hashtag", b =>
-                {
-                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", "Post")
-                        .WithMany()
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Post");
-                });
-
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.MembroComunidade", b =>
                 {
                     b.HasOne("PlantaCoreAPI.Domain.Entities.Comunidade", "Comunidade")
@@ -808,17 +729,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Navigation("Usuario");
 
                     b.Navigation("UsuarioOrigem");
-                });
-
-            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PalavraChave", b =>
-                {
-                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", "Post")
-                        .WithMany()
-                        .HasForeignKey("PostId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Post");
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Planta", b =>

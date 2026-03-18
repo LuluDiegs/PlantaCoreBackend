@@ -67,6 +67,25 @@ public class PlantCareReminderService : IPlantCareReminderService
         await _repositorioNotificacao.SalvarMudancasAsync();
     }
 
+    public async Task<IEnumerable<Planta>> ObterPlantasComNotificacoesHabilitadasAsync()
+    {
+        return await _repositorioPlanta.ObterTodosAsync(); // Ajustar para filtrar plantas com notificações habilitadas
+    }
+
+    public async Task EnviarNotificacaoAsync(Guid usuarioId, Guid plantaId, string mensagem)
+    {
+        var notificacao = Notificacao.Criar(
+            usuarioId,
+            TipoNotificacao.LembreteCuidado,
+            mensagem,
+            usuarioOrigemId: null,
+            plantaId: plantaId,
+            postId: null);
+
+        await _repositorioNotificacao.AdicionarAsync(notificacao);
+        await _repositorioNotificacao.SalvarMudancasAsync();
+    }
+
     private async Task<bool> JaExisteLembreteHojeAsync(Guid plantaId)
     {
         var hoje = DateTime.UtcNow.Date;

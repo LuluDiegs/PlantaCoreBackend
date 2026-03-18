@@ -14,17 +14,20 @@ public class PostService : IPostService
     private readonly IRepositorioUsuario _repositorioUsuario;
     private readonly IRepositorioPlanta _repositorioPlanta;
     private readonly IRepositorioNotificacao _repositorioNotificacao;
+    private readonly IRepositorioComunidade _repositorioComunidade;
 
     public PostService(
         IRepositorioPost repositorioPost,
         IRepositorioUsuario repositorioUsuario,
         IRepositorioPlanta repositorioPlanta,
-        IRepositorioNotificacao repositorioNotificacao)
+        IRepositorioNotificacao repositorioNotificacao,
+        IRepositorioComunidade repositorioComunidade)
     {
         _repositorioPost = repositorioPost;
         _repositorioUsuario = repositorioUsuario;
         _repositorioPlanta = repositorioPlanta;
         _repositorioNotificacao = repositorioNotificacao;
+        _repositorioComunidade = repositorioComunidade;
     }
 
     public async Task<Resultado<PostDTOSaida>> CriarPostAsync(Guid usuarioId, CriarPostDTOEntrada entrada)
@@ -32,16 +35,39 @@ public class PostService : IPostService
         try
         {
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
-            var planta = await _repositorioPlanta.ObterPorIdAsync(entrada.PlantaId);
+            if (usuario == null)
+                return Resultado<PostDTOSaida>.Erro("Usuário não encontrado");
 
-            if (usuario == null || planta == null)
-                return Resultado<PostDTOSaida>.Erro("Usuário ou planta não encontrado");
+            Planta? planta = null;
+            if (entrada.PlantaId.HasValue)
+            {
+                planta = await _repositorioPlanta.ObterPorIdAsync(entrada.PlantaId.Value);
+                if (planta == null)
+                    return Resultado<PostDTOSaida>.Erro("Planta não encontrada");
 
-            var post = Post.Criar(usuarioId, entrada.PlantaId, entrada.Conteudo);
+                if (planta.UsuarioId != usuarioId)
+                    return Resultado<PostDTOSaida>.Erro("Você só pode postar sobre suas próprias plantas");
+            }
+
+            if (entrada.ComunidadeId.HasValue)
+            {
+                var ehMembro = await _repositorioComunidade.UsuarioEhMembroAsync(entrada.ComunidadeId.Value, usuarioId);
+                if (!ehMembro)
+                    return Resultado<PostDTOSaida>.Erro("Você precisa ser membro da comunidade para postar nela");
+            }
+
+            var post = Post.Criar(usuarioId, entrada.Conteudo, entrada.PlantaId, entrada.ComunidadeId);
             await _repositorioPost.AdicionarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
 
-            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario, planta, false));
+            string? nomeComunidade = null;
+            if (entrada.ComunidadeId.HasValue)
+            {
+                var comunidade = await _repositorioComunidade.ObterPorIdAsync(entrada.ComunidadeId.Value);
+                nomeComunidade = comunidade?.Nome;
+            }
+
+            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario, planta, false, nomeComunidade));
         }
         catch (Exception ex)
         {
@@ -65,8 +91,16 @@ public class PostService : IPostService
             await _repositorioPost.SalvarMudancasAsync();
 
             var usuario = await _repositorioUsuario.ObterPorIdAsync(post.UsuarioId);
-            var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
-            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario!, planta!, false));
+            Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
+
+            string? nomeComunidade = null;
+            if (post.ComunidadeId.HasValue)
+            {
+                var comunidade = await _repositorioComunidade.ObterPorIdAsync(post.ComunidadeId.Value);
+                nomeComunidade = comunidade?.Nome;
+            }
+
+            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario!, planta, false, nomeComunidade));
         }
         catch (Exception ex)
         {
@@ -106,10 +140,17 @@ public class PostService : IPostService
                 return Resultado<PostDTOSaida>.Erro("Post não encontrado");
 
             var usuario = await _repositorioUsuario.ObterPorIdAsync(post.UsuarioId);
-            var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
+            Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
             var curtiu = post.Curtidas.Any(c => c.UsuarioId == usuarioId);
 
-            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario!, planta!, curtiu));
+            string? nomeComunidade = null;
+            if (post.ComunidadeId.HasValue)
+            {
+                var comunidade = await _repositorioComunidade.ObterPorIdAsync(post.ComunidadeId.Value);
+                nomeComunidade = comunidade?.Nome;
+            }
+
+            return Resultado<PostDTOSaida>.Ok(MapearPostPara(post, usuario!, planta, curtiu, nomeComunidade));
         }
         catch (Exception ex)
         {
@@ -126,9 +167,17 @@ public class PostService : IPostService
             var dtos = new List<PostDTOSaida>();
             foreach (var post in posts.Where(p => p.Usuario != null))
             {
-                var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
+                Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
                 var curtiu = post.Curtidas.Any(c => c.UsuarioId == usuarioId);
-                dtos.Add(MapearPostPara(post, post.Usuario!, planta!, curtiu));
+
+                string? nomeComunidade = null;
+                if (post.ComunidadeId.HasValue)
+                {
+                    var comunidade = await _repositorioComunidade.ObterPorIdAsync(post.ComunidadeId.Value);
+                    nomeComunidade = comunidade?.Nome;
+                }
+
+                dtos.Add(MapearPostPara(post, post.Usuario!, planta, curtiu, nomeComunidade));
             }
 
             return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
@@ -147,7 +196,6 @@ public class PostService : IPostService
             if (post == null)
                 return Resultado.Erro("Post não encontrado");
 
-            // Validar se o usuário está tentando curtir seu próprio post
             if (post.UsuarioId == usuarioId)
                 return Resultado.Erro("Você não pode curtir seu próprio post");
 
@@ -241,7 +289,6 @@ public class PostService : IPostService
         try
         {
             var post = await _repositorioPost.ObterPorComentarioIdAsync(comentarioId);
-
             if (post == null)
                 return Resultado<ComentarioDTOSaida>.Erro("Comentário não encontrado");
 
@@ -267,7 +314,6 @@ public class PostService : IPostService
         try
         {
             var post = await _repositorioPost.ObterPorComentarioIdAsync(comentarioId);
-
             if (post == null)
                 return Resultado.Erro("Comentário não encontrado");
 
@@ -334,8 +380,8 @@ public class PostService : IPostService
             var itens = new List<PostDTOSaida>();
             foreach (var post in paginaPosts.Itens.Where(p => p.Usuario != null))
             {
-                var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
-                itens.Add(MapearPostPara(post, post.Usuario!, planta!, post.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId)));
+                Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
+                itens.Add(MapearPostPara(post, post.Usuario!, planta, post.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId)));
             }
 
             return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
@@ -361,8 +407,8 @@ public class PostService : IPostService
             var itens = new List<PostDTOSaida>();
             foreach (var post in paginaPosts.Itens.Where(p => p.Usuario != null))
             {
-                var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
-                itens.Add(MapearPostPara(post, post.Usuario!, planta!, post.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId)));
+                Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
+                itens.Add(MapearPostPara(post, post.Usuario!, planta, post.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId)));
             }
 
             return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
@@ -388,7 +434,6 @@ public class PostService : IPostService
                 return Resultado.Erro("Comentário não encontrado");
 
             comentario.AdicionarCurtida(usuarioId);
-
             await _repositorioPost.AtualizarComentarioAsync(comentario);
             await _repositorioPost.SalvarMudancasAsync();
             return Resultado.Ok("Comentário curtido com sucesso");
@@ -408,7 +453,6 @@ public class PostService : IPostService
                 return Resultado.Erro("Comentário não encontrado");
 
             comentario.RemoverCurtida(usuarioId);
-
             await _repositorioPost.AtualizarComentarioAsync(comentario);
             await _repositorioPost.SalvarMudancasAsync();
             return Resultado.Ok("Curtida removida com sucesso");
@@ -455,8 +499,8 @@ public class PostService : IPostService
             var dtos = new List<PostDTOSaida>();
             foreach (var post in posts.Where(p => p.Usuario != null))
             {
-                var planta = await _repositorioPlanta.ObterPorIdAsync(post.PlantaId);
-                dtos.Add(MapearPostPara(post, post.Usuario!, planta!, post.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId)));
+                Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
+                dtos.Add(MapearPostPara(post, post.Usuario!, planta, post.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId)));
             }
 
             return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
@@ -467,17 +511,139 @@ public class PostService : IPostService
         }
     }
 
-    private PostDTOSaida MapearPostPara(Post post, Usuario usuario, Planta planta, bool curtiu)
+    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> ListarPostsPorIdsAsync(List<Guid> postIds, Guid usuarioId)
+    {
+        try
+        {
+            var posts = await _repositorioPost.ObterPorIdsAsync(postIds);
+
+            var itens = posts.Select(post =>
+            {
+                Planta? planta = post.PlantaId.HasValue ? _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value).Result : null;
+                return MapearPostPara(post, post.Usuario!, planta, post.Curtidas.Any(c => c.UsuarioId == usuarioId));
+            }).ToList();
+
+            return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
+            {
+                Itens = itens,
+                Pagina = 1,
+                TamanhoPagina = itens.Count,
+                Total = itens.Count
+            });
+        }
+        catch (Exception ex)
+        {
+            return Resultado<PaginaResultado<PostDTOSaida>>.Erro($"Erro ao listar posts por IDs: {ex.Message}");
+        }
+    }
+
+    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> ObterFeedFiltradoAsync(Guid usuarioId, string ordenacao, int pagina = 1, int tamanho = 10)
+    {
+        try
+        {
+            var posts = await _repositorioPost.ObterFeedAsync(usuarioId, pagina, tamanho);
+
+            IEnumerable<Post> postsOrdenados = ordenacao.ToLower() switch
+            {
+                "recentes" => posts.OrderByDescending(p => p.DataCriacao),
+                "recomendadas" => posts.OrderByDescending(p => p.Curtidas.Count),
+                _ => posts
+            };
+
+            var dtos = new List<PostDTOSaida>();
+            foreach (var post in postsOrdenados.Where(p => p.Usuario != null))
+            {
+                Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
+                var curtiu = post.Curtidas.Any(c => c.UsuarioId == usuarioId);
+
+                string? nomeComunidade = null;
+                if (post.ComunidadeId.HasValue)
+                {
+                    var comunidade = await _repositorioComunidade.ObterPorIdAsync(post.ComunidadeId.Value);
+                    nomeComunidade = comunidade?.Nome;
+                }
+
+                dtos.Add(MapearPostPara(post, post.Usuario!, planta, curtiu, nomeComunidade));
+            }
+
+            return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
+            {
+                Itens = dtos,
+                Pagina = pagina,
+                TamanhoPagina = tamanho,
+                Total = dtos.Count
+            });
+        }
+        catch (Exception ex)
+        {
+            return Resultado<PaginaResultado<PostDTOSaida>>.Erro($"Erro ao obter feed filtrado: {ex.Message}");
+        }
+    }
+
+    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> BuscarPostsPorPlantaAsync(string nomePlanta, int pagina = 1, int tamanho = 10)
+    {
+        try
+        {
+            var posts = await _repositorioPost.ObterTodosAsync();
+
+            var postsFiltrados = posts
+                .Where(p => p.Planta != null &&
+                            (p.Planta.NomeCientifico.Contains(nomePlanta, StringComparison.OrdinalIgnoreCase) ||
+                             (p.Planta.NomeComum != null && p.Planta.NomeComum.Contains(nomePlanta, StringComparison.OrdinalIgnoreCase))))
+                .Skip((pagina - 1) * tamanho)
+                .Take(tamanho)
+                .ToList();
+
+            var dtos = postsFiltrados.Select(p => MapearPostPara(p, p.Usuario!, p.Planta, false)).ToList();
+
+            return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
+            {
+                Itens = dtos,
+                Pagina = pagina,
+                TamanhoPagina = tamanho,
+                Total = postsFiltrados.Count
+            });
+        }
+        catch (Exception ex)
+        {
+            return Resultado<PaginaResultado<PostDTOSaida>>.Erro($"Erro ao buscar posts por planta: {ex.Message}");
+        }
+    }
+
+    public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorHashtagAsync(string hashtag)
+    {
+        var posts = await _repositorioPost.ObterPorHashtagAsync(hashtag);
+        var dtos = posts.Select(p => MapearPostPara(p, p.Usuario!, null, false)).ToList();
+        return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
+    }
+
+    public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorCategoriaAsync(string categoria)
+    {
+        var posts = await _repositorioPost.ObterPorCategoriaAsync(categoria);
+        var dtos = posts.Select(p => MapearPostPara(p, p.Usuario!, null, false)).ToList();
+        return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
+    }
+
+    public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorPalavraChaveAsync(string palavraChave)
+    {
+        var posts = await _repositorioPost.ObterPorPalavraChaveAsync(palavraChave);
+        var dtos = posts.Select(p => MapearPostPara(p, p.Usuario!, null, false)).ToList();
+        return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
+    }
+
+    private static PostDTOSaida MapearPostPara(Post post, Usuario usuario, Planta? planta, bool curtiu, string? nomeComunidade = null)
     {
         return new PostDTOSaida
         {
             Id = post.Id,
             PlantaId = post.PlantaId,
+            ComunidadeId = post.ComunidadeId,
+            NomeComunidade = nomeComunidade,
             UsuarioId = post.UsuarioId,
             NomeUsuario = usuario.Nome,
             FotoUsuario = usuario.FotoPerfil,
-            NomePlanta = planta.NomeComum ?? planta.NomeCientifico,
-            FotoPlanta = planta.FotoPlanta,
+            NomePlanta = planta != null ? (planta.NomeComum ?? planta.NomeCientifico) : null,
+            FotoPlanta = planta?.FotoPlanta,
             Conteudo = post.Conteudo,
             TotalCurtidas = post.Curtidas.Count,
             TotalComentarios = post.Comentarios.Count,

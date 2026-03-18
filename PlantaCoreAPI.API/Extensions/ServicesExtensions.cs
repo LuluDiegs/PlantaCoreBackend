@@ -19,6 +19,8 @@ internal static class ServicesExtensions
         services.AddScoped<IRepositorioTokenRefresh, RepositorioTokenRefresh>();
         services.AddScoped<IRepositorioCurtida, RepositorioCurtida>();
         services.AddScoped<IRepositorioComentario, RepositorioComentario>();
+        services.AddScoped<IRepositorioComunidade, RepositorioComunidade>();
+        services.AddScoped<IRepositorioSolicitacaoSeguir, RepositorioSolicitacaoSeguir>();
         return services;
     }
 
@@ -33,11 +35,20 @@ internal static class ServicesExtensions
                 provider.GetRequiredService<IEmailService>(),
                 provider.GetRequiredService<IPasswordHashService>(),
                 configuration));
-        
+
         services.AddScoped<IPlantService, PlantService>();
-        services.AddScoped<IPostService, PostService>();
         services.AddScoped<INotificationService, NotificationService>();
         services.AddScoped<IPlantCareReminderService, PlantCareReminderService>();
+        services.AddScoped<IComunidadeService, ComunidadeService>();
+
+        services.AddScoped<IPostService>(provider =>
+            new PostService(
+                provider.GetRequiredService<IRepositorioPost>(),
+                provider.GetRequiredService<IRepositorioUsuario>(),
+                provider.GetRequiredService<IRepositorioPlanta>(),
+                provider.GetRequiredService<IRepositorioNotificacao>(),
+                provider.GetRequiredService<IRepositorioComunidade>()));
+
         services.AddScoped<IAccountDeletionService, AccountDeletionService>();
         services.AddScoped<IAccountReactivationService>(provider =>
             new AccountReactivationService(
@@ -51,7 +62,9 @@ internal static class ServicesExtensions
             new UserService(
                 provider.GetRequiredService<IRepositorioUsuario>(),
                 provider.GetRequiredService<IRepositorioPost>(),
+                provider.GetRequiredService<IRepositorioPlanta>(),
                 provider.GetRequiredService<IRepositorioNotificacao>(),
+                provider.GetRequiredService<IRepositorioSolicitacaoSeguir>(),
                 provider.GetRequiredService<IFileStorageService>(),
                 provider.GetRequiredService<IAccountDeletionService>(),
                 provider.GetRequiredService<IAccountReactivationService>()));

@@ -2,6 +2,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using PlantaCoreAPI.Application.Interfaces;
+using PlantaCoreAPI.Domain.Entities;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
 
@@ -9,7 +10,7 @@ public class PlantCareReminderBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<PlantCareReminderBackgroundService> _logger;
-    private bool _primeiraExecucao = true;
+    private bool _executandoAgora = false;
 
     private static readonly TimeZoneInfo BrasilTimeZone =
         TimeZoneInfo.FindSystemTimeZoneById(
@@ -17,6 +18,11 @@ public class PlantCareReminderBackgroundService : BackgroundService
                 ? "E. South America Standard Time"
                 : "America/Sao_Paulo"
         );
+
+    private static readonly TimeSpan[] HorariosDisparo = new[]
+    {
+        TimeSpan.FromHours(8)
+    };
 
     public PlantCareReminderBackgroundService(
         IServiceProvider serviceProvider,
@@ -28,7 +34,8 @@ public class PlantCareReminderBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("PlantCareReminderBackgroundService iniciado");
+        _logger.LogInformation("[Lembretes] Serviço iniciado. Horários de disparo (Brasil): {Horarios}",
+            string.Join(", ", HorariosDisparo.Select(h => h.ToString(@"hh\:mm"))));
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -37,78 +44,104 @@ public class PlantCareReminderBackgroundService : BackgroundService
                 var agoraUtc = DateTime.UtcNow;
                 var agoraBrasil = TimeZoneInfo.ConvertTimeFromUtc(agoraUtc, BrasilTimeZone);
 
-                var proximoDisparoBrasil = ObterProximoDisparoBrasil(agoraBrasil);
-                var proximoDisparoUtc = TimeZoneInfo.ConvertTimeToUtc(proximoDisparoBrasil, BrasilTimeZone);
-
+                var proximoDisparo = ObterProximoDisparo(agoraBrasil);
+                var proximoDisparoUtc = TimeZoneInfo.ConvertTimeToUtc(proximoDisparo, BrasilTimeZone);
                 var espera = proximoDisparoUtc - agoraUtc;
 
                 if (espera < TimeSpan.Zero)
                     espera = TimeSpan.Zero;
 
-                if (_primeiraExecucao)
-                {
-                    _primeiraExecucao = false;
-                    _logger.LogInformation(
-                        $"Agora (Brasil): {agoraBrasil:yyyy-MM-dd HH:mm:ss} | " +
-                        $"Próximo disparo: {proximoDisparoBrasil:yyyy-MM-dd HH:mm:ss} | " +
-                        $"em {espera.TotalHours:F1} horas"
-                    );
-                    await Task.Delay(espera, stoppingToken);
-                    await GerarLembretes(stoppingToken);
-                    continue;
-                }
-
                 _logger.LogInformation(
-                    $"Agora (Brasil): {agoraBrasil:yyyy-MM-dd HH:mm:ss} | " +
-                    $"Próximo disparo: {proximoDisparoBrasil:yyyy-MM-dd HH:mm:ss} (horário Brasil) | " +
-                    $"em {espera.TotalHours:F1} horas"
-                );
+                    "[Lembretes] Agora (Brasil): {Agora:yyyy-MM-dd HH:mm:ss} | Próximo disparo: {Proximo:yyyy-MM-dd HH:mm:ss} | em {Horas:F1}h",
+                    agoraBrasil, proximoDisparo, espera.TotalHours);
 
                 await Task.Delay(espera, stoppingToken);
 
-                await GerarLembretes(stoppingToken);
+                if (!stoppingToken.IsCancellationRequested)
+                    await ExecutarComSegurancaAsync(stoppingToken);
             }
             catch (OperationCanceledException)
             {
-                _logger.LogInformation("PlantCareReminderBackgroundService cancelado");
+                _logger.LogInformation("[Lembretes] Serviço cancelado.");
                 break;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao gerar lembretes automaticamente");
-                _logger.LogInformation("Aguardando 5 minutos antes de tentar novamente...");
-
-                try
-                {
-                    await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
+                _logger.LogError(ex, "[Lembretes] Erro inesperado no loop principal. Aguardando 5 minutos...");
+                await EsperarComCancelamentoAsync(TimeSpan.FromMinutes(5), stoppingToken);
             }
         }
 
-        _logger.LogInformation("PlantCareReminderBackgroundService parado");
+        _logger.LogInformation("[Lembretes] Serviço parado.");
     }
 
-    private async Task GerarLembretes(CancellationToken stoppingToken)
+    private async Task ExecutarComSegurancaAsync(CancellationToken stoppingToken)
     {
-        using var scope = _serviceProvider.CreateScope();
-        var servicoLembrete = scope.ServiceProvider.GetRequiredService<IPlantCareReminderService>();
+        if (_executandoAgora)
+        {
+            _logger.LogWarning("[Lembretes] Execução anterior ainda em andamento. Pulando ciclo.");
+            return;
+        }
 
-        _logger.LogInformation("Gerando lembretes para todas as plantas...");
-        await servicoLembrete.GerarLembretesParaTodosPlantas();
-        _logger.LogInformation("Lembretes gerados com sucesso!");
+        _executandoAgora = true;
+        try
+        {
+            _logger.LogInformation("[Lembretes] Iniciando geração de lembretes...");
+            using var scope = _serviceProvider.CreateScope();
+            var servicoLembrete = scope.ServiceProvider.GetRequiredService<IPlantCareReminderService>();
+
+            // Obter todas as plantas com notificações habilitadas
+            var plantasComNotificacoes = await servicoLembrete.ObterPlantasComNotificacoesHabilitadasAsync();
+
+            foreach (var planta in plantasComNotificacoes)
+            {
+                var notificacao = GerarMensagemDeCuidado(planta);
+                await servicoLembrete.EnviarNotificacaoAsync(planta.UsuarioId, planta.Id, notificacao);
+            }
+
+            _logger.LogInformation("[Lembretes] Lembretes gerados com sucesso.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[Lembretes] Erro ao gerar lembretes. Será tentado novamente no próximo horário.");
+        }
+        finally
+        {
+            _executandoAgora = false;
+        }
     }
 
-    private static DateTime ObterProximoDisparoBrasil(DateTime agoraBrasil)
+    private string GerarMensagemDeCuidado(Planta planta)
     {
-        var proximo = agoraBrasil.Date.AddHours(8); 
+        var mensagens = new List<string>();
 
-        if (agoraBrasil >= proximo)
-            proximo = proximo.AddDays(1);
+        if (!string.IsNullOrWhiteSpace(planta.RequisitosAgua))
+            mensagens.Add($"A planta precisa ser regada: {planta.RequisitosAgua}");
 
-        return proximo;
+        if (!string.IsNullOrWhiteSpace(planta.RequisitosLuz))
+            mensagens.Add($"A planta precisa de luz: {planta.RequisitosLuz}");
+
+        if (!string.IsNullOrWhiteSpace(planta.RequisitosTemperatura))
+            mensagens.Add($"A planta precisa de temperatura adequada: {planta.RequisitosTemperatura}");
+
+        return string.Join("; ", mensagens);
+    }
+
+    private static async Task EsperarComCancelamentoAsync(TimeSpan duracao, CancellationToken stoppingToken)
+    {
+        try { await Task.Delay(duracao, stoppingToken); }
+        catch (OperationCanceledException) { }
+    }
+
+    private static DateTime ObterProximoDisparo(DateTime agoraBrasil)
+    {
+        foreach (var horario in HorariosDisparo.OrderBy(h => h))
+        {
+            var candidato = agoraBrasil.Date.Add(horario);
+            if (candidato > agoraBrasil.AddSeconds(30))
+                return candidato;
+        }
+
+        return agoraBrasil.Date.AddDays(1).Add(HorariosDisparo.Min());
     }
 }
