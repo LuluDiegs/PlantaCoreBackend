@@ -115,7 +115,7 @@ public class ComunidadeService : IComunidadeService
                 return Resultado.Erro("Comunidade não encontrada");
 
             if (comunidade.CriadorId == usuarioId)
-                return Resultado.Erro("O criador não pode sair da comunidade");
+                return Resultado.Erro("O criador não pode sair da comunidade. Transfira a administração antes de sair.");
 
             var membro = await _repositorioComunidade.ObterMembroAsync(comunidadeId, usuarioId);
             if (membro == null)

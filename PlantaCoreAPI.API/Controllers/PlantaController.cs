@@ -159,6 +159,33 @@ public class PlantaController : ControllerBase
         }
     }
 
+    [HttpPost("identificar-e-postar")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> IdentificarEPostar([FromForm] IdentificarEPostarDTO entrada)
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+
+        var resultadoIdentificacao = await _servicioPlanta.IdentificarPlantaAsync(usuarioId, entrada);
+        if (!resultadoIdentificacao.Sucesso)
+            return BadRequest(resultadoIdentificacao);
+
+        if (!string.IsNullOrWhiteSpace(entrada.Comentario))
+        {
+            var resultadoPost = await _servicioPlanta.PostarFotoIdentificacaoAsync(usuarioId, resultadoIdentificacao.Dados.Id, entrada.Comentario);
+            if (!resultadoPost.Sucesso)
+                return BadRequest(resultadoPost);
+
+            return Ok(new { Planta = resultadoIdentificacao.Dados, Post = resultadoPost.Dados });
+        }
+
+        return Ok(new { Planta = resultadoIdentificacao.Dados });
+    }
+
     [HttpPost("buscar")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]

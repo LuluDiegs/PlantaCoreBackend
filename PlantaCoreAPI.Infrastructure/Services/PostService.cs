@@ -613,22 +613,43 @@ public class PostService : IPostService
     public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorHashtagAsync(string hashtag)
     {
         var posts = await _repositorioPost.ObterPorHashtagAsync(hashtag);
-        var dtos = posts.Select(p => MapearPostPara(p, p.Usuario!, null, false)).ToList();
-        return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
+        var resultado = posts.Select(p => new PostDTOSaida
+        {
+            Id = p.Id,
+            Conteudo = p.Conteudo,
+            UsuarioId = p.UsuarioId,
+            DataCriacao = p.DataCriacao
+        });
+
+        return Resultado<IEnumerable<PostDTOSaida>>.Ok(resultado);
     }
 
     public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorCategoriaAsync(string categoria)
     {
         var posts = await _repositorioPost.ObterPorCategoriaAsync(categoria);
-        var dtos = posts.Select(p => MapearPostPara(p, p.Usuario!, null, false)).ToList();
-        return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
+        var resultado = posts.Select(p => new PostDTOSaida
+        {
+            Id = p.Id,
+            Conteudo = p.Conteudo,
+            UsuarioId = p.UsuarioId,
+            DataCriacao = p.DataCriacao
+        });
+
+        return Resultado<IEnumerable<PostDTOSaida>>.Ok(resultado);
     }
 
     public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorPalavraChaveAsync(string palavraChave)
     {
         var posts = await _repositorioPost.ObterPorPalavraChaveAsync(palavraChave);
-        var dtos = posts.Select(p => MapearPostPara(p, p.Usuario!, null, false)).ToList();
-        return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
+        var resultado = posts.Select(p => new PostDTOSaida
+        {
+            Id = p.Id,
+            Conteudo = p.Conteudo,
+            UsuarioId = p.UsuarioId,
+            DataCriacao = p.DataCriacao
+        });
+
+        return Resultado<IEnumerable<PostDTOSaida>>.Ok(resultado);
     }
 
     private static PostDTOSaida MapearPostPara(Post post, Usuario usuario, Planta? planta, bool curtiu, string? nomeComunidade = null)
