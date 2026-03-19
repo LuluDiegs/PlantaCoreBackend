@@ -1,0 +1,680 @@
+# Documentação da API
+
+## Endpoints
+
+### **AutenticacaoController**
+
+#### **POST /api/v1/Autenticacao/registrar**
+- **Descrição**: Registra um novo usuário.
+- **Corpo da Requisição**:
+```json
+{
+  "nome": "string",
+  "email": "string",
+  "senha": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Registro realizado com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+
+#### **POST /api/v1/Autenticacao/login**
+- **Descrição**: Realiza o login de um usuário.
+- **Corpo da Requisição**:
+```json
+{
+  "email": "string",
+  "senha": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Login realizado com sucesso.
+  - **401 Unauthorized**: Credenciais inválidas.
+
+#### **POST /api/v1/Autenticacao/refresh-token**
+- **Descrição**: Atualiza o token de autenticação.
+- **Corpo da Requisição**:
+```json
+{
+  "tokenRefresh": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Token atualizado com sucesso.
+  - **401 Unauthorized**: Token inválido.
+
+#### **POST /api/v1/Autenticacao/logout**
+- **Descrição**: Realiza o logout do usuário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Logout realizado com sucesso.
+  - **401 Unauthorized**: Token inválido.
+
+#### **POST /api/v1/Autenticacao/confirmar-email**
+- **Descrição**: Confirma o email do usuário.
+- **Corpo da Requisição**:
+```json
+{
+  "email": "string",
+  "codigoConfirmacao": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Email confirmado com sucesso.
+  - **400 Bad Request**: Código inválido.
+
+#### **POST /api/v1/Autenticacao/resetar-senha**
+- **Descrição**: Envia um email para redefinir a senha.
+- **Corpo da Requisição**:
+```json
+{
+  "email": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Email enviado com sucesso.
+
+#### **POST /api/v1/Autenticacao/nova-senha**
+- **Descrição**: Define uma nova senha para o usuário.
+- **Corpo da Requisição**:
+```json
+{
+  "email": "string",
+  "codigoConfirmacao": "string",
+  "novaSenha": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Senha alterada com sucesso.
+  - **400 Bad Request**: Código inválido.
+
+#### **POST /api/v1/Autenticacao/trocar-senha**
+- **Descrição**: Troca a senha do usuário logado.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "senhaAtual": "string",
+  "novaSenha": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Senha alterada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **POST /api/v1/Autenticacao/reenviar-confirmacao**
+- **Descrição**: Reenvia o email de confirmação.
+- **Corpo da Requisição**:
+```json
+{
+  "email": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Email reenviado com sucesso.
+
+### **PostController**
+
+#### **POST /api/v1/Post**
+- **Descrição**: Cria um novo post.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "conteudo": "string",
+  "comunidadeId": "guid"
+}
+```
+- **Respostas**:
+  - **201 Created**: Post criado com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **PUT /api/v1/Post/{postId}**
+- **Descrição**: Atualiza um post existente.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "conteudo": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Post atualizado com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **DELETE /api/v1/Post/{postId}**
+- **Descrição**: Exclui um post.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Post excluído com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **GET /api/v1/Post/{postId}**
+- **Descrição**: Obtém um post pelo ID.
+- **Respostas**:
+  - **200 OK**: Post encontrado.
+  - **404 Not Found**: Post não encontrado.
+
+#### **GET /api/v1/Post/feed**
+- **Descrição**: Obtém o feed do usuário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Parâmetros de Query**:
+  - pagina: int (default: 1)
+  - tamanho: int (default: 10)
+- **Respostas**:
+  - **200 OK**: Feed obtido com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **POST /api/v1/Post/{postId}/curtir**
+- **Descrição**: Adiciona uma curtida a um post.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Curtida adicionada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **DELETE /api/v1/Post/{postId}/curtida**
+- **Descrição**: Remove uma curtida de um post.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Curtida removida com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **POST /api/v1/Post/comentario**
+- **Descrição**: Cria um comentário em um post.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "postId": "guid",
+  "conteudo": "string"
+}
+```
+- **Respostas**:
+  - **201 Created**: Comentário criado com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **PUT /api/v1/Post/comentario/{comentarioId}**
+- **Descrição**: Atualiza um comentário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "conteudo": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Comentário atualizado com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **DELETE /api/v1/Post/comentario/{comentarioId}**
+- **Descrição**: Exclui um comentário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Comentário excluído com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **GET /api/v1/Post/{postId}/comentarios**
+- **Descrição**: Lista os comentários de um post.
+- **Parâmetros de Query**:
+  - pagina: int (default: 1)
+  - tamanho: int (default: 20)
+- **Respostas**:
+  - **200 OK**: Comentários listados com sucesso.
+  - **404 Not Found**: Post não encontrado.
+
+#### **GET /api/v1/Post/usuario/{usuarioId}**
+- **Descrição**: Lista os posts de um usuário.
+- **Parâmetros de Query**:
+  - pagina: int (default: 1)
+  - tamanho: int (default: 10)
+- **Respostas**:
+  - **200 OK**: Posts listados com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+
+#### **GET /api/v1/Post/explorar**
+- **Descrição**: Lista posts para explorar.
+- **Parâmetros de Query**:
+  - pagina: int (default: 1)
+  - tamanho: int (default: 10)
+- **Respostas**:
+  - **200 OK**: Posts listados com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+
+#### **GET /api/v1/Post/usuario/{usuarioId}/curtidos**
+- **Descrição**: Lista os posts curtidos por um usuário.
+- **Respostas**:
+  - **200 OK**: Posts curtidos listados com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+
+#### **POST /api/v1/Post/comentario/{comentarioId}/curtir**
+- **Descrição**: Adiciona uma curtida a um comentário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Curtida adicionada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **DELETE /api/v1/Post/comentario/{comentarioId}/curtida**
+- **Descrição**: Remove uma curtida de um comentário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Curtida removida com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **DELETE /api/v1/Post/{postId}/comentario/{comentarioId}**
+- **Descrição**: Exclui um comentário como dono do post.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Comentário excluído com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+### **PlantaController**
+
+#### **POST /api/v1/Planta/identificar**
+- **Descrição**: Identifica uma planta a partir de uma imagem.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+  - Formulário multipart com um arquivo de imagem.
+- **Respostas**:
+  - **200 OK**: Planta identificada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **POST /api/v1/Planta/buscar**
+- **Descrição**: Busca plantas.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "nomePlanta": "string",
+  "pagina": int
+}
+```
+- **Respostas**:
+  - **200 OK**: Plantas encontradas.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+  - **404 Not Found**: Nenhuma planta encontrada.
+
+#### **POST /api/v1/Planta/buscar/adicionar**
+- **Descrição**: Busca e adiciona uma planta.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "plantaTrefleId": int,
+  "nomeCientifico": "string",
+  "urlImagem": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Planta adicionada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **GET /api/v1/Planta/minhas-plantas**
+- **Descrição**: Lista as plantas do usuário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Parâmetros de Query**:
+  - pagina: int (default: 1)
+  - tamanho: int (default: 10)
+- **Respostas**:
+  - **200 OK**: Plantas listadas com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **GET /api/v1/Planta/minhas-plantas/buscar**
+- **Descrição**: Busca as plantas do usuário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Parâmetros de Query**:
+  - termo: string
+  - pagina: int (default: 1)
+  - tamanho: int (default: 10)
+- **Respostas**:
+  - **200 OK**: Plantas encontradas.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **GET /api/v1/Planta/{plantaId}**
+- **Descrição**: Obtém uma planta pelo ID.
+- **Respostas**:
+  - **200 OK**: Planta encontrada.
+  - **404 Not Found**: Planta não encontrada.
+
+#### **DELETE /api/v1/Planta/{plantaId}**
+- **Descrição**: Exclui uma planta.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Planta excluída com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **POST /api/v1/Planta/{plantaId}/gerar-lembrete-cuidado**
+- **Descrição**: Gera um lembrete de cuidado para uma planta.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Lembrete gerado com sucesso.
+  - **401 Unauthorized**: Token inválido.
+
+### **LembreteCuidadoController**
+
+#### **POST /api/v1/lembretes-cuidado/gerar-para-todas-plantas**
+- **Descrição**: Gera lembretes de cuidado para todas as plantas do usuário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Lembretes gerados com sucesso.
+  - **401 Unauthorized**: Token inválido.
+
+### **NotificacaoController**
+
+#### **GET /api/v1/Notificacao**
+- **Descrição**: Obtém todas as notificações do usuário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Notificações obtidas com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **GET /api/v1/Notificacao/nao-lidas**
+- **Descrição**: Obtém todas as notificações não lidas do usuário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Notificações não lidas obtidas com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **PUT /api/v1/Notificacao/{notificacaoId}/marcar-como-lida**
+- **Descrição**: Marca uma notificação como lida.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Notificação marcada como lida.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **PUT /api/v1/Notificacao/marcar-todas-como-lidas**
+- **Descrição**: Marca todas as notificações como lidas.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Todas as notificações marcadas como lidas.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **DELETE /api/v1/Notificacao/{notificacaoId}**
+- **Descrição**: Exclui uma notificação específica.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Notificação excluída com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **DELETE /api/v1/Notificacao**
+- **Descrição**: Exclui todas as notificações do usuário.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Todas as notificações excluídas com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+### **UsuarioController**
+
+#### **GET /api/v1/Usuario/perfil**
+- **Descrição**: Obtém o perfil do usuário logado.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Perfil obtido com sucesso.
+  - **401 Unauthorized**: Token inválido.
+  - **404 Not Found**: Perfil não encontrado.
+
+#### **GET /api/v1/Usuario/perfil-publico/{usuarioId}**
+- **Descrição**: Obtém o perfil público de um usuário.
+- **Respostas**:
+  - **200 OK**: Perfil público obtido com sucesso.
+  - **404 Not Found**: Perfil não encontrado.
+
+#### **PUT /api/v1/Usuario/nome**
+- **Descrição**: Atualiza o nome do usuário logado.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "novoNome": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Nome atualizado com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **PUT /api/v1/Usuario/biografia**
+- **Descrição**: Atualiza a biografia do usuário logado.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "biografia": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Biografia atualizada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **PUT /api/v1/Usuario/privacidade**
+- **Descrição**: Altera a privacidade do perfil do usuário logado.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "privado": true
+}
+```
+- **Respostas**:
+  - **200 OK**: Privacidade alterada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **POST /api/v1/Usuario/foto-perfil**
+- **Descrição**: Atualiza a foto de perfil do usuário logado.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+  - Formulário multipart com um arquivo de imagem.
+- **Respostas**:
+  - **200 OK**: Foto de perfil atualizada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **DELETE /api/v1/Usuario/conta**
+- **Descrição**: Exclui a conta do usuário logado.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Conta excluída com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **POST /api/v1/Usuario/reativar/solicitar**
+- **Descrição**: Solicita a reativação de uma conta desativada.
+- **Corpo da Requisição**:
+```json
+{
+  "email": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Solicitação enviada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+
+#### **POST /api/v1/Usuario/reativar/confirmar**
+- **Descrição**: Reativa uma conta desativada com um token.
+- **Corpo da Requisição**:
+```json
+{
+  "email": "string",
+  "token": "string",
+  "novaSenha": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Conta reativada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+
+#### **POST /api/v1/Usuario/reativar/verificar-token**
+- **Descrição**: Verifica a validade de um token de reativação.
+- **Corpo da Requisição**:
+```json
+{
+  "email": "string",
+  "token": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Token válido.
+  - **400 Bad Request**: Token inválido.
+
+#### **POST /api/v1/Usuario/reativar/resetar-senha**
+- **Descrição**: Reseta a senha de uma conta desativada sem um token.
+- **Corpo da Requisição**:
+```json
+{
+  "email": "string",
+  "novaSenha": "string"
+}
+```
+- **Respostas**:
+  - **200 OK**: Senha resetada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+
+### **ComunidadeController**
+
+#### **POST /api/v1/Comunidade**
+- **Descrição**: Cria uma nova comunidade.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "nome": "string",
+  "descricao": "string",
+  "privada": true
+}
+```
+- **Respostas**:
+  - **201 Created**: Comunidade criada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **GET /api/v1/Comunidade/{comunidadeId}**
+- **Descrição**: Obtém os detalhes de uma comunidade pelo ID.
+- **Respostas**:
+  - **200 OK**: Comunidade encontrada.
+  - **404 Not Found**: Comunidade não encontrada.
+
+#### **PUT /api/v1/Comunidade/{comunidadeId}**
+- **Descrição**: Atualiza os detalhes de uma comunidade.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Corpo da Requisição**:
+```json
+{
+  "nome": "string",
+  "descricao": "string",
+  "privada": true
+}
+```
+- **Respostas**:
+  - **200 OK**: Comunidade atualizada com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **DELETE /api/v1/Comunidade/{comunidadeId}**
+- **Descrição**: Exclui uma comunidade.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Comunidade excluída com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **POST /api/v1/Comunidade/{comunidadeId}/participar**
+- **Descrição**: Solicita participação em uma comunidade privada ou entra em uma comunidade pública.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Solicitação enviada ou participação confirmada.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **DELETE /api/v1/Comunidade/{comunidadeId}/sair**
+- **Descrição**: Sai de uma comunidade.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Respostas**:
+  - **200 OK**: Saída confirmada.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **GET /api/v1/Comunidade/{comunidadeId}/membros**
+- **Descrição**: Lista os membros de uma comunidade.
+- **Cabeçalhos**:
+  - Authorization: Bearer <token>
+- **Parâmetros de Query**:
+  - pagina: int (default: 1)
+  - tamanho: int (default: 10)
+- **Respostas**:
+  - **200 OK**: Membros listados com sucesso.
+  - **400 Bad Request**: Dados inválidos.
+  - **401 Unauthorized**: Token inválido.
+
+#### **GET /api/v1/Comunidade/explorar**
+- **Descrição**: Lista comunidades para explorar.
+- **Parâmetros de Query**:
+  - pagina: int (default: 1)
+  - tamanho: int (default: 10)
+- **Respostas**:
+  - **200 OK**: Comunidades listadas com sucesso.
+  - **400 Bad Request**: Dados inválidos.
