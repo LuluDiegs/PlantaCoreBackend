@@ -18,5 +18,6 @@ RUN dotnet publish "PlantaCoreAPI.API/PlantaCoreAPI.API.csproj" -c Release -o /a
 FROM base AS final
 WORKDIR /app
 COPY --from=build /app/publish .
+COPY ["PlantaCoreAPI.API/appsettings.Development.json", "/app"] 
 ENV ASPNETCORE_ENVIRONMENT=Development
 ENTRYPOINT ["dotnet", "PlantaCoreAPI.API.dll"]
