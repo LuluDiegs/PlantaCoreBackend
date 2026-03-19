@@ -81,90 +81,7 @@ public class PlantaController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> IdentificarEPostar(IFormFile foto, [FromServices] IPostService postService, [FromQuery] bool criarPostagem = false)
-    {
-        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
-            return Unauthorized();
-
-        if (foto == null || foto.Length == 0)
-            return BadRequest(new { sucesso = false, mensagem = "Nenhuma foto enviada" });
-
-        if (!foto.ContentType.StartsWith("image/"))
-            return BadRequest(new { sucesso = false, mensagem = "Arquivo deve ser uma imagem" });
-
-        string? caminhoTemp = null;
-        string? urlFoto = null;
-
-        try
-        {
-            caminhoTemp = Path.Combine(Path.GetTempPath(), $"planta_{Guid.NewGuid()}_{foto.FileName}");
-            using (var fileStream = System.IO.File.Create(caminhoTemp))
-                await foto.CopyToAsync(fileStream);
-
-            try
-            {
-                var bytes = await System.IO.File.ReadAllBytesAsync(caminhoTemp);
-                urlFoto = await _fileStorageService.FazerUploadFotoPlantaAsync(bytes, foto.FileName, usuarioId);
-            }
-            catch { }
-
-            var resultadoIdentificacao = await _servicioPlanta.IdentificarPlantaAsync(usuarioId, new IdentificacaoDTOEntrada
-            {
-                CaminhoTemp = caminhoTemp,
-                UrlImagem = urlFoto
-            });
-
-            if (!resultadoIdentificacao.Sucesso)
-                return BadRequest(resultadoIdentificacao);
-
-            var plantaIdentificada = resultadoIdentificacao.Dados;
-
-            if (criarPostagem)
-            {
-                var resultadoPostagem = await postService.CriarPostAsync(usuarioId, new CriarPostDTOEntrada
-                {
-                    PlantaId = plantaIdentificada.Id,
-                    Conteudo = $"Identifiquei uma nova planta: {plantaIdentificada.NomeCientifico}",
-                    ComunidadeId = null
-                });
-
-                if (!resultadoPostagem.Sucesso)
-                    return BadRequest(resultadoPostagem);
-
-                return Ok(new
-                {
-                    sucesso = true,
-                    mensagem = "Planta identificada e postagem criada com sucesso",
-                    planta = plantaIdentificada,
-                    postagem = resultadoPostagem.Dados
-                });
-            }
-
-            return Ok(new
-            {
-                sucesso = true,
-                mensagem = "Planta identificada com sucesso",
-                planta = plantaIdentificada
-            });
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { sucesso = false, mensagem = $"Erro ao processar imagem: {ex.Message}" });
-        }
-        finally
-        {
-            if (caminhoTemp != null && System.IO.File.Exists(caminhoTemp))
-                try { System.IO.File.Delete(caminhoTemp); } catch { }
-        }
-    }
-
-    [HttpPost("identificar-e-postar")]
-    [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> IdentificarEPostar([FromForm] IdentificarEPostarDTO entrada)
+    public async Task<IActionResult> IdentificarEPostar([FromForm] IdentificarEPostarDTO entrada, [FromServices] IPostService postService)
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
@@ -176,7 +93,13 @@ public class PlantaController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(entrada.Comentario))
         {
-            var resultadoPost = await _servicioPlanta.PostarFotoIdentificacaoAsync(usuarioId, resultadoIdentificacao.Dados.Id, entrada.Comentario);
+            var resultadoPost = await postService.CriarPostAsync(usuarioId, new CriarPostDTOEntrada
+            {
+                PlantaId = resultadoIdentificacao.Dados.Id,
+                Conteudo = entrada.Comentario,
+                ComunidadeId = null
+            });
+
             if (!resultadoPost.Sucesso)
                 return BadRequest(resultadoPost);
 
