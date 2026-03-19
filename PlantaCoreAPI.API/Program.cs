@@ -13,6 +13,9 @@ if (builder.Environment.IsDevelopment())
     builder.Configuration.AddUserSecrets<Program>();
 }
 
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+
 builder.Services.AddLoggingConfigurado();
 builder.Services.AddBancoDeDados(builder.Configuration);
 builder.Services.AddAutenticacaoJwt(builder.Configuration);
@@ -104,12 +107,15 @@ builder.Services.AddSwaggerGen(options =>
 
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
+if (app.Environment.IsDevelopment())
 {
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PlantaCoreAPI v1");
-    c.RoutePrefix = string.Empty;
-});
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "PlantaCoreAPI v1");
+        c.RoutePrefix = string.Empty;
+    });
+}
 
 app.UseCors("AllowFrontend");
 app.UseAuthentication();
