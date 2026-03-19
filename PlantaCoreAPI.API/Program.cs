@@ -32,7 +32,8 @@ builder.Services.AddCors(options =>
                 "http://localhost:3000",
                 "http://localhost:5173",
                 "http://localhost:5174",
-                "https://localhost:7123"
+                "https://localhost:7123",
+                frontendUrl
             );
         }
         else
