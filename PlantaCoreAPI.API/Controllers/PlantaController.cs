@@ -28,16 +28,16 @@ public class PlantaController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> IdentificarPlanta(IFormFile foto)
+    public async Task<IActionResult> Identificar([FromForm] IdentificarEPostarDTO entrada, [FromServices] IPostService postService)
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        if (foto == null || foto.Length == 0)
+        if (entrada.Foto == null || entrada.Foto.Length == 0)
             return BadRequest(new { sucesso = false, mensagem = "Nenhuma foto enviada" });
 
-        if (!foto.ContentType.StartsWith("image/"))
+        if (!entrada.Foto.ContentType.StartsWith("image/"))
             return BadRequest(new { sucesso = false, mensagem = "Arquivo deve ser uma imagem" });
 
         string? caminhoTemp = null;
@@ -45,24 +45,55 @@ public class PlantaController : ControllerBase
 
         try
         {
-            caminhoTemp = Path.Combine(Path.GetTempPath(), $"planta_{Guid.NewGuid()}_{foto.FileName}");
+            caminhoTemp = Path.Combine(Path.GetTempPath(), $"planta_{Guid.NewGuid()}_{entrada.Foto.FileName}");
             using (var fileStream = System.IO.File.Create(caminhoTemp))
-                await foto.CopyToAsync(fileStream);
+                await entrada.Foto.CopyToAsync(fileStream);
 
             try
             {
                 var bytes = await System.IO.File.ReadAllBytesAsync(caminhoTemp);
-                urlFoto = await _fileStorageService.FazerUploadFotoPlantaAsync(bytes, foto.FileName, usuarioId);
+                urlFoto = await _fileStorageService.FazerUploadFotoPlantaAsync(bytes, entrada.Foto.FileName, usuarioId);
             }
             catch { }
 
-            var resultado = await _servicioPlanta.IdentificarPlantaAsync(usuarioId, new IdentificacaoDTOEntrada
+            var resultadoIdentificacao = await _servicioPlanta.IdentificarPlantaAsync(usuarioId, new IdentificacaoDTOEntrada
             {
                 CaminhoTemp = caminhoTemp,
                 UrlImagem = urlFoto
             });
 
-            return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+            if (!resultadoIdentificacao.Sucesso)
+                return BadRequest(resultadoIdentificacao);
+
+            var plantaIdentificada = resultadoIdentificacao.Dados;
+
+            if (entrada.CriarPostagem)
+            {
+                var resultadoPostagem = await postService.CriarPostAsync(usuarioId, new CriarPostDTOEntrada
+                {
+                    PlantaId = plantaIdentificada.Id,
+                    Conteudo = entrada.Comentario,
+                    ComunidadeId = null
+                });
+
+                if (!resultadoPostagem.Sucesso)
+                    return BadRequest(resultadoPostagem);
+
+                return Ok(new
+                {
+                    sucesso = true,
+                    mensagem = "Planta identificada e postagem criada com sucesso",
+                    planta = plantaIdentificada,
+                    postagem = resultadoPostagem.Dados
+                });
+            }
+
+            return Ok(new
+            {
+                sucesso = true,
+                mensagem = "Planta identificada com sucesso",
+                planta = plantaIdentificada
+            });
         }
         catch (Exception ex)
         {
@@ -73,40 +104,6 @@ public class PlantaController : ControllerBase
             if (caminhoTemp != null && System.IO.File.Exists(caminhoTemp))
                 try { System.IO.File.Delete(caminhoTemp); } catch { }
         }
-    }
-
-    [HttpPost("identificar-e-postar")]
-    [Authorize]
-    [Consumes("multipart/form-data")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> IdentificarEPostar([FromForm] IdentificarEPostarDTO entrada, [FromServices] IPostService postService)
-    {
-        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
-            return Unauthorized();
-
-        var resultadoIdentificacao = await _servicioPlanta.IdentificarPlantaAsync(usuarioId, entrada);
-        if (!resultadoIdentificacao.Sucesso)
-            return BadRequest(resultadoIdentificacao);
-
-        if (!string.IsNullOrWhiteSpace(entrada.Comentario))
-        {
-            var resultadoPost = await postService.CriarPostAsync(usuarioId, new CriarPostDTOEntrada
-            {
-                PlantaId = resultadoIdentificacao.Dados.Id,
-                Conteudo = entrada.Comentario,
-                ComunidadeId = null
-            });
-
-            if (!resultadoPost.Sucesso)
-                return BadRequest(resultadoPost);
-
-            return Ok(new { Planta = resultadoIdentificacao.Dados, Post = resultadoPost.Dados });
-        }
-
-        return Ok(new { Planta = resultadoIdentificacao.Dados });
     }
 
     [HttpPost("buscar")]
