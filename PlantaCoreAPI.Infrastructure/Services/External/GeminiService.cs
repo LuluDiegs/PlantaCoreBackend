@@ -23,29 +23,25 @@ public class GeminiService : IGeminiService
 
     public async Task<string?> GerarDescricaoPlantaAsync(DadosPlantaParaIA dados)
     {
-        try
+        // Adicionando validação para toxicidade
+        if (string.IsNullOrWhiteSpace(dados.Toxicidade))
         {
-            if (string.IsNullOrWhiteSpace(_chaveApi))
-                return null;
-
-            if (dados == null || string.IsNullOrWhiteSpace(dados.NomeCientifico))
-                return null;
-
-            var promptPrincipal = ConstruirPromptPrincipal(dados);
-            var respostaPrincipal = await EnviarPromptAsync(promptPrincipal);
-
-            if (string.IsNullOrWhiteSpace(respostaPrincipal))
-                return null;
-
-            var promptReflexao = ConstruirPromptReflexao(dados, respostaPrincipal);
-            var respostaReflexao = await EnviarPromptAsync(promptReflexao);
-
-            return respostaReflexao ?? respostaPrincipal;
+            dados.Toxicidade = "Informação não disponível";
         }
-        catch (Exception ex)
+
+        if (string.IsNullOrWhiteSpace(dados.Descricao))
         {
-            return null;
+            dados.Descricao = "Descrição não fornecida.";
         }
+
+        // Processamento adicional para toxicidade
+        if (dados.ToxicoPets.HasValue && dados.ToxicoPets.Value)
+        {
+            dados.Descricao += " Atenção: Esta planta é tóxica para animais de estimação.";
+        }
+
+        // Chamada ao serviço Gemini
+        return await EnviarPromptAsync(ConstruirPromptPrincipal(dados));
     }
 
     private async Task<string?> EnviarPromptAsync(string prompt)

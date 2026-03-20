@@ -67,12 +67,17 @@ public class PlantaController : ControllerBase
 
             var plantaIdentificada = resultadoIdentificacao.Dados;
 
+            // Verifica se o comentário foi fornecido, caso contrário, gera um padrão
+            var comentario = string.IsNullOrWhiteSpace(entrada.Comentario)
+                ? $"Identificação: {plantaIdentificada.NomeCientifico ?? plantaIdentificada.NomeComum ?? "Planta"}"
+                : entrada.Comentario;
+
             if (entrada.CriarPostagem)
             {
                 var resultadoPostagem = await postService.CriarPostAsync(usuarioId, new CriarPostDTOEntrada
                 {
                     PlantaId = plantaIdentificada.Id,
-                    Conteudo = entrada.Comentario,
+                    Conteudo = comentario,
                     ComunidadeId = null
                 });
 

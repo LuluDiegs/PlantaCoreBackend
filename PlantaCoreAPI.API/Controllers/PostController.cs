@@ -271,4 +271,43 @@ public class PostController : ControllerBase
         var resultado = await _servicioPost.ExcluirComentarioComoDonoPostAsync(usuarioId, comentarioId);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
+
+    [HttpGet("buscar/hashtag")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BuscarPorHashtag([FromQuery] string hashtag)
+    {
+        if (string.IsNullOrWhiteSpace(hashtag))
+            return BadRequest(new { sucesso = false, mensagem = "Hashtag é obrigatória" });
+
+        var resultado = await _servicioPost.BuscarPostsPorHashtagAsync(hashtag);
+        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpGet("buscar/categoria")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BuscarPorCategoria([FromQuery] string categoria)
+    {
+        if (string.IsNullOrWhiteSpace(categoria))
+            return BadRequest(new { sucesso = false, mensagem = "Categoria é obrigatória" });
+
+        var resultado = await _servicioPost.BuscarPostsPorCategoriaAsync(categoria);
+        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpGet("buscar/palavra-chave")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> BuscarPorPalavraChave([FromQuery] string palavraChave)
+    {
+        if (string.IsNullOrWhiteSpace(palavraChave))
+            return BadRequest(new { sucesso = false, mensagem = "Palavra-chave é obrigatória" });
+
+        var resultado = await _servicioPost.BuscarPostsPorPalavraChaveAsync(palavraChave);
+        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+    }
 }

@@ -4,7 +4,7 @@ public class PlantaDTOSaida
 {
     public Guid Id { get; set; }
     public string NomeCientifico { get; set; } = null!;
-    public string? NomeComum { get; set; }
+    public string? NomeComum { get; set; } // Nome popular da planta
     public string? Familia { get; set; }
     public string? Genero { get; set; }
     public string? Toxica { get; set; }

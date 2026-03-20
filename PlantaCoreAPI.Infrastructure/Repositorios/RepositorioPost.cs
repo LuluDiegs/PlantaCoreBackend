@@ -230,10 +230,13 @@ public class RepositorioPost : IRepositorioPost
     {
         return await _contexto.Hashtags
             .Where(h => h.Nome == hashtag)
+            .Include(h => h.Post)
+                .ThenInclude(p => p.Usuario)
+            .Include(h => h.Post)
+                .ThenInclude(p => p.Curtidas)
+            .Include(h => h.Post)
+                .ThenInclude(p => p.Comentarios)
             .Select(h => h.Post)
-            .Include(p => p.Usuario)
-            .Include(p => p.Curtidas)
-            .Include(p => p.Comentarios)
             .ToListAsync();
     }
 
@@ -241,10 +244,13 @@ public class RepositorioPost : IRepositorioPost
     {
         return await _contexto.Categorias
             .Where(c => c.Nome == categoria)
+            .Include(c => c.Post)
+                .ThenInclude(p => p.Usuario)
+            .Include(c => c.Post)
+                .ThenInclude(p => p.Curtidas)
+            .Include(c => c.Post)
+                .ThenInclude(p => p.Comentarios)
             .Select(c => c.Post)
-            .Include(p => p.Usuario)
-            .Include(p => p.Curtidas)
-            .Include(p => p.Comentarios)
             .ToListAsync();
     }
 
@@ -252,10 +258,13 @@ public class RepositorioPost : IRepositorioPost
     {
         return await _contexto.PalavrasChave
             .Where(pc => pc.Palavra == palavraChave)
+            .Include(pc => pc.Post)
+                .ThenInclude(p => p.Usuario)
+            .Include(pc => pc.Post)
+                .ThenInclude(p => p.Curtidas)
+            .Include(pc => pc.Post)
+                .ThenInclude(p => p.Comentarios)
             .Select(pc => pc.Post)
-            .Include(p => p.Usuario)
-            .Include(p => p.Curtidas)
-            .Include(p => p.Comentarios)
             .ToListAsync();
     }
 }

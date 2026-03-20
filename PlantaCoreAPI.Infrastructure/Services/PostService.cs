@@ -5,6 +5,7 @@ using PlantaCoreAPI.Application.Interfaces;
 using PlantaCoreAPI.Domain.Comuns;
 using PlantaCoreAPI.Domain.Entities;
 using PlantaCoreAPI.Domain.Interfaces;
+using System.Text.RegularExpressions;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
 
@@ -56,7 +57,41 @@ public class PostService : IPostService
                     return Resultado<PostDTOSaida>.Erro("Você precisa ser membro da comunidade para postar nela");
             }
 
-            var post = Post.Criar(usuarioId, entrada.Conteudo, entrada.PlantaId, entrada.ComunidadeId);
+            // Extrair hashtags do conteúdo
+            var hashtags = ExtractHashtags(entrada.Conteudo)
+                .Select(h => new Hashtag { Nome = h })
+                .ToList();
+
+            // Gerar palavras-chave com base no conteúdo e na planta
+            var palavrasChave = ExtractKeywords(entrada.Conteudo, planta)
+                .Select(pc => new PalavraChave { Palavra = pc })
+                .ToList();
+
+            // Definir categorias com base na planta
+            var categorias = new List<Categoria>();
+            if (planta != null)
+            {
+                categorias.Add(new Categoria { Nome = planta.NomeCientifico });
+                if (!string.IsNullOrWhiteSpace(planta.NomeComum))
+                {
+                    categorias.Add(new Categoria { Nome = planta.NomeComum });
+                }
+            }
+
+            // Criar o post
+            var post = new Post
+            {
+                Id = Guid.NewGuid(),
+                UsuarioId = usuarioId,
+                Conteudo = entrada.Conteudo,
+                DataCriacao = DateTime.UtcNow,
+                Hashtags = hashtags,
+                Categorias = categorias,
+                PalavrasChave = palavrasChave,
+                PlantaId = entrada.PlantaId,
+                ComunidadeId = entrada.ComunidadeId // Usar somente se fornecido
+            };
+
             await _repositorioPost.AdicionarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
 
@@ -203,7 +238,12 @@ public class PostService : IPostService
             if (usuario == null)
                 return Resultado.Erro("Usuário não encontrado");
 
-            post.AdicionarCurtida(usuario);
+            post.AdicionarCurtida(new Curtida
+            {
+                UsuarioId = usuario.Id,
+                PostId = post.Id,
+                DataCriacao = DateTime.UtcNow
+            });
             await _repositorioPost.AtualizarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
 
@@ -689,5 +729,33 @@ public class PostService : IPostService
             DataCriacao = comentario.DataCriacao,
             DataAtualizacao = comentario.DataAtualizacao
         };
+    }
+
+    private List<string> ExtractHashtags(string conteudo)
+    {
+        return Regex.Matches(conteudo, "#(\\w+)")
+            .Cast<Match>()
+            .Select(m => m.Value)
+            .ToList();
+    }
+
+    private List<string> ExtractKeywords(string conteudo, Planta? planta)
+    {
+        var keywords = new List<string>();
+
+        // Adicionar palavras do conteúdo
+        keywords.AddRange(conteudo.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+        // Adicionar palavras da planta
+        if (planta != null)
+        {
+            keywords.Add(planta.NomeCientifico);
+            if (!string.IsNullOrWhiteSpace(planta.NomeComum))
+            {
+                keywords.Add(planta.NomeComum);
+            }
+        }
+
+        return keywords.Distinct().ToList();
     }
 }
