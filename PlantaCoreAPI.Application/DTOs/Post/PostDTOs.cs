@@ -21,9 +21,9 @@ public class PostDTOSaida
 
 public class CriarPostDTOEntrada
 {
-    public Guid? PlantaId { get; set; }
-    public Guid? ComunidadeId { get; set; }
     public string Conteudo { get; set; } = null!;
+    public Guid? PlantaId { get; set; } // Relacionamento opcional com uma planta
+    public Guid? ComunidadeId { get; set; } // Relacionamento opcional com uma comunidade
 }
 
 public class AtualizarPostDTOEntrada

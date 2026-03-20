@@ -351,5 +351,29 @@ public class PlantaCoreDbContext : DbContext
             entity.HasOne(s => s.Solicitante).WithMany(u => u.SolicitacoesSeguirEnviadas).HasForeignKey(s => s.SolicitanteId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("fk_solicitacoes_seguir_solicitante");
             entity.HasOne(s => s.Alvo).WithMany(u => u.SolicitacoesSeguirRecebidas).HasForeignKey(s => s.AlvoId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("fk_solicitacoes_seguir_alvo");
         });
+
+        modelBuilder.Entity<Categoria>(entity =>
+        {
+            entity.HasOne(c => c.Post)
+                .WithMany(p => p.Categorias)
+                .HasForeignKey(c => c.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Hashtag>(entity =>
+        {
+            entity.HasOne(h => h.Post)
+                .WithMany(p => p.Hashtags)
+                .HasForeignKey(h => h.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PalavraChave>(entity =>
+        {
+            entity.HasOne(pc => pc.Post)
+                .WithMany(p => p.PalavrasChave)
+                .HasForeignKey(pc => pc.PostId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
     }
 }
