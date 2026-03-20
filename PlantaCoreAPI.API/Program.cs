@@ -1,5 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
 using PlantaCoreAPI.API.Extensions;
+using PlantaCoreAPI.Application.Interfaces;
+using PlantaCoreAPI.Application.Services;
+using PlantaCoreAPI.Infrastructure.Repositorios;
 using PlantaCoreAPI.Infrastructure.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -68,7 +71,7 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(new
             {
                 sucesso = false,
-                mensagem = "Dados de entrada inválidos",
+                mensagem = "Dados de entrada invï¿½lidos",
                 erros = errors
             });
         };
@@ -105,6 +108,9 @@ builder.Services.AddSwaggerGen(options =>
         }
     });
 });
+
+builder.Services.AddScoped<EventoService>();
+builder.Services.AddScoped<IRepositorioEvento, RepositorioEvento>();
 
 var app = builder.Build();
 
