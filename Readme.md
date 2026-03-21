@@ -774,3 +774,121 @@ Lista comunidades para explorar.
 
 ---
 
+### 📅 Eventos
+
+#### **GET `/api/v1/Evento`**
+Obtém todos os eventos.
+
+**Headers:**  
+`Authorization: Bearer <token>`
+
+**Respostas:**
+- `200 OK`: Lista de eventos obtida com sucesso.
+- `401 Unauthorized`: Token inválido.
+
+---
+
+#### **GET `/api/v1/Evento/{id}`**
+Obtém um evento pelo ID.
+
+**Headers:**  
+`Authorization: Bearer <token>`
+
+**Respostas:**
+- `200 OK`: Evento encontrado.
+- `404 Not Found`: Evento não encontrado.
+- `401 Unauthorized`: Token inválido.
+
+---
+
+#### **POST `/api/v1/Evento`**
+Cria um novo evento.
+
+**Headers:**  
+`Authorization: Bearer <token>`
+
+**Body:**
+```json
+{
+  "titulo": "string",
+  "descricao": "string",
+  "data": "datetime",
+  "local": "string"
+}
+```
+
+**Respostas:**
+- `200 OK`: Evento criado com sucesso.
+- `400 Bad Request`: Dados inválidos.
+- `401 Unauthorized`: Token inválido.
+
+---
+
+#### **PUT `/api/v1/Evento`**
+Atualiza um evento existente.
+
+**Headers:**  
+`Authorization: Bearer <token>`
+
+**Body:**
+```json
+{
+  "id": "guid",
+  "titulo": "string",
+  "descricao": "string",
+  "data": "datetime",
+  "local": "string"
+}
+```
+
+**Respostas:**
+- `200 OK`: Evento atualizado com sucesso.
+- `400 Bad Request`: Dados inválidos.
+- `401 Unauthorized`: Token inválido.
+
+---
+
+#### **DELETE `/api/v1/Evento/{eventoId}`**
+Remove um evento.
+
+**Headers:**  
+`Authorization: Bearer <token>`
+
+**Respostas:**
+- `200 OK`: Evento removido com sucesso.
+- `400 Bad Request`: Dados inválidos.
+- `401 Unauthorized`: Token inválido.
+
+---
+
+#### **PUT `/api/v1/Evento/marcar-participacao`**
+Marca participação em um evento.
+
+**Headers:**  
+`Authorization: Bearer <token>`
+
+**Query Params:**
+- `eventoId`: guid
+
+**Respostas:**
+- `200 OK`: Participação confirmada.
+- `400 Bad Request`: Dados inválidos.
+- `401 Unauthorized`: Token inválido.
+
+---
+
+#### **PUT `/api/v1/Evento/desmarcar-participacao`**
+Remove participação em um evento.
+
+**Headers:**  
+`Authorization: Bearer <token>`
+
+**Query Params:**
+- `eventoId`: guid
+
+**Respostas:**
+- `200 OK`: Participação removida.
+- `400 Bad Request`: Dados inválidos.
+- `401 Unauthorized`: Token inválido.
+
+---
