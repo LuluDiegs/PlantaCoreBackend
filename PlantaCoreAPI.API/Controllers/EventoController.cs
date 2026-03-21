@@ -71,7 +71,7 @@ public class EventoController : ControllerBase
 
         return resultado.Sucesso
             ? Ok(resultado.Mensagem)
-            : BadRequest(resultado.Mensagem);
+            : BadRequest(new { sucesso = false, mensagem = resultado.Mensagem });
     }
 
     [HttpPut("desmarcar-participacao")]
@@ -89,7 +89,7 @@ public class EventoController : ControllerBase
 
         return resultado.Sucesso
             ? Ok(resultado.Mensagem)
-            : BadRequest(resultado.Mensagem);
+            : BadRequest(new { sucesso = false, mensagem = resultado.Mensagem });
     }
 
     [HttpPut]
