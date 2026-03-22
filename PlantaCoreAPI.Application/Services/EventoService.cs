@@ -130,19 +130,19 @@ public class EventoService
         return Resultado.Ok("Participação do evento desmarcada com sucesso");
     }
 
-    public async Task<Resultado> AtualizarEvento(AtualizarEventoDTO eventoDTO, Guid usuarioId)
+    public async Task<Resultado> AtualizarEvento(Guid id, AtualizarEventoDTO eventoDTO, Guid usuarioId)
     {
-        Evento? evento = await _repositorioEvento.ObterPorIdAsync(eventoDTO.Id);
+        Evento? evento = await _repositorioEvento.ObterPorIdAsync(id);
 
         if (evento is null)
-            return Resultado.Erro($"Evento com ID {eventoDTO.Id} não encontrado");
+            return Resultado.Erro($"Evento com ID {id} não encontrado");
 
         if (evento.AnfitriaoId != usuarioId)
             return Resultado.Erro("Apenas o anfitrião pode atualizar informações do evento");
 
         Evento? eventoIgual = await _repositorioEvento.ObterPorTituloAsync(eventoDTO.Titulo);
 
-        if (eventoIgual is null)
+        if (eventoIgual is not null)
             return Resultado.Erro($"Evento com titulo {eventoDTO.Titulo} já existe");
 
         evento.Titulo = eventoDTO.Titulo;

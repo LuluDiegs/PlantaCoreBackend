@@ -92,8 +92,10 @@ public class EventoController : ControllerBase
             : BadRequest(new { sucesso = false, mensagem = resultado.Mensagem });
     }
 
-    [HttpPut]
-    public async Task<IActionResult> AtualizarEvento([FromBody] AtualizarEventoDTO eventoDTO)
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> AtualizarEvento(
+        [FromRoute] Guid id, 
+        [FromBody] AtualizarEventoDTO eventoDTO)
     {
         Claim? claim = User.FindFirst(ClaimTypes.NameIdentifier);
         if (claim is null) return Unauthorized();
@@ -103,7 +105,7 @@ public class EventoController : ControllerBase
         bool sucesso = Guid.TryParse(valor, out Guid usuarioId);
         if (!sucesso) return Unauthorized();
 
-        Resultado resultado = await _servicoEvento.AtualizarEvento(eventoDTO, usuarioId);
+        Resultado resultado = await _servicoEvento.AtualizarEvento(id, eventoDTO, usuarioId);
 
         return resultado.Sucesso
             ? Ok(resultado.Mensagem)

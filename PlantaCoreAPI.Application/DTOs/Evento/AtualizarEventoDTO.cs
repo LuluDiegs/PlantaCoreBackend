@@ -2,9 +2,6 @@ using System.ComponentModel.DataAnnotations;
 
 public class AtualizarEventoDTO
 {
-    [Required(ErrorMessage = "Id é obrigatório")]
-    public Guid Id { get; set; }
-
     [Required(ErrorMessage = "Titulo é obrigatório")]
     public string Titulo { get; set; } = string.Empty;
 
