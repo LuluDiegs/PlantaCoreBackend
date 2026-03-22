@@ -1,4 +1,5 @@
-﻿using System.Text.Json.Serialization;
+﻿using System.Net;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using PlantaCoreAPI.Application.Interfaces;
 
@@ -7,18 +8,36 @@ namespace PlantaCoreAPI.Infrastructure.Services.External;
 public class GeminiService : IGeminiService
 {
     private readonly HttpClient _httpClient;
-    private readonly string _chaveApi;
     private readonly string _modelo;
     private readonly string _baseUrl;
+    private readonly List<string> _tokens;
+    private int _currentTokenIndex = 0;
 
     public GeminiService(HttpClient httpClient, IConfiguration configuration)
     {
         _httpClient = httpClient;
 
         var geminiConfig = configuration.GetSection("Gemini");
-        _chaveApi = geminiConfig["ChaveApi"] ?? throw new InvalidOperationException("Gemini ChaveApi não configurada");
+
+        var raw = geminiConfig["ChavesApi"]
+            ?? throw new InvalidOperationException("Gemini ChavesApi não configurada");
+
+        _tokens = raw.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(t => t.Trim())
+                    .ToList();
+
         _modelo = geminiConfig["Modelo"] ?? "gemini-2.5-flash";
         _baseUrl = geminiConfig["BaseUrl"] ?? "https://generativelanguage.googleapis.com";
+    }
+
+    private string GetCurrentToken()
+    {
+        return _tokens[_currentTokenIndex];
+    }
+
+    private void MoveNextToken()
+    {
+        _currentTokenIndex = (_currentTokenIndex + 1) % _tokens.Count;
     }
 
     public async Task<string?> GerarDescricaoPlantaAsync(DadosPlantaParaIA dados)
@@ -51,54 +70,81 @@ public class GeminiService : IGeminiService
         return await EnviarPromptAsync(promptReflexao);
     }
 
-    private async Task<string?> EnviarPromptAsync(string prompt)
+    private async Task<(bool sucesso, string? texto, HttpStatusCode statusCode)> 
+        ExecutarPromptGeminiAsync(string token, string prompt)
     {
-        try
+        var request = new GeminiRequestSimples
         {
-            var request = new GeminiRequestSimples
+            Contents = new List<GeminiContent>
             {
-                Contents = new List<GeminiContent>
+                new GeminiContent
                 {
-                    new GeminiContent
+                    Parts = new List<GeminiPart>
                     {
-                        Parts = new List<GeminiPart>
-                        {
-                            new GeminiPart { Text = prompt }
-                        }
+                        new GeminiPart { Text = prompt }
                     }
                 }
-            };
+            }
+        };
 
-            var url = $"{_baseUrl}/v1beta/models/{_modelo}:generateContent?key={_chaveApi}";
-            var json = System.Text.Json.JsonSerializer.Serialize(request);
-            var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        var url = $"{_baseUrl}/v1beta/models/{_modelo}:generateContent?key={token}";
 
-            var response = await _httpClient.PostAsync(url, content);
+        var json = System.Text.Json.JsonSerializer.Serialize(request);
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
 
-            if (!response.IsSuccessStatusCode)
-                return null;
+        var response = await _httpClient.PostAsync(url, content);
+        var statusCode = response.StatusCode;
 
-            var responseJson = await response.Content.ReadAsStringAsync();
+        if (!response.IsSuccessStatusCode)
+            return (false, null, statusCode);
 
-            if (string.IsNullOrEmpty(responseJson))
-                return null;
+        var responseJson = await response.Content.ReadAsStringAsync();
 
-            var options = new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true
-            };
+        if (string.IsNullOrEmpty(responseJson))
+            return (false, null, statusCode);
 
-            var resultado = System.Text.Json.JsonSerializer.Deserialize<GeminiResponse>(responseJson, options);
-
-            if (resultado?.Candidates?.Count > 0)
-                return resultado.Candidates[0].Content?.Parts?[0]?.Text;
-
-            return null;
-        }
-        catch
+        var options = new System.Text.Json.JsonSerializerOptions
         {
-            return null;
+            PropertyNameCaseInsensitive = true
+        };
+
+        var resultado = System.Text.Json.JsonSerializer.Deserialize<GeminiResponse>(responseJson, options);
+
+        if (resultado?.Candidates?.Count > 0)
+        {
+            var texto = resultado.Candidates[0].Content?.Parts?[0]?.Text;
+            return (true, texto, statusCode);
         }
+
+        return (false, null, statusCode);
+    }
+
+    private async Task<string?> EnviarPromptAsync(string prompt)
+    {
+        int tentativas = _tokens.Count;
+
+        for (int i = 0; i < tentativas; i++)
+        {
+            var token = GetCurrentToken();
+
+            Console.WriteLine($"[Gemini] Token atual: {token}");
+
+            var (sucesso, texto, statusCode) = await ExecutarPromptGeminiAsync(token, prompt);
+
+            if (sucesso) return texto;
+
+            if (statusCode is HttpStatusCode.TooManyRequests)
+            {
+                Console.WriteLine($"[Gemini] Token {token} exaustado. Mudando para o próximo...");
+
+                MoveNextToken();
+                continue;
+            }
+
+            break;
+        }
+
+        return null;
     }
 
     private string ConstruirPromptPrincipal(DadosPlantaParaIA dados)
