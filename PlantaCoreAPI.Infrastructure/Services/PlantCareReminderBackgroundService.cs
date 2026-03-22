@@ -5,7 +5,6 @@ using PlantaCoreAPI.Domain.Entities;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
 
-// Ajustando o serviço em background para enviar notificações às 8h e permitir seleção de plantas
 public class PlantCareReminderBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
@@ -20,7 +19,7 @@ public class PlantCareReminderBackgroundService : BackgroundService
         while (!stoppingToken.IsCancellationRequested)
         {
             var now = DateTime.UtcNow;
-            var nextRun = now.Date.AddHours(8); // Próxima execução às 8h UTC
+            var nextRun = now.Date.AddHours(8); 
 
             if (now > nextRun)
                 nextRun = nextRun.AddDays(1);

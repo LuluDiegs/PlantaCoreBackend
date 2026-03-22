@@ -187,4 +187,19 @@ public class ComunidadeController : ControllerBase
         var resultado = await _servicioComunidade.ExcluirComunidadeAsync(adminId, comunidadeId);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
+
+    [HttpPut("{comunidadeId:guid}/transferir-admin")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> TransferirAdmin(Guid comunidadeId, [FromBody] TransferirAdminDTOEntrada entrada)
+    {
+        var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(adminIdClaim, out var adminId))
+            return Unauthorized();
+
+        var resultado = await _servicioComunidade.TransferirAdminAsync(adminId, comunidadeId, entrada.NovoAdminId);
+        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+    }
 }

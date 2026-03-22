@@ -17,4 +17,44 @@ internal sealed class DadosPlantaEnriquecidos
     public string? RequisitosTemperatura { get; set; }
     public string? Cuidados { get; set; }
     public string? FotoPlanta { get; set; }
+
+    // Helper para garantir consistência após parsing
+    public void GarantirConsistenciaToxicidade()
+    {
+        // Consistência para humanos
+        if (!string.IsNullOrWhiteSpace(DescricaoToxicidade))
+        {
+            var desc = DescricaoToxicidade.Trim().ToLowerInvariant();
+            if (desc.StartsWith("sim") || desc.Contains("tóxic") || desc.Contains("toxina") || desc.Contains("veneno") || desc.Contains("grayanotoxina") || desc.Contains("alcaloide") || desc.Contains("glicosídeo") || desc.Contains("diterpeno"))
+                Toxica = "Sim";
+            else if (desc.StartsWith("não") || desc.StartsWith("nao"))
+                Toxica = "Não";
+        }
+        if (Toxica != "Sim" && Toxica != "Não")
+            Toxica = "Não";
+
+        // Consistência para animais
+        if (!string.IsNullOrWhiteSpace(DescricaoToxicidadeAnimais))
+        {
+            var desc = DescricaoToxicidadeAnimais.Trim().ToLowerInvariant();
+            if (desc.StartsWith("sim") || desc.Contains("tóxic") || desc.Contains("toxina") || desc.Contains("veneno") || desc.Contains("grayanotoxina") || desc.Contains("alcaloide") || desc.Contains("glicosídeo") || desc.Contains("diterpeno"))
+                ToxicaAnimais = "Sim";
+            else if (desc.StartsWith("não") || desc.StartsWith("nao"))
+                ToxicaAnimais = "Não";
+        }
+        if (ToxicaAnimais != "Sim" && ToxicaAnimais != "Não")
+            ToxicaAnimais = "Não";
+
+        // Consistência para crianças
+        if (!string.IsNullOrWhiteSpace(DescricaoToxicidadeCriancas))
+        {
+            var desc = DescricaoToxicidadeCriancas.Trim().ToLowerInvariant();
+            if (desc.StartsWith("sim") || desc.Contains("tóxic") || desc.Contains("toxina") || desc.Contains("veneno") || desc.Contains("grayanotoxina") || desc.Contains("alcaloide") || desc.Contains("glicosídeo") || desc.Contains("diterpeno"))
+                ToxicaCriancas = "Sim";
+            else if (desc.StartsWith("não") || desc.StartsWith("nao"))
+                ToxicaCriancas = "Não";
+        }
+        if (ToxicaCriancas != "Sim" && ToxicaCriancas != "Não")
+            ToxicaCriancas = "Não";
+    }
 }

@@ -76,6 +76,7 @@ public sealed partial class PlantService
             }
         }
 
+        resultado.GarantirConsistenciaToxicidade();
         AplicarRegrasConsistenciaToxicidade(resultado);
         return resultado;
     }
@@ -105,7 +106,6 @@ public sealed partial class PlantService
 
         var v = valor.ToLowerInvariant();
 
-        // Indicadores explícitos de NÃO tóxico
         if (v.StartsWith("não") || v.StartsWith("nao") ||
             v.Contains("não é tóxica") || v.Contains("nao e toxica") ||
             v.Contains("não tóxica") || v.Contains("nao toxica") ||
@@ -114,7 +114,6 @@ public sealed partial class PlantService
             v.Contains("não apresenta toxicidade") || v.Contains("sem toxicidade conhecida"))
             return "Não";
 
-        // Indicadores de toxicidade QUÍMICA/BIOLÓGICA real
         if (v.Contains("tóxica") || v.Contains("toxica") ||
             v.Contains("veneno") || v.Contains("venenosa") ||
             v.Contains("intoxicação") || v.Contains("intoxicacao") ||

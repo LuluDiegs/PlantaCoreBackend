@@ -71,7 +71,7 @@ builder.Services.AddControllers()
             return new BadRequestObjectResult(new
             {
                 sucesso = false,
-                mensagem = "Dados de entrada inv�lidos",
+                mensagem = "Dados de entrada inválidos",
                 erros = errors
             });
         };

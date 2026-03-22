@@ -34,13 +34,13 @@ public class Usuario
     public static Usuario Criar(string nome, string email, string senhaHash)
     {
         if (string.IsNullOrWhiteSpace(nome))
-            throw new Exceptions.DomainException("Nome n�o pode estar vazio");
+            throw new Exceptions.DomainException("Nome não pode estar vazio");
 
         if (string.IsNullOrWhiteSpace(email))
-            throw new Exceptions.DomainException("Email n�o pode estar vazio");
+            throw new Exceptions.DomainException("Email não pode estar vazio");
 
         if (string.IsNullOrWhiteSpace(senhaHash))
-            throw new Exceptions.DomainException("Senha n�o pode estar vazia");
+            throw new Exceptions.DomainException("Senha não pode estar vazia");
 
         ValidarEmail(email);
 
@@ -62,7 +62,7 @@ public class Usuario
     private static void ValidarEmail(string email)
     {
         if (!email.Contains("@") || !email.Contains("."))
-            throw new Exceptions.DomainException("Formato de email inv�lido");
+            throw new Exceptions.DomainException("Formato de email inválido");
     }
 
     public bool VerificarSenha(string senha, Func<string, string, bool> verificador)
@@ -111,7 +111,7 @@ public class Usuario
         if (biografia != null)
         {
             if (biografia.Length > 500)
-                throw new Exceptions.DomainException("Biografia n�o pode ter mais de 500 caracteres");
+                throw new Exceptions.DomainException("Biografia não pode ter mais de 500 caracteres");
             Biografia = biografia;
         }
 
@@ -122,7 +122,7 @@ public class Usuario
     public void AtualizarNome(string novoNome)
     {
         if (string.IsNullOrWhiteSpace(novoNome))
-            throw new Exceptions.DomainException("Nome n�o pode estar vazio");
+            throw new Exceptions.DomainException("Nome não pode estar vazio");
 
         Nome = novoNome.Trim();
     }
@@ -152,7 +152,7 @@ public class Usuario
     public void Seguir(Usuario usuario)
     {
         if (usuario.Id == Id)
-            throw new Exceptions.DomainException("Voc� n�o pode seguir a si mesmo");
+            throw new Exceptions.DomainException("Você  pode seguir a si mesmo");
 
         if (!Seguindo.Contains(usuario))
             Seguindo.Add(usuario);

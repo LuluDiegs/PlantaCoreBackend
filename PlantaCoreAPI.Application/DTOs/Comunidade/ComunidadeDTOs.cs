@@ -25,3 +25,8 @@ public class AtualizarComunidadeDTOEntrada
     public string? Nome { get; set; }
     public string? Descricao { get; set; }
 }
+
+public class TransferirAdminDTOEntrada
+{
+    public Guid NovoAdminId { get; set; }
+}

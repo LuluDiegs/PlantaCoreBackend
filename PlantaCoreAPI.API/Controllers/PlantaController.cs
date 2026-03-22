@@ -69,7 +69,7 @@ public class PlantaController : ControllerBase
 
             // Verifica se o comentário foi fornecido, caso contrário, gera um padrão
             var comentario = string.IsNullOrWhiteSpace(entrada.Comentario)
-                ? $"Identificação: {plantaIdentificada.NomeCientifico ?? plantaIdentificada.NomeComum ?? "Planta"}"
+                ? $"Identificação: {plantaIdentificada.NomeCientifico ?? plantaIdentificada.NomeComum ?? "Planta"}{(string.IsNullOrWhiteSpace(plantaIdentificada.NomeComum) ? "" : $" ({plantaIdentificada.NomeComum})")}"
                 : entrada.Comentario;
 
             if (entrada.CriarPostagem)

@@ -67,15 +67,13 @@ public sealed partial class PlantService : IPlantService
         }
     }
 
-    // Adicionando funcionalidade para postar foto após upload na identificação de plantas
-    // Corrigindo o método para usar o método de fábrica Post.Criar
     public async Task<Resultado<PostDTOSaida>> PostarFotoIdentificacaoAsync(Guid usuarioId, Guid plantaId, string conteudo)
     {
         var planta = await _repositorioPlanta.ObterPorIdAsync(plantaId);
         if (planta == null)
             return Resultado<PostDTOSaida>.Erro("Planta não encontrada.");
 
-        var post = Post.Criar(usuarioId, conteudo, plantaId, null); // Usando o método de fábrica
+        var post = Post.Criar(usuarioId, conteudo, plantaId, null); 
 
         await _repositorioPost.AdicionarAsync(post);
         await _repositorioPost.SalvarMudancasAsync();

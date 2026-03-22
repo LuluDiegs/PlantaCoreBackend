@@ -28,4 +28,9 @@ public class MembroComunidade
     {
         EhAdmin = true;
     }
+
+    public void RemoverAdmin()
+    {
+        EhAdmin = false;
+    }
 }

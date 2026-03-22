@@ -44,6 +44,13 @@ public class GeminiService : IGeminiService
         return await EnviarPromptAsync(ConstruirPromptPrincipal(dados));
     }
 
+    public async Task<string?> GerarReflexaoPlantaAsync(DadosPlantaParaIA dados, string respostaPrincipal)
+    {
+        // Chama o Gemini com o prompt de reflexão, usando a resposta principal
+        var promptReflexao = ConstruirPromptReflexao(dados, respostaPrincipal);
+        return await EnviarPromptAsync(promptReflexao);
+    }
+
     private async Task<string?> EnviarPromptAsync(string prompt)
     {
         try

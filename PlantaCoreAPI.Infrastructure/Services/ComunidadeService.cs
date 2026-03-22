@@ -289,6 +289,33 @@ public class ComunidadeService : IComunidadeService
         }
     }
 
+    public async Task<Resultado> TransferirAdminAsync(Guid adminId, Guid comunidadeId, Guid novoAdminId)
+    {
+        var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
+        if (comunidade == null)
+            return Resultado.Erro("Comunidade não encontrada");
+
+        if (comunidade.CriadorId != adminId)
+            return Resultado.Erro("Apenas o admin atual pode transferir a administração");
+
+        var novoAdmin = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == novoAdminId);
+        if (novoAdmin == null)
+            return Resultado.Erro("O novo admin deve ser membro da comunidade");
+
+        var adminAtual = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == adminId);
+        if (adminAtual == null)
+            return Resultado.Erro("Admin atual não encontrado como membro");
+
+        adminAtual.RemoverAdmin();
+        novoAdmin.PromoverAdmin();
+        comunidade.GetType().GetProperty("CriadorId")?.SetValue(comunidade, novoAdminId);
+
+        await _repositorioComunidade.AtualizarAsync(comunidade);
+        await _repositorioComunidade.SalvarMudancasAsync();
+
+        return Resultado.Ok("Admin transferido com sucesso");
+    }
+
     private static ComunidadeDTOSaida MapearComunidade(Comunidade c, Guid usuarioId)
     {
         var membro = c.Membros.FirstOrDefault(m => m.UsuarioId == usuarioId);

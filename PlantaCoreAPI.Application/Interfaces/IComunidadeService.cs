@@ -18,4 +18,5 @@ public interface IComunidadeService
     Task<Resultado<PaginaResultado<PostDTOSaida>>> ObterPostsComunidadeAsync(Guid comunidadeId, Guid usuarioId, int pagina, int tamanho);
     Task<Resultado> ExpulsarUsuarioAsync(Guid adminId, Guid comunidadeId, Guid usuarioId);
     Task<Resultado> ExcluirComunidadeAsync(Guid adminId, Guid comunidadeId);
+    Task<Resultado> TransferirAdminAsync(Guid adminId, Guid comunidadeId, Guid novoAdminId);
 }
