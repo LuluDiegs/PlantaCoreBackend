@@ -84,13 +84,13 @@ public class PostController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ObterFeed([FromQuery] int pagina = 1, [FromQuery] int tamanho = 10, [FromQuery] string? cursor = null, [FromQuery] DateTime? dataInicio = null, [FromQuery] DateTime? dataFim = null, [FromQuery] string? ordenarPor = null)
+    public async Task<IActionResult> ObterFeed([FromQuery] int pagina = 1, [FromQuery] int tamanho = 10, [FromQuery] string? ordenarPor = null)
     {
         var usuarioIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _postService.ObterFeedFiltradoAsync(usuarioId, ordenarPor, pagina, tamanho);
+        var resultado = await _postService.ListarPostsUsuarioAsync(usuarioId, usuarioId, pagina, tamanho, ordenarPor);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
 
