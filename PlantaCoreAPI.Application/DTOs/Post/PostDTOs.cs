@@ -15,6 +15,7 @@ public class PostDTOSaida
     public int TotalCurtidas { get; set; }
     public int TotalComentarios { get; set; }
     public bool CurtiuUsuario { get; set; }
+    public bool ComentadoPorMim { get; set; }
     public DateTime DataCriacao { get; set; }
     public DateTime? DataAtualizacao { get; set; }
 }

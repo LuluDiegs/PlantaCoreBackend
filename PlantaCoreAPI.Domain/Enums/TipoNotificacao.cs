@@ -10,5 +10,7 @@ public enum TipoNotificacao
     PedidoSeguir,
     PedidoSeguirAceito,
     NovoMembroComunidade,
-    PostComunidade
+    PostComunidade,
+    Evento,
+    PlantaIdentificada
 }

@@ -1,4 +1,7 @@
 using PlantaCoreAPI.Application.Interfaces;
+using PlantaCoreAPI.Application.Comuns.Eventos;
+using PlantaCoreAPI.Application.Comuns.Cache;
+using PlantaCoreAPI.Application.Comuns.RateLimit;
 using PlantaCoreAPI.Domain.Interfaces;
 using PlantaCoreAPI.Infrastructure.Repositorios;
 using PlantaCoreAPI.Infrastructure.Services;
@@ -21,6 +24,11 @@ internal static class ServicesExtensions
         services.AddScoped<IRepositorioComentario, RepositorioComentario>();
         services.AddScoped<IRepositorioComunidade, RepositorioComunidade>();
         services.AddScoped<IRepositorioSolicitacaoSeguir, RepositorioSolicitacaoSeguir>();
+        services.AddScoped<IRepositorioEvento, RepositorioEvento>();
+        services.AddScoped<IRepositorioPostSave, RepositorioPostSave>();
+        services.AddScoped<IRepositorioPostShare, RepositorioPostShare>();
+        services.AddScoped<IRepositorioPostView, RepositorioPostView>();
+        services.AddScoped<IRepositorioActivityLog, RepositorioActivityLog>();
         return services;
     }
 
@@ -41,14 +49,8 @@ internal static class ServicesExtensions
         services.AddScoped<IPlantCareReminderService, PlantCareReminderService>();
         services.AddScoped<IComunidadeService, ComunidadeService>();
 
-        services.AddScoped<IPostService>(provider =>
-            new PostService(
-                provider.GetRequiredService<IRepositorioPost>(),
-                provider.GetRequiredService<IRepositorioUsuario>(),
-                provider.GetRequiredService<IRepositorioPlanta>(),
-                provider.GetRequiredService<IRepositorioNotificacao>(),
-                provider.GetRequiredService<IRepositorioComunidade>()));
-
+        services.AddScoped<IPostService, PostService>();
+                
         services.AddScoped<IAccountDeletionService, AccountDeletionService>();
         services.AddScoped<IAccountReactivationService>(provider =>
             new AccountReactivationService(
@@ -67,7 +69,14 @@ internal static class ServicesExtensions
                 provider.GetRequiredService<IRepositorioSolicitacaoSeguir>(),
                 provider.GetRequiredService<IFileStorageService>(),
                 provider.GetRequiredService<IAccountDeletionService>(),
-                provider.GetRequiredService<IAccountReactivationService>()));
+                provider.GetRequiredService<IAccountReactivationService>(),
+                provider.GetRequiredService<IEventoDispatcher>(),
+                provider.GetRequiredService<ICacheService>(),
+                provider.GetRequiredService<ILogger<UserService>>()));
+
+        services.AddSingleton<IEventoDispatcher, EventoDispatcher>();
+        services.AddSingleton<ICacheService, MemoryCacheService>();
+        services.AddSingleton<IRateLimitService, MemoryRateLimitService>();
 
         return services;
     }
@@ -115,5 +124,13 @@ internal static class ServicesExtensions
                 provider.GetRequiredService<IConfiguration>()));
 
         return services;
+    }
+
+    internal static void RegistrarEventosHandlers(this IServiceCollection services)
+    {
+        var provider = services.BuildServiceProvider();
+        var dispatcher = provider.GetRequiredService<IEventoDispatcher>();
+        var cache = provider.GetRequiredService<ICacheService>();
+        EventosHandlers.RegistrarTodos(dispatcher, cache);
     }
 }

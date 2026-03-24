@@ -9,4 +9,5 @@ public class EventoDTOSaida
     public DateTime DataInicio { get; set; }
     public Guid AnfitriaoId { get; set; }
     public List<Guid> ParticipantesIds { get; set; } = new();
+    public int TotalParticipantes { get; set; }
 }

@@ -5,6 +5,7 @@ using PlantaCoreAPI.Application.Interfaces;
 using PlantaCoreAPI.Domain.Interfaces;
 using PlantaCoreAPI.Application.DTOs.Post;
 using PlantaCoreAPI.Domain.Entities;
+using PlantaCoreAPI.Application.Comuns.Eventos;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
 
@@ -18,6 +19,7 @@ public sealed partial class PlantService : IPlantService
     private readonly IFileStorageService _servicioPlantaStorage;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IRepositorioPost _repositorioPost;
+    private readonly IEventoDispatcher _eventoDispatcher;
 
     public PlantService(
         IRepositorioPlanta repositorioPlanta,
@@ -27,7 +29,8 @@ public sealed partial class PlantService : IPlantService
         IGeminiService servicioGemini,
         IFileStorageService servicioPlantaStorage,
         IHttpClientFactory httpClientFactory,
-        IRepositorioPost repositorioPost)
+        IRepositorioPost repositorioPost,
+        IEventoDispatcher eventoDispatcher)
     {
         _repositorioPlanta = repositorioPlanta;
         _repositorioNotificacao = repositorioNotificacao;
@@ -37,6 +40,7 @@ public sealed partial class PlantService : IPlantService
         _servicioPlantaStorage = servicioPlantaStorage;
         _httpClientFactory = httpClientFactory;
         _repositorioPost = repositorioPost;
+        _eventoDispatcher = eventoDispatcher;
     }
 
     public async Task<Resultado<PaginaResultado<PlantaDTOSaida>>> BuscarPlantasUsuarioAsync(Guid usuarioId, string termo, int pagina, int tamanho)
@@ -85,6 +89,32 @@ public sealed partial class PlantService : IPlantService
             UsuarioId = post.UsuarioId,
             Conteudo = post.Conteudo,
             DataCriacao = post.DataCriacao
+        });
+    }
+
+    public async Task<IEnumerable<PlantaCoreAPI.Application.DTOs.Planta.PlantaDTOSaida>> BuscarPlantasPorNomeAsync(string termo)
+    {
+        var todas = await _repositorioPlanta.ObterTodosAsync();
+        return todas.Where(p => (p.NomeCientifico != null && p.NomeCientifico.Contains(termo, StringComparison.OrdinalIgnoreCase)) ||
+                                (p.NomeComum != null && p.NomeComum.Contains(termo, StringComparison.OrdinalIgnoreCase)))
+            .Select(p => new PlantaCoreAPI.Application.DTOs.Planta.PlantaDTOSaida
+            {
+                Id = p.Id,
+                NomeCientifico = p.NomeCientifico,
+                NomeComum = p.NomeComum,
+                FotoPlanta = p.FotoPlanta
+            });
+    }
+
+    public async Task<IEnumerable<PostDTOSaida>> ListarPostsDaPlantaAsync(Guid plantaId)
+    {
+        var posts = await _repositorioPost.ObterPorPlantaAsync(plantaId);
+        return posts.Select(p => new PostDTOSaida
+        {
+            Id = p.Id,
+            Conteudo = p.Conteudo,
+            UsuarioId = p.UsuarioId,
+            DataCriacao = p.DataCriacao
         });
     }
 }

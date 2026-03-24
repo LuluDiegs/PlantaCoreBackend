@@ -47,4 +47,9 @@ public class RepositorioCurtida : IRepositorioCurtida
     {
         return await _contexto.SaveChangesAsync() > 0;
     }
+
+    public async Task<bool> ExisteAsync(Guid usuarioId, Guid postId)
+    {
+        return await _contexto.Curtidas.AnyAsync(c => c.UsuarioId == usuarioId && c.PostId == postId);
+    }
 }

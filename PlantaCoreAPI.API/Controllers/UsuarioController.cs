@@ -1,7 +1,9 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PlantaCoreAPI.Application.Comuns.RateLimit;
 using PlantaCoreAPI.Application.DTOs.Usuario;
 using PlantaCoreAPI.Application.Interfaces;
+using PlantaCoreAPI.API.Utils;
 using System.Security.Claims;
 
 namespace PlantaCoreAPI.API.Controllers;
@@ -10,13 +12,20 @@ namespace PlantaCoreAPI.API.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize]
 [Produces("application/json")]
+[Tags("Usuario")]
 public class UsuarioController : ControllerBase
 {
-    private readonly IUserService _servicioUsuario;
+    private readonly IUserService _userService;
+    private readonly IRateLimitService _rateLimitService;
+    private readonly IPostService _postService;
+    private readonly IComunidadeService _servicoComunidade;
 
-    public UsuarioController(IUserService servicioUsuario)
+    public UsuarioController(IUserService userService, IRateLimitService rateLimitService, IPostService postService, IComunidadeService servicoComunidade)
     {
-        _servicioUsuario = servicioUsuario;
+        _userService = userService;
+        _rateLimitService = rateLimitService;
+        _postService = postService;
+        _servicoComunidade = servicoComunidade;
     }
 
     [HttpGet("perfil")]
@@ -25,12 +34,14 @@ public class UsuarioController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ObterPerfil()
     {
-        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        var usuarioIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioUsuario.ObterPerfilAsync(usuarioId);
-        return resultado.Sucesso ? Ok(resultado) : NotFound(resultado);
+        var resultado = await _userService.ObterPerfilAsync(usuarioId);
+        if (!resultado.Sucesso)
+            return NotFound(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpGet("perfil-publico/{usuarioId:guid}")]
@@ -42,7 +53,7 @@ public class UsuarioController : ControllerBase
         var usuarioAutenticadoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var usuarioAutenticadoId = usuarioAutenticadoIdClaim != null && Guid.TryParse(usuarioAutenticadoIdClaim, out var id) ? id : Guid.Empty;
 
-        var resultado = await _servicioUsuario.ObterPerfilPublicoAsync(usuarioId, usuarioAutenticadoId);
+        var resultado = await _userService.ObterPerfilPublicoAsync(usuarioId, usuarioAutenticadoId);
         return resultado.Sucesso ? Ok(resultado) : NotFound(resultado);
     }
 
@@ -56,7 +67,7 @@ public class UsuarioController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioUsuario.AtualizarNomeAsync(usuarioId, entrada.NovoNome);
+        var resultado = await _userService.AtualizarNomeAsync(usuarioId, entrada.NovoNome);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -71,7 +82,7 @@ public class UsuarioController : ControllerBase
             return Unauthorized();
 
         var perfilEntrada = new AtualizarPerfilDTOEntrada { Biografia = entrada.Biografia };
-        var resultado = await _servicioUsuario.AtualizarPerfilAsync(usuarioId, perfilEntrada);
+        var resultado = await _userService.AtualizarPerfilAsync(usuarioId, perfilEntrada);
 
         if (!resultado.Sucesso)
             return BadRequest(resultado);
@@ -89,7 +100,7 @@ public class UsuarioController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioUsuario.AlterarPrivacidadePerfilAsync(usuarioId, entrada.Privado);
+        var resultado = await _userService.AlterarPrivacidadePerfilAsync(usuarioId, entrada.Privado);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -108,7 +119,7 @@ public class UsuarioController : ControllerBase
             return BadRequest(new { sucesso = false, mensagem = "Nenhuma foto enviada" });
 
         using var stream = foto.OpenReadStream();
-        var resultado = await _servicioUsuario.AtualizarFotoPerfilAsync(usuarioId, stream, foto.FileName);
+        var resultado = await _userService.AtualizarFotoPerfilAsync(usuarioId, stream, foto.FileName);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -122,7 +133,7 @@ public class UsuarioController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioUsuario.ExcluirContaAsync(usuarioId);
+        var resultado = await _userService.ExcluirContaAsync(usuarioId);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -130,7 +141,7 @@ public class UsuarioController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> SolicitarReativacao([FromBody] SolicitarReativacaoDTOEntrada entrada)
     {
-        var resultado = await _servicioUsuario.SolicitarReativacaoAsync(entrada.Email);
+        var resultado = await _userService.SolicitarReativacaoAsync(entrada.Email);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -138,7 +149,7 @@ public class UsuarioController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ReativarComToken([FromBody] ReativarComTokenDTOEntrada entrada)
     {
-        var resultado = await _servicioUsuario.ReativarComTokenAsync(entrada.Email, entrada.Token, entrada.NovaSenha);
+        var resultado = await _userService.ReativarComTokenAsync(entrada.Email, entrada.Token, entrada.NovaSenha);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -146,7 +157,7 @@ public class UsuarioController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> VerificarTokenReativacao([FromBody] VerificarTokenReativacaoDTOEntrada entrada)
     {
-        var resultado = await _servicioUsuario.VerificarTokenReativacaoAsync(entrada.Email, entrada.Token);
+        var resultado = await _userService.VerificarTokenReativacaoAsync(entrada.Email, entrada.Token);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -154,7 +165,7 @@ public class UsuarioController : ControllerBase
     [AllowAnonymous]
     public async Task<IActionResult> ResetarSenhaSemToken([FromBody] ResetarSenhaSemTokenDTOEntrada entrada)
     {
-        var resultado = await _servicioUsuario.ResetarSenhaSemTokenAsync(entrada.Email, entrada.NovaSenha);
+        var resultado = await _userService.ResetarSenhaSemTokenAsync(entrada.Email, entrada.NovaSenha);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -168,7 +179,11 @@ public class UsuarioController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioUsuario.SegurUserAsync(usuarioId, usuarioIdParaSeguir);
+        var rateKey = $"seguir:{usuarioId}";
+        if (_rateLimitService.IsLimited(rateKey, 10, TimeSpan.FromMinutes(1)))
+            return StatusCode(429, new { sucesso = false, mensagem = "Limite de requisições para seguir atingido. Tente novamente em instantes." });
+
+        var resultado = await _userService.SegurUserAsync(usuarioId, usuarioIdParaSeguir);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -182,7 +197,7 @@ public class UsuarioController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioUsuario.DesSeguirUserAsync(usuarioId, usuarioIdParaDeseguir);
+        var resultado = await _userService.DesSeguirUserAsync(usuarioId, usuarioIdParaDeseguir);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -192,8 +207,17 @@ public class UsuarioController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ListarSeguidores(Guid usuarioId, [FromQuery] int pagina = 1, [FromQuery] int tamanho = 20)
     {
-        var resultado = await _servicioUsuario.ListarSeguidoresAsync(usuarioId, pagina, tamanho);
-        return resultado.Sucesso ? Ok(resultado) : NotFound(resultado);
+        var resultado = await _userService.ListarSeguidoresAsync(usuarioId, pagina, tamanho);
+        if (!resultado.Sucesso || resultado.Dados == null)
+            return NotFound(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+
+        var meta = new {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        };
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados.Itens, meta));
     }
 
     [HttpGet("{usuarioId:guid}/seguindo")]
@@ -202,8 +226,40 @@ public class UsuarioController : ControllerBase
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ListarSeguindo(Guid usuarioId, [FromQuery] int pagina = 1, [FromQuery] int tamanho = 20)
     {
-        var resultado = await _servicioUsuario.ListarSeguindoAsync(usuarioId, pagina, tamanho);
-        return resultado.Sucesso ? Ok(resultado) : NotFound(resultado);
+        var resultado = await _userService.ListarSeguindoAsync(usuarioId, pagina, tamanho);
+        if (!resultado.Sucesso || resultado.Dados == null)
+            return NotFound(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        var meta = new {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        };
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados.Itens, meta));
+    }
+
+    [HttpGet("{usuarioId:guid}/seguidores/lista")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListarSeguidoresLista(Guid usuarioId, [FromQuery] int pagina = 1, [FromQuery] int tamanho = 20)
+    {
+        var usuarioAutenticadoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioAutenticadoIdClaim, out var usuarioAutenticadoId))
+            return Unauthorized();
+        var resultado = await _userService.ListarSeguidoresListaAsync(usuarioId, usuarioAutenticadoId, pagina, tamanho);
+        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpGet("{usuarioId:guid}/seguindo/lista")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListarSeguindoLista(Guid usuarioId, [FromQuery] int pagina = 1, [FromQuery] int tamanho = 20)
+    {
+        var usuarioAutenticadoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioAutenticadoIdClaim, out var usuarioAutenticadoId))
+            return Unauthorized();
+        var resultado = await _userService.ListarSeguindoListaAsync(usuarioId, usuarioAutenticadoId, pagina, tamanho);
+        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
     [HttpPost("solicitacao-seguir/{alvoId:guid}")]
@@ -216,7 +272,11 @@ public class UsuarioController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioUsuario.EnviarSolicitacaoSeguirAsync(usuarioId, alvoId);
+        var rateKey = $"solicitacao-seguir:{usuarioId}";
+        if (_rateLimitService.IsLimited(rateKey, 10, TimeSpan.FromMinutes(1)))
+            return StatusCode(429, new { sucesso = false, mensagem = "Limite de solicitações atingido. Tente novamente em instantes." });
+
+        var resultado = await _userService.EnviarSolicitacaoSeguirAsync(usuarioId, alvoId);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -229,7 +289,7 @@ public class UsuarioController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioUsuario.ListarSolicitacoesPendentesAsync(usuarioId);
+        var resultado = await _userService.ListarSolicitacoesPendentesAsync(usuarioId);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -243,7 +303,7 @@ public class UsuarioController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioUsuario.AceitarSolicitacaoSeguirAsync(usuarioId, solicitacaoId);
+        var resultado = await _userService.AceitarSolicitacaoSeguirAsync(usuarioId, solicitacaoId);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -257,7 +317,7 @@ public class UsuarioController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioUsuario.RejeitarSolicitacaoSeguirAsync(usuarioId, solicitacaoId);
+        var resultado = await _userService.RejeitarSolicitacaoSeguirAsync(usuarioId, solicitacaoId);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -270,7 +330,7 @@ public class UsuarioController : ControllerBase
         var usuarioAutenticadoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var usuarioAutenticadoId = usuarioAutenticadoIdClaim != null && Guid.TryParse(usuarioAutenticadoIdClaim, out var id) ? id : Guid.Empty;
 
-        var resultado = await _servicioUsuario.ListarPlantasUsuarioAsync(usuarioId, usuarioAutenticadoId, pagina, tamanho);
+        var resultado = await _userService.ListarPlantasUsuarioAsync(usuarioId, usuarioAutenticadoId, pagina, tamanho);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
     }
 
@@ -283,7 +343,73 @@ public class UsuarioController : ControllerBase
         var usuarioAutenticadoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var usuarioAutenticadoId = usuarioAutenticadoIdClaim != null && Guid.TryParse(usuarioAutenticadoIdClaim, out var id) ? id : Guid.Empty;
 
-        var resultado = await _servicioUsuario.ListarPostsPerfilAsync(usuarioId, usuarioAutenticadoId, pagina, tamanho);
+        var resultado = await _userService.ListarPostsPerfilAsync(usuarioId, usuarioAutenticadoId, pagina, tamanho);
         return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpGet("{usuarioId:guid}/relacao")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterRelacaoUsuario(Guid usuarioId)
+    {
+        var usuarioAutenticadoIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioAutenticadoIdClaim, out var usuarioAutenticadoId))
+            return Unauthorized();
+
+        var resultado = await _userService.ObterRelacaoUsuarioAsync(usuarioAutenticadoId, usuarioId);
+        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+    }
+
+    [HttpGet("sugestoes")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> SugestoesParaSeguir([FromQuery] int quantidade = 10)
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+
+        var resultado = await _userService.SugerirUsuariosParaSeguirAsync(usuarioId, quantidade);
+        return Ok(resultado);
+    }
+
+    [HttpGet("posts-salvos")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListarPostsSalvos()
+    {
+        var usuarioIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+        var resultado = await _postService.ListarPostsSalvosAsync(usuarioId);
+        return Ok(resultado);
+    }
+
+    [HttpGet("buscar")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> BuscarPorNome([FromQuery] string nome)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+            return Ok(ResponseHelper.Padrao(true, new List<UsuarioListaDTOSaida>()));
+        var usuarios = await _userService.BuscarUsuariosPorNomeAsync(nome);
+        return Ok(ResponseHelper.Padrao(true, usuarios));
+    }
+
+    [HttpGet("{usuarioId:guid}/comunidades")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListarComunidadesDoUsuario(Guid usuarioId, [FromQuery] int pagina = 1, [FromQuery] int tamanho = 10)
+    {
+        var resultado = await _servicoComunidade.ListarComunidadesDoUsuarioAsync(usuarioId, pagina, tamanho);
+        if (!resultado.Sucesso || resultado.Dados == null)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        var meta = new {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        };
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados.Itens, meta));
     }
 }

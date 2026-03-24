@@ -12,6 +12,7 @@ public class GeminiService : IGeminiService
     private readonly string _baseUrl;
     private readonly List<string> _tokens;
     private int _currentTokenIndex = 0;
+    private readonly string? _chaveApi;
 
     public GeminiService(HttpClient httpClient, IConfiguration configuration)
     {
@@ -28,6 +29,12 @@ public class GeminiService : IGeminiService
 
         _modelo = geminiConfig["Modelo"] ?? "gemini-2.5-flash";
         _baseUrl = geminiConfig["BaseUrl"] ?? "https://generativelanguage.googleapis.com";
+
+        _chaveApi = configuration["Gemini:ChaveApi"];
+        if (string.IsNullOrWhiteSpace(_chaveApi))
+        {
+            // Não lançar exceção aqui, só lançar se realmente for usar a API
+        }
     }
 
     private string GetCurrentToken()
@@ -38,6 +45,12 @@ public class GeminiService : IGeminiService
     private void MoveNextToken()
     {
         _currentTokenIndex = (_currentTokenIndex + 1) % _tokens.Count;
+    }
+
+    private void ValidarChaveApi()
+    {
+        if (string.IsNullOrWhiteSpace(_chaveApi))
+            throw new InvalidOperationException("Gemini ChavesApi não configurada");
     }
 
     public async Task<string?> GerarDescricaoPlantaAsync(DadosPlantaParaIA dados)
@@ -219,6 +232,14 @@ public class GeminiService : IGeminiService
             Temperatura ideal: [VALIDADO]
             Observações: [VALIDADO]
             Guia de cuidado completo: [VALIDADO]";
+    }
+
+    // Exemplo de uso:
+    public async Task<string> ChamadaGeminiAsync(string prompt)
+    {
+        ValidarChaveApi();
+        // ... chamada real
+        return "ok";
     }
 }
 

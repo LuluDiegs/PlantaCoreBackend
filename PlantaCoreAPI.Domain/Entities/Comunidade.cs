@@ -10,13 +10,14 @@ public class Comunidade
     public string? FotoComunidade { get; private set; }
     public DateTime DataCriacao { get; private set; }
     public bool Ativa { get; private set; } = true;
+    public bool Privada { get; private set; } = false;
 
     public List<MembroComunidade> Membros { get; private set; } = new();
     public List<Post> Posts { get; private set; } = new();
 
     private Comunidade() { }
 
-    public static Comunidade Criar(Guid criadorId, string nome, string? descricao = null)
+    public static Comunidade Criar(Guid criadorId, string nome, string? descricao = null, bool privada = false)
     {
         if (string.IsNullOrWhiteSpace(nome))
             throw new Exceptions.DomainException("Nome da comunidade não pode estar vazio");
@@ -31,11 +32,12 @@ public class Comunidade
             Nome = nome.Trim(),
             Descricao = descricao?.Trim(),
             DataCriacao = DateTime.UtcNow,
-            Ativa = true
+            Ativa = true,
+            Privada = privada
         };
     }
 
-    public void Atualizar(string? nome = null, string? descricao = null, string? fotoComunidade = null)
+    public void Atualizar(string? nome = null, string? descricao = null, string? fotoComunidade = null, bool? privada = null)
     {
         if (!string.IsNullOrWhiteSpace(nome))
         {
@@ -49,10 +51,18 @@ public class Comunidade
 
         if (!string.IsNullOrWhiteSpace(fotoComunidade))
             FotoComunidade = fotoComunidade;
+
+        if (privada.HasValue)
+            Privada = privada.Value;
     }
 
     public void Desativar()
     {
         Ativa = false;
+    }
+
+    public void TransferirAdmin(Guid novoAdminId)
+    {
+        CriadorId = novoAdminId;
     }
 }

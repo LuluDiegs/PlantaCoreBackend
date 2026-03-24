@@ -4,6 +4,7 @@ using PlantaCoreAPI.Application.Interfaces;
 using PlantaCoreAPI.Application.Services;
 using PlantaCoreAPI.Infrastructure.Repositorios;
 using PlantaCoreAPI.Infrastructure.Services;
+using PlantaCoreAPI.API.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,28 +24,22 @@ builder.Services.AddLoggingConfigurado();
 builder.Services.AddBancoDeDados(builder.Configuration);
 builder.Services.AddAutenticacaoJwt(builder.Configuration);
 
-var frontendUrl = builder.Configuration["Frontend:Url"]?.TrimEnd('/') ?? "http://localhost:5173";
+var allowedOrigins = new List<string>
+{
+    builder.Configuration["Frontend:Url"]?.TrimEnd('/') ?? "http://localhost:5173",
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:3000",
+    "https://localhost:7123"
+};
 
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        if (builder.Environment.IsDevelopment())
-        {
-            policy.WithOrigins(
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "http://localhost:5174",
-                "https://localhost:7123",
-                frontendUrl
-            );
-        }
-        else
-        {
-            policy.WithOrigins(frontendUrl);
-        }
-
-        policy.AllowAnyMethod()
+        policy.WithOrigins(allowedOrigins.Distinct().ToArray())
+              .SetIsOriginAllowed(origin => allowedOrigins.Any(o => string.Equals(o, origin, StringComparison.OrdinalIgnoreCase)))
+              .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
     });
@@ -53,6 +48,7 @@ builder.Services.AddCors(options =>
 builder.Services.AddRepositorios();
 builder.Services.AddServicosAplicacao(builder.Configuration);
 builder.Services.AddServicosExternos(builder.Configuration);
+builder.Services.RegistrarEventosHandlers();
 
 builder.Services.AddHostedService<PlantCareReminderBackgroundService>();
 
@@ -85,6 +81,9 @@ builder.Services.AddSwaggerGen(options =>
         Title = "PlantaCoreAPI",
         Version = "v1"
     });
+
+    // Agrupamento por tags
+    options.DocumentFilter<TagDescriptionsDocumentFilter>();
 
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
@@ -121,10 +120,35 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = string.Empty;
 });
 
-
+// CORS deve vir antes de qualquer autenticação/authorization
 app.UseCors("AllowFrontend");
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+
+// Middleware global de tratamento de erros
+app.Use(async (context, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (Exception ex)
+    {
+        if (!context.Response.HasStarted)
+        {
+            context.Response.StatusCode = 500;
+            context.Response.ContentType = "application/json";
+            var result = System.Text.Json.JsonSerializer.Serialize(new {
+                sucesso = false,
+                mensagem = "Erro interno no servidor.",
+                detalhes = ex.Message
+            });
+            await context.Response.WriteAsync(result);
+        }
+        // Se a resposta já começou, apenas não faz nada para evitar o erro de status code
+    }
+});
 
 app.Run();

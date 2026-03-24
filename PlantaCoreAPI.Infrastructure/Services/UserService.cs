@@ -3,9 +3,12 @@ using PlantaCoreAPI.Application.DTOs.Planta;
 using PlantaCoreAPI.Application.DTOs.Post;
 using PlantaCoreAPI.Application.DTOs.Usuario;
 using PlantaCoreAPI.Application.Interfaces;
+using PlantaCoreAPI.Application.Comuns.Eventos;
 using PlantaCoreAPI.Domain.Comuns;
 using PlantaCoreAPI.Domain.Entities;
 using PlantaCoreAPI.Domain.Interfaces;
+using PlantaCoreAPI.Application.Comuns.Cache;
+using Microsoft.Extensions.Logging;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
 
@@ -19,6 +22,9 @@ public class UserService : IUserService
     private readonly IFileStorageService _fileStorageService;
     private readonly IAccountDeletionService _accountDeletionService;
     private readonly IAccountReactivationService _accountReactivationService;
+    private readonly IEventoDispatcher _eventoDispatcher;
+    private readonly ICacheService _cacheService;
+    private readonly ILogger<UserService> _logger;
 
     public UserService(
         IRepositorioUsuario repositorioUsuario,
@@ -28,7 +34,10 @@ public class UserService : IUserService
         IRepositorioSolicitacaoSeguir repositorioSolicitacao,
         IFileStorageService fileStorageService,
         IAccountDeletionService accountDeletionService,
-        IAccountReactivationService accountReactivationService)
+        IAccountReactivationService accountReactivationService,
+        IEventoDispatcher eventoDispatcher,
+        ICacheService cacheService,
+        ILogger<UserService> logger)
     {
         _repositorioUsuario = repositorioUsuario;
         _repositorioPost = repositorioPost;
@@ -38,10 +47,18 @@ public class UserService : IUserService
         _fileStorageService = fileStorageService;
         _accountDeletionService = accountDeletionService;
         _accountReactivationService = accountReactivationService;
+        _eventoDispatcher = eventoDispatcher;
+        _cacheService = cacheService;
+        _logger = logger;
     }
 
     public async Task<Resultado<UsuarioDTOSaida>> ObterPerfilAsync(Guid usuarioId)
     {
+        var cacheKey = $"perfil:{usuarioId}";
+        var cached = _cacheService.Get<UsuarioDTOSaida>(cacheKey);
+        if (cached != null)
+            return Resultado<UsuarioDTOSaida>.Ok(cached);
+
         try
         {
             var usuario = await _repositorioUsuario.ObterComPlantasAsync(usuarioId);
@@ -51,7 +68,7 @@ public class UserService : IUserService
             var totalPosts = await _repositorioPost.ObterPorUsuarioAsync(usuarioId);
             var totalCurtidas = await _repositorioPost.ObterTotalCurtidasRecebidasAsync(usuarioId);
 
-            return Resultado<UsuarioDTOSaida>.Ok(new UsuarioDTOSaida
+            var result = Resultado<UsuarioDTOSaida>.Ok(new UsuarioDTOSaida
             {
                 Id = usuario.Id,
                 Nome = usuario.Nome,
@@ -66,6 +83,8 @@ public class UserService : IUserService
                 TotalCurtidasRecebidas = totalCurtidas,
                 DataCriacao = usuario.DataCriacao
             });
+            _cacheService.Set(cacheKey, result.Dados, TimeSpan.FromMinutes(2));
+            return result;
         }
         catch (Exception ex)
         {
@@ -128,6 +147,8 @@ public class UserService : IUserService
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
 
+            _cacheService.Remove($"perfil:{usuarioId}");
+
             return Resultado.Ok("Perfil atualizado com sucesso");
         }
         catch (Exception ex)
@@ -151,6 +172,8 @@ public class UserService : IUserService
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
 
+            _cacheService.Remove($"perfil:{usuarioId}");
+
             return Resultado.Ok("Nome atualizado com sucesso");
         }
         catch (Exception ex)
@@ -164,7 +187,7 @@ public class UserService : IUserService
         try
         {
             if (fotoStream == null || fotoStream.Length == 0)
-                return Resultado.Erro("Nenhuma foto enviada");
+                return Resultado.Erro("Nenhumafoto enviada");
 
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
@@ -181,6 +204,8 @@ public class UserService : IUserService
             usuario.AtualizarFotoPerfil(urlFoto);
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
+
+            _cacheService.Remove($"perfil:{usuarioId}");
 
             return Resultado.Ok("Foto do perfil atualizada com sucesso");
         }
@@ -202,6 +227,8 @@ public class UserService : IUserService
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
 
+            _cacheService.Remove($"perfil:{usuarioId}");
+
             return Resultado.Ok(privado ? "Perfil alterado para privado" : "Perfil alterado para público");
         }
         catch (Exception ex)
@@ -212,8 +239,24 @@ public class UserService : IUserService
 
     public async Task<Resultado> ExcluirContaAsync(Guid usuarioId)
     {
-        try { return await _accountDeletionService.ExcluirContaCompleteAsync(usuarioId); }
-        catch (Exception ex) { return Resultado.Erro($"Erro ao excluir conta: {ex.Message}"); }
+        try
+        {
+            var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
+            if (usuario == null)
+                return Resultado.Erro("Usuário não encontrado");
+
+            usuario.Excluir();
+            await _repositorioUsuario.AtualizarAsync(usuario);
+            await _repositorioUsuario.SalvarMudancasAsync();
+
+            _cacheService.Remove($"perfil:{usuarioId}");
+
+            return Resultado.Ok("Conta marcada como excluída (soft delete)");
+        }
+        catch (Exception ex)
+        {
+            return Resultado.Erro($"Erro ao excluir conta: {ex.Message}");
+        }
     }
 
     public async Task<Resultado> SolicitarReativacaoAsync(string email) =>
@@ -232,6 +275,11 @@ public class UserService : IUserService
     {
         try
         {
+            _logger.LogInformation("Usuário {UsuarioId} tentando seguir {SeguidoId}", usuarioId, usuarioParaSeguirId);
+
+            if (usuarioId == usuarioParaSeguirId)
+                return Resultado.Erro("Você não pode seguir a si mesmo");
+
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             var usuarioParaSeguir = await _repositorioUsuario.ObterPorIdAsync(usuarioParaSeguirId);
 
@@ -241,9 +289,21 @@ public class UserService : IUserService
             if (usuarioParaSeguir.PerfilPrivado)
                 return Resultado.Erro("Este perfil é privado. Use enviar solicitação de seguir.");
 
+            var jaSegue = usuario.Seguindo.Any(u => u.Id == usuarioParaSeguirId);
+            if (jaSegue)
+                return Resultado.Erro("Você já segue este usuário");
+
+            // Controle otimista: recarregar estado antes de seguir
+            usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
+            usuarioParaSeguir = await _repositorioUsuario.ObterPorIdAsync(usuarioParaSeguirId);
+            if (usuario.Seguindo.Any(u => u.Id == usuarioParaSeguirId))
+                return Resultado.Erro("Você já segue este usuário (concorrência)");
+
             usuario.Seguir(usuarioParaSeguir);
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
+
+            await _eventoDispatcher.PublicarAsync(new UsuarioSeguidoEvento { SeguidorId = usuarioId, SeguidoId = usuarioParaSeguirId });
 
             var notificacao = Notificacao.Criar(
                 usuarioParaSeguirId,
@@ -254,10 +314,17 @@ public class UserService : IUserService
             await _repositorioNotificacao.AdicionarAsync(notificacao);
             await _repositorioNotificacao.SalvarMudancasAsync();
 
+            _logger.LogInformation("Usuário {UsuarioId} seguiu {SeguidoId}", usuarioId, usuarioParaSeguirId);
             return Resultado.Ok("Usuário seguido com sucesso");
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+        {
+            _logger.LogWarning("Concorrência detectada ao seguir: {UsuarioId} -> {SeguidoId}", usuarioId, usuarioParaSeguirId);
+            return Resultado.Erro("Concorrência detectada. Tente novamente.");
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Erro ao seguir usuário {UsuarioId} -> {SeguidoId}", usuarioId, usuarioParaSeguirId);
             return Resultado.Erro($"Erro ao seguir usuário: {ex.Message}");
         }
     }
@@ -308,6 +375,10 @@ public class UserService : IUserService
             if (jaExiste)
                 return Resultado.Erro("Já existe uma solicitação pendente");
 
+            var solicitacoesAtivas = await _repositorioSolicitacao.ObterPendentesPorSolicitanteAsync(solicitanteId);
+            if (solicitacoesAtivas.Any(s => s.AlvoId == alvoId))
+                return Resultado.Erro("Já existe uma solicitação ativa para este usuário");
+
             var solicitacao = SolicitacaoSeguir.Criar(solicitanteId, alvoId);
             await _repositorioSolicitacao.AdicionarAsync(solicitacao);
             await _repositorioSolicitacao.SalvarMudancasAsync();
@@ -350,6 +421,9 @@ public class UserService : IUserService
             {
                 solicitante.Seguir(alvoUsuario);
                 await _repositorioUsuario.AtualizarAsync(solicitante);
+
+                // Evento interno
+                await _eventoDispatcher.PublicarAsync(new UsuarioSeguidoEvento { SeguidorId = solicitacao.SolicitanteId, SeguidoId = alvoId });
 
                 var notificacao = Notificacao.Criar(
                     solicitacao.SolicitanteId,
@@ -500,7 +574,7 @@ public class UserService : IUserService
                     return Resultado<PaginaResultado<PostDTOSaida>>.Erro("Este perfil é privado");
             }
 
-            var paginaPosts = await _repositorioPost.ObterPorUsuarioPaginadoAsync(usuarioId, pagina, tamanho);
+            var paginaPosts = await _repositorioPost.ObterPorUsuarioPaginadoAsync(usuarioId, pagina, tamanho, null);
             var itens = paginaPosts.Itens
                 .Where(p => p.Usuario != null)
                 .Select(p => new PostDTOSaida
@@ -532,6 +606,118 @@ public class UserService : IUserService
         {
             return Resultado<PaginaResultado<PostDTOSaida>>.Erro($"Erro ao listar posts do perfil: {ex.Message}");
         }
+    }
+
+    public async Task<Resultado<RelacaoUsuarioDTOSaida>> ObterRelacaoUsuarioAsync(Guid usuarioId, Guid usuarioAlvoId)
+    {
+        try
+        {
+            if (usuarioId == usuarioAlvoId)
+                return Resultado<RelacaoUsuarioDTOSaida>.Ok(new RelacaoUsuarioDTOSaida
+                {
+                    Seguindo = false,
+                    SegueVoce = false,
+                    SolicitacaoPendente = false
+                });
+
+            var usuario = await _repositorioUsuario.ObterComPlantasAsync(usuarioId);
+            var alvo = await _repositorioUsuario.ObterComPlantasAsync(usuarioAlvoId);
+            if (usuario == null || alvo == null)
+                return Resultado<RelacaoUsuarioDTOSaida>.Erro("Usuário não encontrado");
+
+            var seguir = usuario.Seguindo.Any(u => u.Id == usuarioAlvoId);
+            var segueVoce = usuario.Seguidores.Any(u => u.Id == usuarioAlvoId);
+            var solicitacaoPendente = await _repositorioSolicitacao.ExisteSolicitacaoPendenteAsync(usuarioId, usuarioAlvoId);
+
+            return Resultado<RelacaoUsuarioDTOSaida>.Ok(new RelacaoUsuarioDTOSaida
+            {
+                Seguindo = seguir,
+                SegueVoce = segueVoce,
+                SolicitacaoPendente = solicitacaoPendente
+            });
+        }
+        catch (Exception ex)
+        {
+            return Resultado<RelacaoUsuarioDTOSaida>.Erro($"Erro ao obter relação: {ex.Message}");
+        }
+    }
+
+    public async Task<Resultado<PaginaResultado<UsuarioListaDTOSaida>>> ListarSeguidoresListaAsync(Guid usuarioId, Guid usuarioAutenticadoId, int pagina, int tamanho)
+    {
+        try
+        {
+            var pagina_ = await _repositorioUsuario.ObterSeguidoresPaginadoAsync(usuarioId, pagina, tamanho);
+            var usuarioAutenticado = await _repositorioUsuario.ObterComPlantasAsync(usuarioAutenticadoId);
+            var seguindoIds = usuarioAutenticado?.Seguindo.Select(u => u.Id).ToHashSet() ?? new HashSet<Guid>();
+            var itens = pagina_.Itens.Select(u => new UsuarioListaDTOSaida
+            {
+                Id = u.Id,
+                Nome = u.Nome,
+                Seguindo = seguindoIds.Contains(u.Id)
+            }).ToList();
+            return Resultado<PaginaResultado<UsuarioListaDTOSaida>>.Ok(new PaginaResultado<UsuarioListaDTOSaida>
+            {
+                Itens = itens,
+                Pagina = pagina_.Pagina,
+                TamanhoPagina = pagina_.TamanhoPagina,
+                Total = pagina_.Total
+            });
+        }
+        catch (Exception ex)
+        {
+            return Resultado<PaginaResultado<UsuarioListaDTOSaida>>.Erro($"Erro ao listar seguidores: {ex.Message}");
+        }
+    }
+
+    public async Task<Resultado<PaginaResultado<UsuarioListaDTOSaida>>> ListarSeguindoListaAsync(Guid usuarioId, Guid usuarioAutenticadoId, int pagina, int tamanho)
+    {
+        try
+        {
+            var pagina_ = await _repositorioUsuario.ObterSeguindoPaginadoAsync(usuarioId, pagina, tamanho);
+            var usuarioAutenticado = await _repositorioUsuario.ObterComPlantasAsync(usuarioAutenticadoId);
+            var seguindoIds = usuarioAutenticado?.Seguindo.Select(u => u.Id).ToHashSet() ?? new HashSet<Guid>();
+            var itens = pagina_.Itens.Select(u => new UsuarioListaDTOSaida
+            {
+                Id = u.Id,
+                Nome = u.Nome,
+                Seguindo = seguindoIds.Contains(u.Id)
+            }).ToList();
+            return Resultado<PaginaResultado<UsuarioListaDTOSaida>>.Ok(new PaginaResultado<UsuarioListaDTOSaida>
+            {
+                Itens = itens,
+                Pagina = pagina_.Pagina,
+                TamanhoPagina = pagina_.TamanhoPagina,
+                Total = pagina_.Total
+            });
+        }
+        catch (Exception ex)
+        {
+            return Resultado<PaginaResultado<UsuarioListaDTOSaida>>.Erro($"Erro ao listar seguindo: {ex.Message}");
+        }
+    }
+
+    public async Task<IEnumerable<UsuarioListaDTOSaida>> SugerirUsuariosParaSeguirAsync(Guid usuarioId, int quantidade = 10)
+    {
+        var usuario = await _repositorioUsuario.ObterComPlantasAsync(usuarioId);
+        if (usuario == null)
+            return Enumerable.Empty<UsuarioListaDTOSaida>();
+
+        var todos = await _repositorioUsuario.ObterTodosAsync();
+        var seguindoIds = usuario.Seguindo.Select(u => u.Id).ToHashSet();
+        seguindoIds.Add(usuarioId);
+        // Sugestão: usuários que não sigo, ordenados por seguidores em comum
+        var sugestoes = todos
+            .Where(u => !seguindoIds.Contains(u.Id))
+            .OrderByDescending(u => u.Seguidores.Count(s => seguindoIds.Contains(s.Id)))
+            .ThenByDescending(u => u.Seguidores.Count)
+            .Take(quantidade)
+            .Select(u => new UsuarioListaDTOSaida
+            {
+                Id = u.Id,
+                Nome = u.Nome,
+                Seguindo = false
+            });
+        return sugestoes;
     }
 
     private static PerfilPublicoDTOSaida MapearPerfilPublico(Usuario u) =>
@@ -567,4 +753,11 @@ public class UserService : IUserService
         FotoPlanta = planta.FotoPlanta,
         DataIdentificacao = planta.DataIdentificacao
     };
+
+    public async Task<IEnumerable<UsuarioListaDTOSaida>> BuscarUsuariosPorNomeAsync(string termo)
+    {
+        var todos = await _repositorioUsuario.ObterTodosAsync();
+        return todos.Where(u => u.Nome.Contains(termo, StringComparison.OrdinalIgnoreCase))
+            .Select(u => new UsuarioListaDTOSaida { Id = u.Id, Nome = u.Nome, Seguindo = false });
+    }
 }

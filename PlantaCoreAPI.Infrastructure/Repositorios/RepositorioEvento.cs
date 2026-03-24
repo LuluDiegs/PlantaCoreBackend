@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using PlantaCoreAPI.Application.Interfaces;
 using PlantaCoreAPI.Domain.Entities;
 using PlantaCoreAPI.Infrastructure.Dados;
+using PlantaCoreAPI.Application.DTOs.Usuario;
 
 namespace PlantaCoreAPI.Infrastructure.Repositorios;
 
@@ -53,5 +54,13 @@ public class RepositorioEvento : IRepositorioEvento
     public async Task<bool> SalvarMudancasAsync()
     {
         return await _contexto.SaveChangesAsync() > 0;
+    }
+
+    public async Task<IEnumerable<UsuarioListaDTOSaida>> ListarParticipantesAsync(Guid eventoId)
+    {
+        var evento = await _contexto.Eventos.Include(e => e.Participantes).ThenInclude(p => p.Usuario).FirstOrDefaultAsync(e => e.Id == eventoId);
+        if (evento == null)
+            return Enumerable.Empty<UsuarioListaDTOSaida>();
+        return evento.Participantes.Select(p => new UsuarioListaDTOSaida { Id = p.UsuarioId, Nome = p.Usuario?.Nome ?? "", Seguindo = false });
     }
 }

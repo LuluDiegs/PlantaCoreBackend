@@ -52,3 +52,17 @@ public class PerfilPublicoDTOSaida
     public bool UserSegueEste { get; set; }
     public bool SolicitacaoPendente { get; set; }
 }
+
+public class RelacaoUsuarioDTOSaida
+{
+    public bool Seguindo { get; set; }
+    public bool SegueVoce { get; set; }
+    public bool SolicitacaoPendente { get; set; }
+}
+
+public class UsuarioListaDTOSaida
+{
+    public Guid Id { get; set; }
+    public string Nome { get; set; } = null!;
+    public bool Seguindo { get; set; }
+}

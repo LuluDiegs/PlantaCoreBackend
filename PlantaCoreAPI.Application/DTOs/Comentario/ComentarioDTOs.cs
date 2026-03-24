@@ -12,6 +12,8 @@ public class ComentarioDTOSaida
     public bool CurtiuUsuario { get; set; }
     public DateTime DataCriacao { get; set; }
     public DateTime? DataAtualizacao { get; set; }
+    public int TotalRespostas { get; set; }
+    public Guid? ComentarioPaiId { get; set; }
 }
 
 public class CriarComentarioDTOEntrada

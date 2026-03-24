@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PlantaCoreAPI.API.Utils;
 using PlantaCoreAPI.Application.DTOs.Comunidade;
+using PlantaCoreAPI.Application.DTOs.Usuario;
 using PlantaCoreAPI.Application.Interfaces;
 using System.Security.Claims;
 
@@ -8,7 +10,7 @@ namespace PlantaCoreAPI.API.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]
-[Produces("application/json")]
+[Tags("Comunidade")]
 public class ComunidadeController : ControllerBase
 {
     private readonly IComunidadeService _servicioComunidade;
@@ -30,11 +32,9 @@ public class ComunidadeController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioComunidade.CriarComunidadeAsync(usuarioId, entrada);
-
         if (!resultado.Sucesso)
-            return BadRequest(resultado);
-
-        return CreatedAtAction(nameof(ObterComunidade), new { comunidadeId = resultado.Dados!.Id }, resultado);
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return CreatedAtAction(nameof(ObterComunidade), new { comunidadeId = resultado.Dados!.Id }, ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpPut("{comunidadeId:guid}")]
@@ -49,7 +49,9 @@ public class ComunidadeController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioComunidade.AtualizarComunidadeAsync(usuarioId, comunidadeId, entrada);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpGet("{comunidadeId:guid}")]
@@ -62,7 +64,9 @@ public class ComunidadeController : ControllerBase
         var usuarioId = usuarioIdClaim != null && Guid.TryParse(usuarioIdClaim, out var id) ? id : Guid.Empty;
 
         var resultado = await _servicioComunidade.ObterComunidadeAsync(comunidadeId, usuarioId);
-        return resultado.Sucesso ? Ok(resultado) : NotFound(resultado);
+        if (!resultado.Sucesso)
+            return NotFound(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpGet]
@@ -74,7 +78,15 @@ public class ComunidadeController : ControllerBase
         var usuarioId = usuarioIdClaim != null && Guid.TryParse(usuarioIdClaim, out var id) ? id : Guid.Empty;
 
         var resultado = await _servicioComunidade.ListarComunidadesAsync(pagina, tamanho, usuarioId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso || resultado.Dados == null)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        var meta = new {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        };
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados.Itens, meta));
     }
 
     [HttpGet("buscar")]
@@ -87,7 +99,9 @@ public class ComunidadeController : ControllerBase
         var usuarioId = usuarioIdClaim != null && Guid.TryParse(usuarioIdClaim, out var id) ? id : Guid.Empty;
 
         var resultado = await _servicioComunidade.BuscarComunidadesAsync(termo, usuarioId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpGet("minhas")]
@@ -101,7 +115,15 @@ public class ComunidadeController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioComunidade.ListarComunidadesDoUsuarioAsync(usuarioId, pagina, tamanho);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso || resultado.Dados == null)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        var meta = new {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        };
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados.Itens, meta));
     }
 
     [HttpGet("usuario/{usuarioId:guid}")]
@@ -110,7 +132,15 @@ public class ComunidadeController : ControllerBase
     public async Task<IActionResult> ListarComunidadesDoUsuario(Guid usuarioId, [FromQuery] int pagina = 1, [FromQuery] int tamanho = 10)
     {
         var resultado = await _servicioComunidade.ListarComunidadesDoUsuarioAsync(usuarioId, pagina, tamanho);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso || resultado.Dados == null)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        var meta = new {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        };
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados.Itens, meta));
     }
 
     [HttpPost("{comunidadeId:guid}/entrar")]
@@ -125,7 +155,9 @@ public class ComunidadeController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioComunidade.EntrarNaComunidadeAsync(usuarioId, comunidadeId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpDelete("{comunidadeId:guid}/sair")]
@@ -140,7 +172,9 @@ public class ComunidadeController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioComunidade.SairDaComunidadeAsync(usuarioId, comunidadeId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpGet("{comunidadeId:guid}/posts")]
@@ -155,7 +189,15 @@ public class ComunidadeController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioComunidade.ObterPostsComunidadeAsync(comunidadeId, usuarioId, pagina, tamanho);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso || resultado.Dados == null)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        var meta = new {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        };
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados.Itens, meta));
     }
 
     [HttpDelete("{comunidadeId:guid}/expulsar/{usuarioId:guid}")]
@@ -170,7 +212,9 @@ public class ComunidadeController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioComunidade.ExpulsarUsuarioAsync(adminId, comunidadeId, usuarioId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpDelete("{comunidadeId:guid}")]
@@ -185,7 +229,9 @@ public class ComunidadeController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioComunidade.ExcluirComunidadeAsync(adminId, comunidadeId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpPut("{comunidadeId:guid}/transferir-admin")]
@@ -200,6 +246,102 @@ public class ComunidadeController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioComunidade.TransferirAdminAsync(adminId, comunidadeId, entrada.NovoAdminId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
+    }
+
+    [HttpGet("recomendadas")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ComunidadesRecomendadas([FromQuery] int quantidade = 10)
+    {
+        var comunidades = await _servicioComunidade.ListarComunidadesAsync(1, 1000, Guid.Empty);
+        var recomendadas = comunidades.Dados?.Itens
+            .OrderByDescending(c => c.TotalMembros)
+            .ThenByDescending(c => c.DataCriacao)
+            .Take(quantidade)
+            .Select(c => new { c.Id, c.Nome, c.TotalMembros }) ?? Enumerable.Empty<object>();
+        return Ok(ResponseHelper.Padrao(true, recomendadas));
+    }
+
+    [HttpGet("{comunidadeId:guid}/membros")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListarMembros(Guid comunidadeId)
+    {
+        var resultado = await _servicioComunidade.ListarMembrosAsync(comunidadeId);
+        return Ok(ResponseHelper.Padrao(true, resultado));
+    }
+
+    [HttpGet("{comunidadeId:guid}/admins")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListarAdmins(Guid comunidadeId)
+    {
+        var resultado = await _servicioComunidade.ListarAdminsAsync(comunidadeId);
+        return Ok(ResponseHelper.Padrao(true, resultado));
+    }
+
+    [HttpGet("{comunidadeId:guid}/sou-membro")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> SouMembro(Guid comunidadeId)
+    {
+        var usuarioIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+        var ehMembro = await _servicioComunidade.SouMembroAsync(comunidadeId, usuarioId);
+        return Ok(ResponseHelper.Padrao(true, new { ehMembro }));
+    }
+
+    [HttpPost("{comunidadeId:guid}/solicitar-entrada")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> SolicitarEntrada(Guid comunidadeId)
+    {
+        var usuarioIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+        var resultado = await _servicioComunidade.SolicitarEntradaAsync(comunidadeId, usuarioId);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
+    }
+
+    [HttpGet("{comunidadeId:guid}/solicitacoes")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListarSolicitacoes(Guid comunidadeId)
+    {
+        var usuarioIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+        // Apenas admins podem ver solicitações
+        var comunidade = await _servicioComunidade.ObterComunidadeAsync(comunidadeId, usuarioId);
+        if (!comunidade.Sucesso || !(comunidade.Dados?.UsuarioEhAdmin ?? false))
+            return Unauthorized();
+        var solicitacoes = await _servicioComunidade.ListarSolicitacoesAsync(comunidadeId);
+        return Ok(ResponseHelper.Padrao(true, solicitacoes));
+    }
+
+    [HttpPut("{comunidadeId:guid}/solicitacoes/{usuarioId:guid}/aprovar")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> AprovarSolicitacao(Guid comunidadeId, Guid usuarioId)
+    {
+        var adminIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(adminIdClaim, out var adminId))
+            return Unauthorized();
+        var resultado = await _servicioComunidade.AprovarSolicitacaoAsync(comunidadeId, usuarioId, adminId);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 }

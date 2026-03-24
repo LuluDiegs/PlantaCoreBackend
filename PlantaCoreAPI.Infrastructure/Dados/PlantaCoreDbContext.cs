@@ -22,6 +22,10 @@ public class PlantaCoreDbContext : DbContext
     public DbSet<PalavraChave> PalavrasChave { get; set; } = null!;
     public DbSet<Evento> Eventos { get; set; } = null!;
     public DbSet<EventoParticipante> EventosParticipantes { get; set; } = null!;
+    public DbSet<PostSave> PostSaves { get; set; } = null!;
+    public DbSet<PostShare> PostShares { get; set; } = null!;
+    public DbSet<PostView> PostViews { get; set; } = null!;
+    public DbSet<ActivityLog> ActivityLogs { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -310,6 +314,7 @@ public class PlantaCoreDbContext : DbContext
             entity.Property(c => c.FotoComunidade).HasColumnName("foto_comunidade");
             entity.Property(c => c.Ativa).HasColumnName("ativa").HasDefaultValue(true);
             entity.Property(c => c.DataCriacao).HasColumnName("data_criacao").ValueGeneratedOnAdd().HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.Property(c => c.Privada).HasColumnName("Privada").HasDefaultValue(false);
 
             entity.HasIndex(c => c.Nome).HasDatabaseName("ix_comunidades_nome");
 
@@ -424,6 +429,53 @@ public class PlantaCoreDbContext : DbContext
             entity.HasOne(ep => ep.Usuario)
                 .WithMany(u => u.EventosParticipando)
                 .HasForeignKey(ep => ep.UsuarioId);
+        });
+
+        modelBuilder.Entity<PostSave>(entity =>
+        {
+            entity.ToTable("post_saves");
+            entity.HasKey(ps => ps.Id);
+            entity.Property(ps => ps.Id).HasColumnName("id").ValueGeneratedNever();
+            entity.Property(ps => ps.UsuarioId).HasColumnName("usuario_id");
+            entity.Property(ps => ps.PostId).HasColumnName("post_id");
+            entity.Property(ps => ps.DataCriacao).HasColumnName("data_criacao").ValueGeneratedOnAdd().HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasIndex(ps => new { ps.UsuarioId, ps.PostId }).IsUnique().HasDatabaseName("ix_postsave_usuario_post");
+        });
+
+        modelBuilder.Entity<PostShare>(entity =>
+        {
+            entity.ToTable("post_shares");
+            entity.HasKey(ps => ps.Id);
+            entity.Property(ps => ps.Id).HasColumnName("id").ValueGeneratedNever();
+            entity.Property(ps => ps.UsuarioId).HasColumnName("usuario_id");
+            entity.Property(ps => ps.PostId).HasColumnName("post_id");
+            entity.Property(ps => ps.DataCriacao).HasColumnName("data_criacao").ValueGeneratedOnAdd().HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasIndex(ps => new { ps.UsuarioId, ps.PostId }).IsUnique().HasDatabaseName("ix_postshare_usuario_post");
+        });
+
+        modelBuilder.Entity<PostView>(entity =>
+        {
+            entity.ToTable("post_views");
+            entity.HasKey(pv => pv.Id);
+            entity.Property(pv => pv.Id).HasColumnName("id").ValueGeneratedNever();
+            entity.Property(pv => pv.UsuarioId).HasColumnName("usuario_id");
+            entity.Property(pv => pv.PostId).HasColumnName("post_id");
+            entity.Property(pv => pv.DataCriacao).HasColumnName("data_criacao").ValueGeneratedOnAdd().HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasIndex(pv => new { pv.UsuarioId, pv.PostId }).IsUnique().HasDatabaseName("ix_postview_usuario_post");
+        });
+
+        modelBuilder.Entity<ActivityLog>(entity =>
+        {
+            entity.ToTable("activity_logs");
+            entity.HasKey(al => al.Id);
+            entity.Property(al => al.Id).HasColumnName("id").ValueGeneratedNever();
+            entity.Property(al => al.UsuarioId).HasColumnName("usuario_id");
+            entity.Property(al => al.Tipo).HasColumnName("tipo").IsRequired();
+            entity.Property(al => al.EntidadeId).HasColumnName("entidade_id");
+            entity.Property(al => al.EntidadeTipo).HasColumnName("entidade_tipo");
+            entity.Property(al => al.MetaDados).HasColumnName("meta_dados");
+            entity.Property(al => al.DataCriacao).HasColumnName("data_criacao").ValueGeneratedOnAdd().HasDefaultValueSql("CURRENT_TIMESTAMP");
+            entity.HasIndex(al => al.UsuarioId).HasDatabaseName("ix_activitylog_usuario_id");
         });
     }
 }

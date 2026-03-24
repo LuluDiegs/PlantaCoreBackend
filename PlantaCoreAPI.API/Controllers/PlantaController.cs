@@ -5,6 +5,7 @@ using PlantaCoreAPI.Application.DTOs.Identificacao;
 using PlantaCoreAPI.Application.Interfaces;
 using PlantaCoreAPI.Application.DTOs.Post;
 using System.Security.Claims;
+using PlantaCoreAPI.API.Utils;
 
 namespace PlantaCoreAPI.API.Controllers;
 
@@ -129,9 +130,9 @@ public class PlantaController : ControllerBase
         var resultado = await _servicioPlanta.BuscarPlantasTrefleAsync(entrada.NomePlanta, entrada.Pagina);
 
         if (!resultado.Sucesso)
-            return NotFound(new { sucesso = false, mensagem = resultado.Mensagem, dados = new { plantas = new List<object>() } });
+            return NotFound(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
 
-        return Ok(new { sucesso = true, dados = resultado.Dados });
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpPost("buscar/adicionar")]
@@ -146,10 +147,12 @@ public class PlantaController : ControllerBase
             return Unauthorized();
 
         if (entrada?.PlantaTrefleId <= 0)
-            return BadRequest(new { sucesso = false, mensagem = "plantaTrefleId obrigatório e deve ser maior que 0" });
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { "plantaTrefleId obrigatório e deve ser maior que 0" }));
 
         var resultado = await _servicioPlanta.AdicionarPlantaDoTrefleAsync(usuarioId, entrada.PlantaTrefleId, entrada.NomeCientifico, entrada.UrlImagem);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpGet("minhas-plantas")]
@@ -164,7 +167,16 @@ public class PlantaController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioPlanta.ListarPlantasUsuarioPaginadoAsync(usuarioId, pagina, tamanho);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        var meta = resultado.Dados != null ? new {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        } : null;
+        var dados = resultado.Dados != null ? resultado.Dados.Itens : Enumerable.Empty<PlantaDTOSaida>();
+        return Ok(ResponseHelper.Padrao(true, dados, meta));
     }
 
     [HttpGet("minhas-plantas/buscar")]
@@ -179,7 +191,16 @@ public class PlantaController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioPlanta.BuscarPlantasUsuarioAsync(usuarioId, termo, pagina, tamanho);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        var meta = resultado.Dados != null ? new {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        } : null;
+        var dados = resultado.Dados != null ? resultado.Dados.Itens : Enumerable.Empty<PlantaDTOSaida>();
+        return Ok(ResponseHelper.Padrao(true, dados, meta));
     }
 
     [HttpGet("{plantaId:guid}")]
@@ -189,7 +210,9 @@ public class PlantaController : ControllerBase
     public async Task<IActionResult> ObterPlanta(Guid plantaId)
     {
         var resultado = await _servicioPlanta.ObterPlantaAsync(plantaId);
-        return resultado.Sucesso ? Ok(resultado) : NotFound(resultado);
+        if (!resultado.Sucesso)
+            return NotFound(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpDelete("{plantaId:guid}")]
@@ -204,7 +227,9 @@ public class PlantaController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioPlanta.ExcluirPlantaAsync(plantaId, usuarioId);
-        return resultado.Sucesso ? Ok(new { sucesso = true, mensagem = "Planta excluída com sucesso" }) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = "Planta excluída com sucesso" }));
     }
 
     [HttpPost("{plantaId:guid}/gerar-lembrete-cuidado")]
@@ -218,6 +243,15 @@ public class PlantaController : ControllerBase
             return Unauthorized();
 
         await servicoLembrete.GerarLembreteCuidadoAsync(plantaId);
-        return Ok(new { sucesso = true, mensagem = "Lembrete de cuidado gerado com sucesso" });
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = "Lembrete de cuidado gerado com sucesso" }));
+    }
+
+    [HttpGet("{plantaId:guid}/posts")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListarPostsDaPlanta(Guid plantaId)
+    {
+        var resultado = await _servicioPlanta.ListarPostsDaPlantaAsync(plantaId);
+        return Ok(ResponseHelper.Padrao(true, resultado));
     }
 }

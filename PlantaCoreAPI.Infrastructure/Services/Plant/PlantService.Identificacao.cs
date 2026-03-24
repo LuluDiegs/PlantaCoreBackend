@@ -1,4 +1,5 @@
 using PlantaCoreAPI.Application.Comuns;
+using PlantaCoreAPI.Application.Comuns.Eventos;
 using PlantaCoreAPI.Application.DTOs.Identificacao;
 using PlantaCoreAPI.Application.DTOs.Planta;
 using PlantaCoreAPI.Application.Interfaces;
@@ -51,6 +52,20 @@ public sealed partial class PlantService
 
             await _repositorioPlanta.AdicionarAsync(planta);
             await _repositorioPlanta.SalvarMudancasAsync();
+
+            // Notificação de planta identificada
+            var notificacao = Notificacao.Criar(
+                usuarioId,
+                Domain.Enums.TipoNotificacao.PlantaIdentificada,
+                $"Sua planta '{planta.NomeComum ?? planta.NomeCientifico}' foi identificada com sucesso!",
+                usuarioOrigemId: null,
+                plantaId: planta.Id
+            );
+            await _repositorioNotificacao.AdicionarAsync(notificacao);
+            await _repositorioNotificacao.SalvarMudancasAsync();
+
+            // Evento interno
+            await _eventoDispatcher.PublicarAsync(new PlantaIdentificadaEvento { UsuarioId = usuarioId, PlantaId = planta.Id });
 
             return Resultado<PlantaDTOSaida>.Ok(MapearPlantaPara(planta));
         }

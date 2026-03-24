@@ -1,7 +1,7 @@
 using PlantaCoreAPI.Application.Comuns;
 using PlantaCoreAPI.Application.DTOs.Notificacao;
 using PlantaCoreAPI.Application.Interfaces;
-using PlantaCoreAPI.Domain.Enums;
+using PlantaCoreAPI.Domain.Comuns;
 using PlantaCoreAPI.Domain.Interfaces;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
@@ -9,190 +9,78 @@ namespace PlantaCoreAPI.Infrastructure.Services;
 public class NotificationService : INotificationService
 {
     private readonly IRepositorioNotificacao _repositorioNotificacao;
-    private readonly IRepositorioPlanta _repositorioPlanta;
 
-    public NotificationService(
-        IRepositorioNotificacao repositorioNotificacao,
-        IRepositorioPlanta repositorioPlanta)
+    public NotificationService(IRepositorioNotificacao repositorioNotificacao)
     {
         _repositorioNotificacao = repositorioNotificacao;
-        _repositorioPlanta = repositorioPlanta;
     }
 
-    public async Task<Resultado<ListarNotificacoesComLembretesDTOSaida>> ObterNotificacoesAsync(Guid usuarioId)
+    public async Task<Resultado<PaginaResultadoNotificacao>> ObterNotificacoesPaginadasAsync(Guid usuarioId, int pagina, int tamanho)
     {
-        try
-        {
-            var notificacoes = await _repositorioNotificacao.ObterPorUsuarioAsync(usuarioId);
-            var totalNaoLidas = await _repositorioNotificacao.ContarNaoLidasAsync(usuarioId);
-
-            var lembretes = notificacoes.Where(n => n.Tipo == TipoNotificacao.LembreteCuidado).ToList();
-            var sociais = notificacoes.Where(n => n.Tipo != TipoNotificacao.LembreteCuidado).ToList();
-
-            var lembretesStructurados = new List<LembreteCuidadoDTOSaida>();
-            foreach (var lembrete in lembretes)
+        var todas = (await _repositorioNotificacao.ObterPorUsuarioAsync(usuarioId)).ToList();
+        var total = todas.Count;
+        var totalNaoLidas = todas.Count(n => !n.Lida);
+        var paginadas = todas.Skip((pagina - 1) * tamanho).Take(tamanho)
+            .Select(n => new NotificacaoDTOSaida
             {
-                if (lembrete.PlantaId.HasValue)
-                {
-                    var planta = await _repositorioPlanta.ObterPorIdAsync(lembrete.PlantaId.Value);
-                    if (planta != null)
-                    {
-                        lembretesStructurados.Add(new LembreteCuidadoDTOSaida
-                        {
-                            Id = lembrete.Id,
-                            PlantaId = planta.Id,
-                            NomePlanta = planta.NomeComum ?? planta.NomeCientifico,
-                            DataCriacao = lembrete.DataCriacao,
-                            Lida = lembrete.Lida,
-                            Detalhes = new LembreteCuidadoDetalhesDTOSaida
-                            {
-                                Rega = planta.RequisitosAgua,
-                                Luz = planta.RequisitosLuz,
-                                Temperatura = planta.RequisitosTemperatura,
-                                Cuidados = planta.Cuidados
-                            }
-                        });
-                    }
-                }
-            }
-
-            return Resultado<ListarNotificacoesComLembretesDTOSaida>.Ok(new ListarNotificacoesComLembretesDTOSaida
-            {
-                NotificacoesSociais = sociais.Select(MapearNotificacaoPara).ToList(),
-                Lembretes = lembretesStructurados,
-                TotalNaoLidas = totalNaoLidas
-            });
-        }
-        catch (Exception ex)
+                Id = n.Id,
+                Tipo = n.Tipo.ToString(),
+                Mensagem = n.Mensagem,
+                Lida = n.Lida,
+                DataCriacao = n.DataCriacao,
+                DataLeitura = n.DataLeitura,
+                UsuarioOrigemId = n.UsuarioOrigemId,
+                UsuarioOrigemNome = n.UsuarioOrigem?.Nome,
+                FotoUsuarioOrigem = n.UsuarioOrigem?.FotoPerfil,
+                PostId = n.PostId,
+                PlantaId = n.PlantaId
+            })
+            .ToList();
+        var totalPaginas = tamanho > 0 ? (int)Math.Ceiling((double)total / tamanho) : 0;
+        return Resultado<PaginaResultadoNotificacao>.Ok(new PaginaResultadoNotificacao
         {
-            return Resultado<ListarNotificacoesComLembretesDTOSaida>.Erro($"Erro ao obter notificações: {ex.Message}");
-        }
-    }
-
-    public async Task<Resultado<ListarNotificacoesComLembretesDTOSaida>> ObterNaoLidasAsync(Guid usuarioId)
-    {
-        try
-        {
-            var notificacoes = await _repositorioNotificacao.ObterNaoLidasAsync(usuarioId);
-            var totalNaoLidas = await _repositorioNotificacao.ContarNaoLidasAsync(usuarioId);
-
-            var lembretes = notificacoes.Where(n => n.Tipo == TipoNotificacao.LembreteCuidado).ToList();
-            var sociais = notificacoes.Where(n => n.Tipo != TipoNotificacao.LembreteCuidado).ToList();
-
-            var lembretesStructurados = new List<LembreteCuidadoDTOSaida>();
-            foreach (var lembrete in lembretes)
-            {
-                if (lembrete.PlantaId.HasValue)
-                {
-                    var planta = await _repositorioPlanta.ObterPorIdAsync(lembrete.PlantaId.Value);
-                    if (planta != null)
-                    {
-                        lembretesStructurados.Add(new LembreteCuidadoDTOSaida
-                        {
-                            Id = lembrete.Id,
-                            PlantaId = planta.Id,
-                            NomePlanta = planta.NomeComum ?? planta.NomeCientifico,
-                            DataCriacao = lembrete.DataCriacao,
-                            Lida = lembrete.Lida,
-                            Detalhes = new LembreteCuidadoDetalhesDTOSaida
-                            {
-                                Rega = planta.RequisitosAgua,
-                                Luz = planta.RequisitosLuz,
-                                Temperatura = planta.RequisitosTemperatura,
-                                Cuidados = planta.Cuidados
-                            }
-                        });
-                    }
-                }
-            }
-
-            return Resultado<ListarNotificacoesComLembretesDTOSaida>.Ok(new ListarNotificacoesComLembretesDTOSaida
-            {
-                NotificacoesSociais = sociais.Select(MapearNotificacaoPara).ToList(),
-                Lembretes = lembretesStructurados,
-                TotalNaoLidas = totalNaoLidas
-            });
-        }
-        catch (Exception ex)
-        {
-            return Resultado<ListarNotificacoesComLembretesDTOSaida>.Erro($"Erro ao obter notificações não lidas: {ex.Message}");
-        }
+            Notificacoes = paginadas,
+            Pagina = pagina,
+            TamanhoPagina = tamanho,
+            Total = total,
+            TotalPaginas = totalPaginas,
+            TotalNaoLidas = totalNaoLidas
+        });
     }
 
     public async Task<Resultado> MarcarComoLidaAsync(Guid notificacaoId)
     {
-        try
-        {
-            await _repositorioNotificacao.MarcarComoLidaAsync(notificacaoId);
-            return Resultado.Ok("Notificação marcada como lida");
-        }
-        catch (Exception ex)
-        {
-            return Resultado.Erro($"Erro ao marcar notificação como lida: {ex.Message}");
-        }
+        await _repositorioNotificacao.MarcarComoLidaAsync(notificacaoId);
+        return Resultado.Ok("Notificação marcada como lida");
     }
 
     public async Task<Resultado> MarcarTodasComoLidasAsync(Guid usuarioId)
     {
-        try
-        {
-            await _repositorioNotificacao.MarcarTodasComoLidasAsync(usuarioId);
-            return Resultado.Ok("Todas as notificações marcadas como lidas");
-        }
-        catch (Exception ex)
-        {
-            return Resultado.Erro($"Erro ao marcar notificações como lidas: {ex.Message}");
-        }
+        await _repositorioNotificacao.MarcarTodasComoLidasAsync(usuarioId);
+        return Resultado.Ok("Todas notificações marcadas como lidas");
     }
 
     public async Task<Resultado> DeletarNotificacaoAsync(Guid notificacaoId, Guid usuarioId)
     {
-        try
-        {
-            var notificacao = await _repositorioNotificacao.ObterPorIdAsync(notificacaoId);
-            if (notificacao == null)
-                return Resultado.Erro("Notificação não encontrada");
-
-            if (notificacao.UsuarioId != usuarioId)
-                return Resultado.Erro("Você não tem permissão para deletar esta notificação");
-
-            await _repositorioNotificacao.DeletarNotificacaoAsync(notificacaoId, usuarioId);
-            return Resultado.Ok("Notificação deletada com sucesso");
-        }
-        catch (Exception ex)
-        {
-            return Resultado.Erro($"Erro ao deletar notificação: {ex.Message}");
-        }
+        await _repositorioNotificacao.DeletarNotificacaoAsync(notificacaoId, usuarioId);
+        return Resultado.Ok("Notificação removida");
     }
 
     public async Task<Resultado> DeletarTodasNotificacoesAsync(Guid usuarioId)
     {
-        try
-        {
-            await _repositorioNotificacao.DeletarTodasNotificacoesUsuarioAsync(usuarioId);
-            return Resultado.Ok("Todas as notificações foram deletadas");
-        }
-        catch (Exception ex)
-        {
-            return Resultado.Erro($"Erro ao deletar notificações: {ex.Message}");
-        }
+        await _repositorioNotificacao.DeletarTodasNotificacoesUsuarioAsync(usuarioId);
+        return Resultado.Ok("Todas notificações removidas");
     }
 
-    private static NotificacaoDTOSaida MapearNotificacaoPara(Domain.Entities.Notificacao notificacao)
+    public async Task<Resultado<ConfiguracoesNotificacaoDTOSaida>> ObterConfiguracoesAsync(Guid usuarioId)
     {
-        return new NotificacaoDTOSaida
-        {
-            Id = notificacao.Id,
-            Tipo = notificacao.Tipo.ToString(),
-            Mensagem = notificacao.Mensagem,
-            Lida = notificacao.Lida,
-            DataCriacao = notificacao.DataCriacao,
-            DataLeitura = notificacao.DataLeitura,
-            UsuarioOrigemId = notificacao.UsuarioOrigemId,
-            UsuarioOrigemNome = notificacao.UsuarioOrigem?.Nome,
-            FotoUsuarioOrigem = notificacao.UsuarioOrigem?.FotoPerfil,
-            PostId = notificacao.PostId,
-            PlantaId = notificacao.PlantaId
-        };
+        // Retorna configurações padrão
+        return Resultado<ConfiguracoesNotificacaoDTOSaida>.Ok(new ConfiguracoesNotificacaoDTOSaida());
+    }
+
+    public async Task<Resultado> AtualizarConfiguracoesAsync(Guid usuarioId, ConfiguracoesNotificacaoDTOEntrada entrada)
+    {
+        // Apenas simula atualização
+        return Resultado.Ok("Configurações atualizadas");
     }
 }

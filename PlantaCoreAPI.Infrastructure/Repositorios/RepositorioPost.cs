@@ -201,8 +201,7 @@ public class RepositorioPost : IRepositorioPost
             .Include(p => p.Comentarios);
 
         var total = await query.CountAsync();
-        var itens = await query
-            .OrderByDescending(p => p.DataCriacao)
+        var itens = await OrdenarPosts(query, null)
             .Skip((pagina - 1) * tamanho)
             .Take(tamanho)
             .ToListAsync();
@@ -266,5 +265,98 @@ public class RepositorioPost : IRepositorioPost
                 .ThenInclude(p => p.Comentarios)
             .Select(pc => pc.Post)
             .ToListAsync();
+    }
+
+    public IQueryable<Post> ObterQueryable()
+    {
+        return _contexto.Posts
+            .Include(p => p.Usuario)
+            .Include(p => p.Curtidas)
+            .Include(p => p.Comentarios)
+            .Include(p => p.Hashtags)
+            .Include(p => p.Categorias)
+            .Include(p => p.Comunidade);
+    }
+
+    public IQueryable<Post> Query()
+    {
+        return ObterQueryable();
+    }
+
+    public async Task<PaginaResultado<Post>> ObterFeedFiltradoAsync(Guid usuarioId, string? ordenarPor, int pagina, int tamanho)
+    {
+        var usuario = await _contexto.Usuarios
+            .Include(u => u.Seguindo)
+            .FirstOrDefaultAsync(u => u.Id == usuarioId);
+        if (usuario == null)
+            return new PaginaResultado<Post> { Itens = new List<Post>(), Pagina = pagina, TamanhoPagina = tamanho, Total = 0 };
+        var idsUsuariosSeguindo = usuario.Seguindo.Select(u => u.Id).ToList();
+        idsUsuariosSeguindo.Add(usuarioId);
+        var query = _contexto.Posts
+            .Where(p => idsUsuariosSeguindo.Contains(p.UsuarioId))
+            .Include(p => p.Usuario)
+            .Include(p => p.Curtidas)
+            .Include(p => p.Comentarios);
+        var total = await query.CountAsync();
+        var itens = await OrdenarPosts(query, ordenarPor)
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToListAsync();
+        return new PaginaResultado<Post> { Itens = itens, Pagina = pagina, TamanhoPagina = tamanho, Total = total };
+    }
+
+    public async Task<PaginaResultado<Post>> ObterPorUsuarioPaginadoAsync(Guid usuarioId, int pagina, int tamanho, string? ordenarPor)
+    {
+        var query = _contexto.Posts
+            .Where(p => p.UsuarioId == usuarioId)
+            .Include(p => p.Usuario)
+            .Include(p => p.Curtidas)
+            .Include(p => p.Comentarios);
+        var total = await query.CountAsync();
+        var itens = await OrdenarPosts(query, ordenarPor)
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToListAsync();
+        return new PaginaResultado<Post> { Itens = itens, Pagina = pagina, TamanhoPagina = tamanho, Total = total };
+    }
+
+    public async Task<PaginaResultado<Post>> ObterExploradorAsync(int pagina, int tamanho, string? ordenarPor)
+    {
+        var query = _contexto.Posts
+            .Include(p => p.Usuario)
+            .Include(p => p.Curtidas)
+            .Include(p => p.Comentarios);
+        var total = await query.CountAsync();
+        var itens = await OrdenarPosts(query, ordenarPor)
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToListAsync();
+        return new PaginaResultado<Post> { Itens = itens, Pagina = pagina, TamanhoPagina = tamanho, Total = total };
+    }
+
+    public async Task<PaginaResultado<Post>> ObterPorComunidadeAsync(Guid comunidadeId, int pagina, int tamanho, string? ordenarPor)
+    {
+        var query = _contexto.Posts
+            .Where(p => p.ComunidadeId == comunidadeId)
+            .Include(p => p.Usuario)
+            .Include(p => p.Curtidas)
+            .Include(p => p.Comentarios);
+        var total = await query.CountAsync();
+        var itens = await OrdenarPosts(query, ordenarPor)
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToListAsync();
+        return new PaginaResultado<Post> { Itens = itens, Pagina = pagina, TamanhoPagina = tamanho, Total = total };
+    }
+
+    private static IQueryable<Post> OrdenarPosts(IQueryable<Post> query, string? ordenarPor)
+    {
+        return ordenarPor switch
+        {
+            "mais_antigo" => query.OrderBy(p => p.DataCriacao),
+            "mais_curtido" => query.OrderByDescending(p => p.Curtidas.Count),
+            "mais_comentado" => query.OrderByDescending(p => p.Comentarios.Count),
+            _ => query.OrderByDescending(p => p.DataCriacao),
+        };
     }
 }

@@ -2,10 +2,13 @@ using PlantaCoreAPI.Application.Comuns;
 using PlantaCoreAPI.Application.DTOs.Post;
 using PlantaCoreAPI.Application.DTOs.Comentario;
 using PlantaCoreAPI.Application.Interfaces;
+using PlantaCoreAPI.Application.Comuns.Eventos;
+using PlantaCoreAPI.Application.Comuns.Cache;
 using PlantaCoreAPI.Domain.Comuns;
 using PlantaCoreAPI.Domain.Entities;
 using PlantaCoreAPI.Domain.Interfaces;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Logging;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
 
@@ -16,19 +19,49 @@ public class PostService : IPostService
     private readonly IRepositorioPlanta _repositorioPlanta;
     private readonly IRepositorioNotificacao _repositorioNotificacao;
     private readonly IRepositorioComunidade _repositorioComunidade;
+    private readonly IEventoDispatcher _eventoDispatcher;
+    private readonly ICacheService _cacheService;
+    private readonly ILogger<PostService> _logger;
+    private readonly IRepositorioPostSave _repositorioPostSave;
+    private readonly IRepositorioPostShare _repositorioPostShare;
+    private readonly IRepositorioPostView _repositorioPostView;
+    private readonly IRepositorioActivityLog _repositorioActivityLog;
+    private readonly IRepositorioCurtida _repositorioCurtida;
+
+    // Simulação: posts salvos em memória (ideal: persistir em banco)
+    private static readonly Dictionary<Guid, HashSet<Guid>> _postsSalvos = new();
+    // Simulação: compartilhamentos e visualizações em memória
+    private static readonly Dictionary<Guid, HashSet<Guid>> _postsCompartilhados = new();
+    private static readonly Dictionary<Guid, HashSet<Guid>> _postsVisualizados = new();
 
     public PostService(
         IRepositorioPost repositorioPost,
         IRepositorioUsuario repositorioUsuario,
         IRepositorioPlanta repositorioPlanta,
         IRepositorioNotificacao repositorioNotificacao,
-        IRepositorioComunidade repositorioComunidade)
+        IRepositorioComunidade repositorioComunidade,
+        IEventoDispatcher eventoDispatcher,
+        ICacheService cacheService,
+        ILogger<PostService> logger,
+        IRepositorioPostSave repositorioPostSave,
+        IRepositorioPostShare repositorioPostShare,
+        IRepositorioPostView repositorioPostView,
+        IRepositorioActivityLog repositorioActivityLog,
+        IRepositorioCurtida repositorioCurtida)
     {
         _repositorioPost = repositorioPost;
         _repositorioUsuario = repositorioUsuario;
         _repositorioPlanta = repositorioPlanta;
         _repositorioNotificacao = repositorioNotificacao;
         _repositorioComunidade = repositorioComunidade;
+        _eventoDispatcher = eventoDispatcher;
+        _cacheService = cacheService;
+        _logger = logger;
+        _repositorioPostSave = repositorioPostSave;
+        _repositorioPostShare = repositorioPostShare;
+        _repositorioPostView = repositorioPostView;
+        _repositorioActivityLog = repositorioActivityLog;
+        _repositorioCurtida = repositorioCurtida;
     }
 
     public async Task<Resultado<PostDTOSaida>> CriarPostAsync(Guid usuarioId, CriarPostDTOEntrada entrada)
@@ -193,17 +226,39 @@ public class PostService : IPostService
         }
     }
 
-    public async Task<Resultado<IEnumerable<PostDTOSaida>>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10)
+    public async Task<Resultado<IEnumerable<PostDTOSaida>>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10, string? cursor = null)
     {
+        var cacheKey = $"feed:{usuarioId}:{pagina}:{tamanho}:{cursor}";
+        var cached = _cacheService.Get<IEnumerable<PostDTOSaida>>(cacheKey);
+        if (cached != null)
+            return Resultado<IEnumerable<PostDTOSaida>>.Ok(cached);
+
         try
         {
             var posts = await _repositorioPost.ObterFeedAsync(usuarioId, pagina, tamanho);
 
+            // Cursor: se fornecido, filtrar posts a partir do cursor (id ou data)
+            if (!string.IsNullOrEmpty(cursor) && Guid.TryParse(cursor, out var cursorId))
+            {
+                var cursorPost = posts.FirstOrDefault(p => p.Id == cursorId);
+                if (cursorPost != null)
+                {
+                    posts = posts.Where(p => p.DataCriacao < cursorPost.DataCriacao).ToList();
+                }
+            }
+
+            // Ranking: relevância (curtidas + comentários), engajamento, recência
+            var postsOrdenados = posts
+                .OrderByDescending(p => p.Curtidas.Count + p.Comentarios.Count)
+                .ThenByDescending(p => p.DataCriacao)
+                .ToList();
+
             var dtos = new List<PostDTOSaida>();
-            foreach (var post in posts.Where(p => p.Usuario != null))
+            foreach (var post in postsOrdenados.Where(p => p.Usuario != null))
             {
                 Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
                 var curtiu = post.Curtidas.Any(c => c.UsuarioId == usuarioId);
+                var comentou = post.Comentarios.Any(c => c.UsuarioId == usuarioId);
 
                 string? nomeComunidade = null;
                 if (post.ComunidadeId.HasValue)
@@ -212,10 +267,14 @@ public class PostService : IPostService
                     nomeComunidade = comunidade?.Nome;
                 }
 
-                dtos.Add(MapearPostPara(post, post.Usuario!, planta, curtiu, nomeComunidade));
+                var dto = MapearPostPara(post, post.Usuario!, planta, curtiu, nomeComunidade);
+                dto.ComentadoPorMim = comentou;
+                dtos.Add(dto);
             }
 
-            return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
+            var result = Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
+            _cacheService.Set(cacheKey, dtos, TimeSpan.FromMinutes(2));
+            return result;
         }
         catch (Exception ex)
         {
@@ -227,6 +286,8 @@ public class PostService : IPostService
     {
         try
         {
+            _logger.LogInformation("Usuário {UsuarioId} tentando curtir post {PostId}", usuarioId, postId);
+
             var post = await _repositorioPost.ObterPorIdAsync(postId);
             if (post == null)
                 return Resultado.Erro("Post não encontrado");
@@ -238,6 +299,13 @@ public class PostService : IPostService
             if (usuario == null)
                 return Resultado.Erro("Usuário não encontrado");
 
+            // Remove qualquer curtida duplicada na lista em memória
+            post.Curtidas.RemoveAll(c => c.UsuarioId == usuarioId && c.PostId == postId);
+
+            // Verifica se já existe curtida no banco
+            if (await _repositorioCurtida.ExisteAsync(usuarioId, postId))
+                return Resultado.Erro("Você já curtiu este post");
+
             post.AdicionarCurtida(new Curtida
             {
                 UsuarioId = usuario.Id,
@@ -246,6 +314,8 @@ public class PostService : IPostService
             });
             await _repositorioPost.AtualizarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
+
+            await _eventoDispatcher.PublicarAsync(new PostCurtidoEvento { UsuarioId = usuarioId, PostId = postId });
 
             var notificacao = Notificacao.Criar(
                 post.UsuarioId,
@@ -258,10 +328,17 @@ public class PostService : IPostService
             await _repositorioNotificacao.AdicionarAsync(notificacao);
             await _repositorioNotificacao.SalvarMudancasAsync();
 
+            _logger.LogInformation("Usuário {UsuarioId} curtiu post {PostId}", usuarioId, postId);
             return Resultado.Ok("Post curtido com sucesso");
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+        {
+            _logger.LogWarning("Concorrência detectada ao curtir post: {UsuarioId} -> {PostId}", usuarioId, postId);
+            return Resultado.Erro("Concorrência detectada. Tente novamente.");
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Erro ao curtir post {UsuarioId} -> {PostId}", usuarioId, postId);
             return Resultado.Erro($"Erro ao curtir post: {ex.Message}");
         }
     }
@@ -296,11 +373,16 @@ public class PostService : IPostService
             if (post == null || usuario == null)
                 return Resultado<ComentarioDTOSaida>.Erro("Post ou usuário não encontrado");
 
+            // Controle otimista: recarregar post antes de comentar
+            post = await _repositorioPost.ObterPorIdAsync(entrada.PostId);
+
             var comentario = Comentario.Criar(entrada.PostId, usuarioId, entrada.Conteudo);
             post.AdicionarComentario(comentario);
 
             await _repositorioPost.AtualizarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
+
+            await _eventoDispatcher.PublicarAsync(new ComentarioCriadoEvento { UsuarioId = usuarioId, PostId = entrada.PostId, ComentarioId = comentario.Id });
 
             if (post.UsuarioId != usuarioId)
             {
@@ -317,6 +399,10 @@ public class PostService : IPostService
             }
 
             return Resultado<ComentarioDTOSaida>.Ok(MapearComentarioPara(comentario, usuario));
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+        {
+            return Resultado<ComentarioDTOSaida>.Erro("Concorrência detectada. Tente novamente.");
         }
         catch (Exception ex)
         {
@@ -373,7 +459,7 @@ public class PostService : IPostService
         }
     }
 
-    public async Task<Resultado<IEnumerable<ComentarioDTOSaida>>> ListarComentariosPostAsync(Guid postId, Guid usuarioAutenticadoId, int pagina = 1, int tamanho = 20)
+    public async Task<Resultado<IEnumerable<ComentarioDTOSaida>>> ListarComentariosPostAsync(Guid postId, Guid usuarioAutenticadoId, int pagina = 1, int tamanho = 20, string? ordenar = null)
     {
         try
         {
@@ -382,15 +468,18 @@ public class PostService : IPostService
                 return Resultado<IEnumerable<ComentarioDTOSaida>>.Erro("Post não encontrado");
 
             var comentarios = post.Comentarios
-                .Where(c => c.Ativo)
-                .OrderByDescending(c => c.DataCriacao)
-                .Skip((pagina - 1) * tamanho)
-                .Take(tamanho)
+                .Where(c => c.Ativo && c.ComentarioPaiId == null)
                 .ToList();
+
+            if (ordenar == "relevantes")
+                comentarios = comentarios.OrderByDescending(c => c.Curtidas.Count).ThenByDescending(c => c.DataCriacao).ToList();
+            else
+                comentarios = comentarios.OrderByDescending(c => c.DataCriacao).ToList();
+
+            comentarios = comentarios.Skip((pagina - 1) * tamanho).Take(tamanho).ToList();
 
             var idsUsuarios = comentarios.Select(c => c.UsuarioId).Distinct().ToList();
             var usuarios = new Dictionary<Guid, Usuario>();
-
             foreach (var id in idsUsuarios)
             {
                 var usuario = await _repositorioUsuario.ObterPorIdAsync(id);
@@ -400,7 +489,12 @@ public class PostService : IPostService
 
             var dtos = comentarios
                 .Where(c => usuarios.ContainsKey(c.UsuarioId))
-                .Select(c => MapearComentarioPara(c, usuarios[c.UsuarioId], usuarioAutenticadoId))
+                .Select(c => {
+                    var totalRespostas = post.Comentarios.Count(r => r.ComentarioPaiId == c.Id && r.Ativo);
+                    var dto = MapearComentarioPara(c, usuarios[c.UsuarioId], usuarioAutenticadoId);
+                    dto.TotalRespostas = totalRespostas;
+                    return dto;
+                })
                 .ToList();
 
             return Resultado<IEnumerable<ComentarioDTOSaida>>.Ok(dtos);
@@ -411,11 +505,11 @@ public class PostService : IPostService
         }
     }
 
-    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> ListarPostsUsuarioAsync(Guid usuarioId, Guid usuarioAutenticadoId, int pagina, int tamanho)
+    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> ListarPostsUsuarioAsync(Guid usuarioId, Guid usuarioAutenticadoId, int pagina, int tamanho, string? ordenarPor)
     {
         try
         {
-            var paginaPosts = await _repositorioPost.ObterPorUsuarioPaginadoAsync(usuarioId, pagina, tamanho);
+            var paginaPosts = await _repositorioPost.ObterPorUsuarioPaginadoAsync(usuarioId, pagina, tamanho, ordenarPor);
 
             var itens = new List<PostDTOSaida>();
             foreach (var post in paginaPosts.Itens.Where(p => p.Usuario != null))
@@ -438,11 +532,11 @@ public class PostService : IPostService
         }
     }
 
-    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> ObterExploradorAsync(Guid usuarioAutenticadoId, int pagina, int tamanho)
+    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> ObterExploradorAsync(Guid usuarioAutenticadoId, int pagina, int tamanho, string? ordenarPor)
     {
         try
         {
-            var paginaPosts = await _repositorioPost.ObterExploradorAsync(pagina, tamanho);
+            var paginaPosts = await _repositorioPost.ObterExploradorAsync(pagina, tamanho, ordenarPor);
 
             var itens = new List<PostDTOSaida>();
             foreach (var post in paginaPosts.Itens.Where(p => p.Usuario != null))
@@ -620,76 +714,38 @@ public class PostService : IPostService
         }
     }
 
-    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> BuscarPostsPorPlantaAsync(string nomePlanta, int pagina = 1, int tamanho = 10)
+    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> ObterFeedFiltradoPorDataAsync(Guid usuarioId, int pagina, int tamanho, DateTime? dataInicio, DateTime? dataFim)
     {
-        try
+        var posts = await _repositorioPost.ObterFeedAsync(usuarioId, 1, int.MaxValue);
+        if (dataInicio.HasValue)
+            posts = posts.Where(p => p.DataCriacao >= dataInicio.Value).ToList();
+        if (dataFim.HasValue)
+            posts = posts.Where(p => p.DataCriacao <= dataFim.Value).ToList();
+        var total = posts.Count();
+        var paginados = posts.OrderByDescending(p => p.DataCriacao)
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToList();
+        var itens = new List<PostDTOSaida>();
+        foreach (var post in paginados.Where(p => p.Usuario != null))
         {
-            var posts = await _repositorioPost.ObterTodosAsync();
-
-            var postsFiltrados = posts
-                .Where(p => p.Planta != null &&
-                            (p.Planta.NomeCientifico.Contains(nomePlanta, StringComparison.OrdinalIgnoreCase) ||
-                             (p.Planta.NomeComum != null && p.Planta.NomeComum.Contains(nomePlanta, StringComparison.OrdinalIgnoreCase))))
-                .Skip((pagina - 1) * tamanho)
-                .Take(tamanho)
-                .ToList();
-
-            var dtos = postsFiltrados.Select(p => MapearPostPara(p, p.Usuario!, p.Planta, false)).ToList();
-
-            return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
+            Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
+            var curtiu = post.Curtidas.Any(c => c.UsuarioId == usuarioId);
+            string? nomeComunidade = null;
+            if (post.ComunidadeId.HasValue)
             {
-                Itens = dtos,
-                Pagina = pagina,
-                TamanhoPagina = tamanho,
-                Total = postsFiltrados.Count
-            });
+                var comunidade = await _repositorioComunidade.ObterPorIdAsync(post.ComunidadeId.Value);
+                nomeComunidade = comunidade?.Nome;
+            }
+            itens.Add(MapearPostPara(post, post.Usuario!, planta, curtiu, nomeComunidade));
         }
-        catch (Exception ex)
+        return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
         {
-            return Resultado<PaginaResultado<PostDTOSaida>>.Erro($"Erro ao buscar posts por planta: {ex.Message}");
-        }
-    }
-
-    public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorHashtagAsync(string hashtag)
-    {
-        var posts = await _repositorioPost.ObterPorHashtagAsync(hashtag);
-        var resultado = posts.Select(p => new PostDTOSaida
-        {
-            Id = p.Id,
-            Conteudo = p.Conteudo,
-            UsuarioId = p.UsuarioId,
-            DataCriacao = p.DataCriacao
+            Itens = itens,
+            Pagina = pagina,
+            TamanhoPagina = tamanho,
+            Total = total
         });
-
-        return Resultado<IEnumerable<PostDTOSaida>>.Ok(resultado);
-    }
-
-    public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorCategoriaAsync(string categoria)
-    {
-        var posts = await _repositorioPost.ObterPorCategoriaAsync(categoria);
-        var resultado = posts.Select(p => new PostDTOSaida
-        {
-            Id = p.Id,
-            Conteudo = p.Conteudo,
-            UsuarioId = p.UsuarioId,
-            DataCriacao = p.DataCriacao
-        });
-
-        return Resultado<IEnumerable<PostDTOSaida>>.Ok(resultado);
-    }
-
-    public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorPalavraChaveAsync(string palavraChave)
-    {
-        var posts = await _repositorioPost.ObterPorPalavraChaveAsync(palavraChave);
-        var resultado = posts.Select(p => new PostDTOSaida
-        {
-            Id = p.Id,
-            Conteudo = p.Conteudo,
-            UsuarioId = p.UsuarioId,
-            DataCriacao = p.DataCriacao
-        });
-
-        return Resultado<IEnumerable<PostDTOSaida>>.Ok(resultado);
     }
 
     private static PostDTOSaida MapearPostPara(Post post, Usuario usuario, Planta? planta, bool curtiu, string? nomeComunidade = null)
@@ -757,5 +813,191 @@ public class PostService : IPostService
         }
 
         return keywords.Distinct().ToList();
+    }
+
+    public async Task<Resultado> SalvarPostAsync(Guid usuarioId, Guid postId)
+    {
+        if (await _repositorioPostSave.ExisteAsync(usuarioId, postId))
+            return Resultado.Ok("Post já salvo");
+        await _repositorioPostSave.AdicionarAsync(new PostSave { Id = Guid.NewGuid(), UsuarioId = usuarioId, PostId = postId });
+        await _repositorioActivityLog.AdicionarAsync(new ActivityLog {
+            Id = Guid.NewGuid(),
+            UsuarioId = usuarioId,
+            Tipo = "POST_SALVO",
+            EntidadeId = postId,
+            EntidadeTipo = "Post",
+            DataCriacao = DateTime.UtcNow
+        });
+        return Resultado.Ok("Post salvo com sucesso");
+    }
+
+    public async Task<Resultado> CompartilharPostAsync(Guid usuarioId, Guid postId)
+    {
+        if (await _repositorioPostShare.ExisteAsync(usuarioId, postId))
+            return Resultado.Erro("Você já compartilhou este post");
+        await _repositorioPostShare.AdicionarAsync(new PostShare { Id = Guid.NewGuid(), UsuarioId = usuarioId, PostId = postId });
+        await _repositorioActivityLog.AdicionarAsync(new ActivityLog {
+            Id = Guid.NewGuid(),
+            UsuarioId = usuarioId,
+            Tipo = "POST_COMPARTILHADO",
+            EntidadeId = postId,
+            EntidadeTipo = "Post",
+            DataCriacao = DateTime.UtcNow
+        });
+        return Resultado.Ok("Post compartilhado com sucesso");
+    }
+
+    public async Task<Resultado> VisualizarPostAsync(Guid usuarioId, Guid postId)
+    {
+        if (await _repositorioPostView.ExisteAsync(usuarioId, postId))
+            return Resultado.Ok("Visualização já registrada");
+        await _repositorioPostView.AdicionarAsync(new PostView { Id = Guid.NewGuid(), UsuarioId = usuarioId, PostId = postId });
+        await _repositorioActivityLog.AdicionarAsync(new ActivityLog {
+            Id = Guid.NewGuid(),
+            UsuarioId = usuarioId,
+            Tipo = "POST_VISUALIZADO",
+            EntidadeId = postId,
+            EntidadeTipo = "Post",
+            DataCriacao = DateTime.UtcNow
+        });
+        return Resultado.Ok("Visualização registrada");
+    }
+
+    public async Task<Resultado<ComentarioDTOSaida>> ResponderComentarioAsync(Guid usuarioId, Guid comentarioId, string conteudo)
+    {
+        var comentarioPai = await _repositorioPost.ObterComentarioPorIdAsync(comentarioId);
+        if (comentarioPai == null)
+            return Resultado<ComentarioDTOSaida>.Erro("Comentário não encontrado");
+        var resposta = Comentario.Criar(comentarioPai.PostId, usuarioId, conteudo, comentarioId);
+        var post = await _repositorioPost.ObterPorIdAsync(comentarioPai.PostId);
+        post.AdicionarComentario(resposta);
+        await _repositorioPost.AtualizarAsync(post);
+        await _repositorioPost.SalvarMudancasAsync();
+        var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
+        return Resultado<ComentarioDTOSaida>.Ok(MapearComentarioPara(resposta, usuario!));
+    }
+
+    public async Task<Resultado> RemoverPostSalvoAsync(Guid usuarioId, Guid postId)
+    {
+        await _repositorioPostSave.RemoverAsync(usuarioId, postId);
+        return Resultado.Ok("Post removido dos salvos");
+    }
+
+    public async Task<Resultado<IEnumerable<PostDTOSaida>>> ListarPostsSalvosAsync(Guid usuarioId)
+    {
+        var salvos = await _repositorioPostSave.ListarPorUsuarioAsync(usuarioId);
+        if (salvos.Count == 0)
+            return Resultado<IEnumerable<PostDTOSaida>>.Ok(Array.Empty<PostDTOSaida>());
+        var posts = await _repositorioPost.ObterPorIdsAsync(salvos.Select(s => s.PostId));
+        var dtos = posts.Select(p => MapearPostPara(p, p.Usuario!, p.Planta, false)).ToList();
+        return Resultado<IEnumerable<PostDTOSaida>>.Ok(dtos);
+    }
+
+    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> ListarPostsComunidadeAsync(Guid comunidadeId, Guid usuarioId, int pagina, int tamanho, string? ordenarPor)
+    {
+        var paginaPosts = await _repositorioPost.ObterPorComunidadeAsync(comunidadeId, pagina, tamanho, ordenarPor);
+        var comunidade = await _repositorioComunidade.ObterPorIdAsync(comunidadeId);
+        var itens = new List<PostDTOSaida>();
+        foreach (var post in paginaPosts.Itens)
+        {
+            Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
+            var curtiu = post.Curtidas.Any(c => c.UsuarioId == usuarioId);
+            itens.Add(MapearPostPara(post, post.Usuario!, planta, curtiu, comunidade?.Nome));
+        }
+        return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
+        {
+            Itens = itens,
+            Pagina = paginaPosts.Pagina,
+            TamanhoPagina = paginaPosts.TamanhoPagina,
+            Total = paginaPosts.Total
+        });
+    }
+
+    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> BuscarPostsAsync(string? hashtag, string? categoria, string? palavraChave, Guid? usuarioId, Guid? comunidadeId, int pagina, int tamanho)
+    {
+        var query = _repositorioPost.Query();
+        if (!string.IsNullOrWhiteSpace(hashtag))
+            query = query.Where(p => p.Hashtags.Any(h => h.Nome == hashtag));
+        if (!string.IsNullOrWhiteSpace(categoria))
+            query = query.Where(p => p.Categorias.Any(c => c.Nome == categoria));
+        if (!string.IsNullOrWhiteSpace(palavraChave))
+            query = query.Where(p => p.Conteudo.Contains(palavraChave));
+        if (usuarioId.HasValue)
+            query = query.Where(p => p.UsuarioId == usuarioId);
+        if (comunidadeId.HasValue)
+            query = query.Where(p => p.ComunidadeId == comunidadeId);
+        var total = query.Count();
+        var posts = query.OrderByDescending(p => p.DataCriacao)
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToList();
+        var itens = new List<PostDTOSaida>();
+        foreach (var post in posts)
+        {
+            Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
+            var curtiu = usuarioId.HasValue && post.Curtidas.Any(c => c.UsuarioId == usuarioId.Value);
+            itens.Add(MapearPostPara(post, post.Usuario!, planta, curtiu, post.Comunidade?.Nome));
+        }
+        return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
+        {
+            Itens = itens,
+            Pagina = pagina,
+            TamanhoPagina = tamanho,
+            Total = total
+        });
+    }
+
+    public async Task<Resultado<PaginaResultado<PostDTOSaida>>> BuscarPostsPorPlantaAsync(string nomePlanta, int pagina = 1, int tamanho = 10)
+    {
+        var posts = await _repositorioPost.ObterTodosAsync();
+        var postsFiltrados = posts
+            .Where(p => p.Planta != null &&
+                        (p.Planta.NomeCientifico.Contains(nomePlanta, StringComparison.OrdinalIgnoreCase) ||
+                         (p.Planta.NomeComum != null && p.Planta.NomeComum.Contains(nomePlanta, StringComparison.OrdinalIgnoreCase))))
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToList();
+        var dtos = postsFiltrados.Select(p => MapearPostPara(p, p.Usuario!, p.Planta, false)).ToList();
+        return Resultado<PaginaResultado<PostDTOSaida>>.Ok(new PaginaResultado<PostDTOSaida>
+        {
+            Itens = dtos,
+            Pagina = pagina,
+            TamanhoPagina = tamanho,
+            Total = postsFiltrados.Count
+        });
+    }
+
+    public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorHashtagAsync(string hashtag)
+    {
+        var posts = await _repositorioPost.ObterPorHashtagAsync(hashtag);
+        var resultado = posts.Select(p => MapearPostPara(p, p.Usuario!, p.Planta, false));
+        return Resultado<IEnumerable<PostDTOSaida>>.Ok(resultado);
+    }
+
+    public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorCategoriaAsync(string categoria)
+    {
+        var posts = await _repositorioPost.ObterPorCategoriaAsync(categoria);
+        var resultado = posts.Select(p => MapearPostPara(p, p.Usuario!, p.Planta, false));
+        return Resultado<IEnumerable<PostDTOSaida>>.Ok(resultado);
+    }
+
+    public async Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorPalavraChaveAsync(string palavraChave)
+    {
+        var posts = await _repositorioPost.ObterPorPalavraChaveAsync(palavraChave);
+        var resultado = posts.Select(p => MapearPostPara(p, p.Usuario!, p.Planta, false));
+        return Resultado<IEnumerable<PostDTOSaida>>.Ok(resultado);
+    }
+
+    public async Task<IEnumerable<PostDTOSaida>> ObterTrendingPostsAsync(int quantidade = 10)
+    {
+        var posts = await _repositorioPost.ObterTodosAsync();
+        var trending = posts
+            .OrderByDescending(p => p.Curtidas.Count + p.Comentarios.Count)
+            .ThenByDescending(p => p.DataCriacao)
+            .Take(quantidade)
+            .Where(p => p.Usuario != null)
+            .Select(p => MapearPostPara(p, p.Usuario!, p.Planta, false))
+            .ToList();
+        return trending;
     }
 }

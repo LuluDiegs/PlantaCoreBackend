@@ -1,6 +1,7 @@
 using PlantaCoreAPI.Application.Comuns;
 using PlantaCoreAPI.Application.DTOs.Comunidade;
 using PlantaCoreAPI.Application.DTOs.Post;
+using PlantaCoreAPI.Application.DTOs.Usuario;
 using PlantaCoreAPI.Application.Interfaces;
 using PlantaCoreAPI.Domain.Comuns;
 using PlantaCoreAPI.Domain.Entities;
@@ -32,7 +33,7 @@ public class ComunidadeService : IComunidadeService
             if (usuario == null)
                 return Resultado<ComunidadeDTOSaida>.Erro("Usuário não encontrado");
 
-            var comunidade = Comunidade.Criar(usuarioId, entrada.Nome, entrada.Descricao);
+            var comunidade = Comunidade.Criar(usuarioId, entrada.Nome, entrada.Descricao, entrada.Privada);
             await _repositorioComunidade.AdicionarAsync(comunidade);
 
             var membro = MembroComunidade.Criar(comunidade.Id, usuarioId, ehAdmin: true);
@@ -50,7 +51,8 @@ public class ComunidadeService : IComunidadeService
                 TotalMembros = 1,
                 UsuarioEhMembro = true,
                 UsuarioEhAdmin = true,
-                DataCriacao = comunidade.DataCriacao
+                DataCriacao = comunidade.DataCriacao,
+                Privada = comunidade.Privada
             });
         }
         catch (Exception ex)
@@ -71,7 +73,7 @@ public class ComunidadeService : IComunidadeService
             if (membro == null || !membro.EhAdmin)
                 return Resultado<ComunidadeDTOSaida>.Erro("Sem permissão para atualizar esta comunidade");
 
-            comunidade.Atualizar(entrada.Nome, entrada.Descricao);
+            comunidade.Atualizar(entrada.Nome, entrada.Descricao, null, entrada.Privada);
             await _repositorioComunidade.AtualizarAsync(comunidade);
             await _repositorioComunidade.SalvarMudancasAsync();
 
@@ -216,7 +218,7 @@ public class ComunidadeService : IComunidadeService
             if (!ehMembro)
                 return Resultado<PaginaResultado<PostDTOSaida>>.Erro("Você precisa ser membro da comunidade para ver os posts");
 
-            var paginaPosts = await _repositorioPost.ObterPorComunidadeAsync(comunidadeId, pagina, tamanho);
+            var paginaPosts = await _repositorioPost.ObterPorComunidadeAsync(comunidadeId, pagina, tamanho, null);
 
             var itens = paginaPosts.Itens
                 .Where(p => p.Usuario != null)
@@ -289,52 +291,99 @@ public class ComunidadeService : IComunidadeService
         }
     }
 
-    public async Task<Resultado> TransferirAdminAsync(Guid adminId, Guid comunidadeId, Guid novoAdminId)
+    public async Task<IEnumerable<UsuarioListaDTOSaida>> ListarMembrosAsync(Guid comunidadeId)
+    {
+        var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
+        if (comunidade == null)
+            return Enumerable.Empty<UsuarioListaDTOSaida>();
+        return comunidade.Membros.Select(m => new UsuarioListaDTOSaida { Id = m.UsuarioId, Nome = m.Usuario?.Nome ?? "", Seguindo = false });
+    }
+
+    public async Task<IEnumerable<UsuarioListaDTOSaida>> ListarAdminsAsync(Guid comunidadeId)
+    {
+        var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
+        if (comunidade == null)
+            return Enumerable.Empty<UsuarioListaDTOSaida>();
+        return comunidade.Membros.Where(m => m.EhAdmin).Select(m => new UsuarioListaDTOSaida { Id = m.UsuarioId, Nome = m.Usuario?.Nome ?? "", Seguindo = false });
+    }
+
+    // Solicitações de entrada em comunidades privadas
+    private readonly Dictionary<Guid, List<Guid>> _solicitacoesPendentes = new();
+
+    public async Task<bool> SouMembroAsync(Guid comunidadeId, Guid usuarioId)
+    {
+        var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
+        return comunidade?.Membros.Any(m => m.UsuarioId == usuarioId) ?? false;
+    }
+
+    public async Task<Resultado> SolicitarEntradaAsync(Guid comunidadeId, Guid usuarioId)
+    {
+        var comunidade = await _repositorioComunidade.ObterPorIdAsync(comunidadeId);
+        if (comunidade == null)
+            return Resultado.Erro("Comunidade não encontrada");
+        if (!comunidade.Privada)
+            return Resultado.Erro("Comunidade não é privada. Use o endpoint de entrar na comunidade.");
+        if (await SouMembroAsync(comunidadeId, usuarioId))
+            return Resultado.Erro("Você já é membro desta comunidade");
+        if (!_solicitacoesPendentes.ContainsKey(comunidadeId))
+            _solicitacoesPendentes[comunidadeId] = new List<Guid>();
+        if (_solicitacoesPendentes[comunidadeId].Contains(usuarioId))
+            return Resultado.Erro("Solicitação já enviada");
+        _solicitacoesPendentes[comunidadeId].Add(usuarioId);
+        return Resultado.Ok("Solicitação enviada com sucesso");
+    }
+
+    public async Task<IEnumerable<UsuarioListaDTOSaida>> ListarSolicitacoesAsync(Guid comunidadeId)
+    {
+        if (!_solicitacoesPendentes.ContainsKey(comunidadeId))
+            return Enumerable.Empty<UsuarioListaDTOSaida>();
+        var usuarios = new List<UsuarioListaDTOSaida>();
+        foreach (var usuarioId in _solicitacoesPendentes[comunidadeId])
+        {
+            var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
+            if (usuario != null)
+                usuarios.Add(new UsuarioListaDTOSaida { Id = usuario.Id, Nome = usuario.Nome, Seguindo = false });
+        }
+        return usuarios;
+    }
+
+    public async Task<Resultado> AprovarSolicitacaoAsync(Guid comunidadeId, Guid usuarioId, Guid adminId)
     {
         var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
         if (comunidade == null)
             return Resultado.Erro("Comunidade não encontrada");
-
-        if (comunidade.CriadorId != adminId)
-            return Resultado.Erro("Apenas o admin atual pode transferir a administração");
-
-        var novoAdmin = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == novoAdminId);
-        if (novoAdmin == null)
-            return Resultado.Erro("O novo admin deve ser membro da comunidade");
-
-        var adminAtual = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == adminId);
-        if (adminAtual == null)
-            return Resultado.Erro("Admin atual não encontrado como membro");
-
-        adminAtual.RemoverAdmin();
-        novoAdmin.PromoverAdmin();
-        comunidade.GetType().GetProperty("CriadorId")?.SetValue(comunidade, novoAdminId);
-
-        await _repositorioComunidade.AtualizarAsync(comunidade);
+        var admin = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == adminId);
+        if (admin == null || !admin.EhAdmin)
+            return Resultado.Erro("Apenas administradores podem aprovar solicitações");
+        if (!_solicitacoesPendentes.ContainsKey(comunidadeId) || !_solicitacoesPendentes[comunidadeId].Contains(usuarioId))
+            return Resultado.Erro("Solicitação não encontrada");
+        var membro = MembroComunidade.Criar(comunidadeId, usuarioId);
+        await _repositorioComunidade.AdicionarMembroAsync(membro);
         await _repositorioComunidade.SalvarMudancasAsync();
-
-        return Resultado.Ok("Admin transferido com sucesso");
+        _solicitacoesPendentes[comunidadeId].Remove(usuarioId);
+        return Resultado.Ok("Solicitação aprovada e usuário adicionado à comunidade");
     }
 
-    private static ComunidadeDTOSaida MapearComunidade(Comunidade c, Guid usuarioId)
+    private ComunidadeDTOSaida MapearComunidade(Comunidade comunidade, Guid usuarioId)
     {
-        var membro = c.Membros.FirstOrDefault(m => m.UsuarioId == usuarioId);
+        var membro = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == usuarioId);
         return new ComunidadeDTOSaida
         {
-            Id = c.Id,
-            CriadorId = c.CriadorId,
-            NomeCriador = c.Criador?.Nome ?? string.Empty,
-            Nome = c.Nome,
-            Descricao = c.Descricao,
-            FotoComunidade = c.FotoComunidade,
-            TotalMembros = c.Membros.Count,
+            Id = comunidade.Id,
+            CriadorId = comunidade.CriadorId,
+            NomeCriador = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == comunidade.CriadorId)?.Usuario?.Nome ?? "",
+            Nome = comunidade.Nome,
+            Descricao = comunidade.Descricao,
+            FotoComunidade = comunidade.FotoComunidade,
+            TotalMembros = comunidade.Membros.Count,
             UsuarioEhMembro = membro != null,
             UsuarioEhAdmin = membro?.EhAdmin ?? false,
-            DataCriacao = c.DataCriacao
+            DataCriacao = comunidade.DataCriacao,
+            Privada = comunidade.Privada
         };
     }
 
-    private static PostDTOSaida MapearPost(Domain.Entities.Post post, Domain.Entities.Usuario usuario, Guid usuarioAutenticadoId, string? nomeComunidade)
+    private PostDTOSaida MapearPost(Post post, Usuario usuario, Guid usuarioId, string? nomeComunidade)
     {
         return new PostDTOSaida
         {
@@ -348,9 +397,26 @@ public class ComunidadeService : IComunidadeService
             Conteudo = post.Conteudo,
             TotalCurtidas = post.Curtidas.Count,
             TotalComentarios = post.Comentarios.Count,
-            CurtiuUsuario = post.Curtidas.Any(c => c.UsuarioId == usuarioAutenticadoId),
+            CurtiuUsuario = post.Curtidas.Any(c => c.UsuarioId == usuarioId),
             DataCriacao = post.DataCriacao,
             DataAtualizacao = post.DataAtualizacao
         };
+    }
+
+    public async Task<Resultado> TransferirAdminAsync(Guid adminId, Guid comunidadeId, Guid novoAdminId)
+    {
+        var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
+        if (comunidade == null)
+            return Resultado.Erro("Comunidade não encontrada");
+        if (comunidade.CriadorId != adminId)
+            return Resultado.Erro("Apenas o admin atual pode transferir a administração");
+        var novoAdmin = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == novoAdminId);
+        if (novoAdmin == null)
+            return Resultado.Erro("Novo admin não é membro da comunidade");
+        comunidade.TransferirAdmin(novoAdminId);
+        novoAdmin.PromoverAdmin();
+        await _repositorioComunidade.AtualizarAsync(comunidade);
+        await _repositorioComunidade.SalvarMudancasAsync();
+        return Resultado.Ok("Admin transferido com sucesso");
     }
 }

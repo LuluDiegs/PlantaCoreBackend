@@ -1,3 +1,4 @@
+using PlantaCoreAPI.Application.Comuns.Eventos;
 using PlantaCoreAPI.Application.Interfaces;
 using PlantaCoreAPI.Domain.Entities;
 using PlantaCoreAPI.Domain.Enums;
@@ -10,13 +11,16 @@ public class PlantCareReminderService : IPlantCareReminderService
 {
     private readonly IRepositorioPlanta _repositorioPlanta;
     private readonly IRepositorioNotificacao _repositorioNotificacao;
+    private readonly IEventoDispatcher _eventoDispatcher;
 
     public PlantCareReminderService(
         IRepositorioPlanta repositorioPlanta,
-        IRepositorioNotificacao repositorioNotificacao)
+        IRepositorioNotificacao repositorioNotificacao,
+        IEventoDispatcher eventoDispatcher)
     {
         _repositorioPlanta = repositorioPlanta;
         _repositorioNotificacao = repositorioNotificacao;
+        _eventoDispatcher = eventoDispatcher;
     }
 
     public async Task GerarLembreteCuidadoAsync(Guid plantaId)
@@ -40,6 +44,9 @@ public class PlantCareReminderService : IPlantCareReminderService
 
         await _repositorioNotificacao.AdicionarAsync(notificacao);
         await _repositorioNotificacao.SalvarMudancasAsync();
+
+        // Evento interno
+        await _eventoDispatcher.PublicarAsync(new LembreteCuidadoCriadoEvento { UsuarioId = planta.UsuarioId, PlantaId = plantaId });
     }
 
     public async Task GerarLembretesParaTodosPlantas()

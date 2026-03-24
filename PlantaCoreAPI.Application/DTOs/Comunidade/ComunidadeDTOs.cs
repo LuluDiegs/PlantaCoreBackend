@@ -12,18 +12,21 @@ public class ComunidadeDTOSaida
     public bool UsuarioEhMembro { get; set; }
     public bool UsuarioEhAdmin { get; set; }
     public DateTime DataCriacao { get; set; }
+    public bool Privada { get; set; } // NOVO
 }
 
 public class CriarComunidadeDTOEntrada
 {
     public string Nome { get; set; } = null!;
     public string? Descricao { get; set; }
+    public bool Privada { get; set; } // NOVO
 }
 
 public class AtualizarComunidadeDTOEntrada
 {
     public string? Nome { get; set; }
     public string? Descricao { get; set; }
+    public bool? Privada { get; set; } // NOVO
 }
 
 public class TransferirAdminDTOEntrada

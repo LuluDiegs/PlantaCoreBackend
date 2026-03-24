@@ -18,4 +18,6 @@ public interface IPlantService
     Task<Resultado<bool>> ExcluirPlantaAsync(Guid plantaId, Guid usuarioId);
     Task<Resultado<PaginaResultado<PlantaDTOSaida>>> BuscarPlantasUsuarioAsync(Guid usuarioId, string termo, int pagina, int tamanho);
     Task<Resultado<PostDTOSaida>> PostarFotoIdentificacaoAsync(Guid usuarioId, Guid plantaId, string conteudo);
+    Task<IEnumerable<PlantaCoreAPI.Application.DTOs.Planta.PlantaDTOSaida>> BuscarPlantasPorNomeAsync(string termo);
+    Task<IEnumerable<PostDTOSaida>> ListarPostsDaPlantaAsync(Guid plantaId);
 }
