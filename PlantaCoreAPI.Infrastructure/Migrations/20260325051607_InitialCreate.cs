@@ -12,6 +12,65 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
+                name: "activity_logs",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    usuario_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    tipo = table.Column<string>(type: "text", nullable: false),
+                    entidade_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    entidade_tipo = table.Column<string>(type: "text", nullable: true),
+                    meta_dados = table.Column<string>(type: "text", nullable: true),
+                    data_criacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_activity_logs", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "post_saves",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    usuario_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    post_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    data_criacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_post_saves", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "post_shares",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    usuario_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    post_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    data_criacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_post_shares", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "post_views",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    usuario_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    post_id = table.Column<Guid>(type: "uuid", nullable: false),
+                    data_criacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_post_views", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "usuarios",
                 columns: table => new
                 {
@@ -45,7 +104,8 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     descricao = table.Column<string>(type: "text", nullable: true),
                     foto_comunidade = table.Column<string>(type: "text", nullable: true),
                     data_criacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
-                    ativa = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true)
+                    ativa = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
+                    Privada = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false)
                 },
                 constraints: table =>
                 {
@@ -56,6 +116,28 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         principalTable: "usuarios",
                         principalColumn: "id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "eventos",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    titulo = table.Column<string>(type: "text", nullable: false),
+                    descricao = table.Column<string>(type: "text", nullable: false),
+                    localizacao = table.Column<string>(type: "text", nullable: false),
+                    data_inicio = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    anfitriao_id = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_eventos", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_eventos_usuarios_anfitriao_id",
+                        column: x => x.anfitriao_id,
+                        principalTable: "usuarios",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -196,19 +278,43 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "evento_participantes",
+                columns: table => new
+                {
+                    EventoId = table.Column<Guid>(type: "uuid", nullable: false),
+                    UsuarioId = table.Column<Guid>(type: "uuid", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_evento_participantes", x => new { x.EventoId, x.UsuarioId });
+                    table.ForeignKey(
+                        name: "FK_evento_participantes_eventos_EventoId",
+                        column: x => x.EventoId,
+                        principalTable: "eventos",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_evento_participantes_usuarios_UsuarioId",
+                        column: x => x.UsuarioId,
+                        principalTable: "usuarios",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "posts",
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
                     usuario_id = table.Column<Guid>(type: "uuid", nullable: false),
-                    planta_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    comunidade_id = table.Column<Guid>(type: "uuid", nullable: true),
                     conteudo = table.Column<string>(type: "text", nullable: false),
                     data_criacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP"),
                     data_atualizacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
-                    data_exclusao = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ativo = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    pontuacao_total = table.Column<int>(type: "integer", nullable: false)
+                    data_exclusao = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    pontuacao_total = table.Column<int>(type: "integer", nullable: false),
+                    planta_id = table.Column<Guid>(type: "uuid", nullable: true),
+                    comunidade_id = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -264,7 +370,8 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     data_atualizacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     data_exclusao = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     ativo = table.Column<bool>(type: "boolean", nullable: false, defaultValue: true),
-                    pontuacao_total = table.Column<int>(type: "integer", nullable: false)
+                    pontuacao_total = table.Column<int>(type: "integer", nullable: false),
+                    ComentarioPaiId = table.Column<Guid>(type: "uuid", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -371,9 +478,9 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                 columns: table => new
                 {
                     id = table.Column<Guid>(type: "uuid", nullable: false),
+                    usuario_id = table.Column<Guid>(type: "uuid", nullable: false),
                     post_id = table.Column<Guid>(type: "uuid", nullable: true),
                     comentario_id = table.Column<Guid>(type: "uuid", nullable: true),
-                    usuario_id = table.Column<Guid>(type: "uuid", nullable: false),
                     data_criacao = table.Column<DateTime>(type: "timestamp with time zone", nullable: false, defaultValueSql: "CURRENT_TIMESTAMP")
                 },
                 constraints: table =>
@@ -398,6 +505,11 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         principalColumn: "id",
                         onDelete: ReferentialAction.Cascade);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "ix_activitylog_usuario_id",
+                table: "activity_logs",
+                column: "usuario_id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Categorias_PostId",
@@ -449,6 +561,16 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                 column: "usuario_id");
 
             migrationBuilder.CreateIndex(
+                name: "IX_evento_participantes_UsuarioId",
+                table: "evento_participantes",
+                column: "UsuarioId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_eventos_anfitriao_id",
+                table: "eventos",
+                column: "anfitriao_id");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Hashtags_PostId",
                 table: "Hashtags",
                 column: "PostId");
@@ -493,6 +615,24 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                 name: "ix_plantas_usuario_id",
                 table: "plantas",
                 column: "usuario_id");
+
+            migrationBuilder.CreateIndex(
+                name: "ix_postsave_usuario_post",
+                table: "post_saves",
+                columns: new[] { "usuario_id", "post_id" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_postshare_usuario_post",
+                table: "post_shares",
+                columns: new[] { "usuario_id", "post_id" },
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "ix_postview_usuario_post",
+                table: "post_views",
+                columns: new[] { "usuario_id", "post_id" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "ix_posts_comunidade_id",
@@ -540,10 +680,16 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "activity_logs");
+
+            migrationBuilder.DropTable(
                 name: "Categorias");
 
             migrationBuilder.DropTable(
                 name: "curtidas");
+
+            migrationBuilder.DropTable(
+                name: "evento_participantes");
 
             migrationBuilder.DropTable(
                 name: "Hashtags");
@@ -558,6 +704,15 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                 name: "PalavrasChave");
 
             migrationBuilder.DropTable(
+                name: "post_saves");
+
+            migrationBuilder.DropTable(
+                name: "post_shares");
+
+            migrationBuilder.DropTable(
+                name: "post_views");
+
+            migrationBuilder.DropTable(
                 name: "seguidores");
 
             migrationBuilder.DropTable(
@@ -568,6 +723,9 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "comentarios");
+
+            migrationBuilder.DropTable(
+                name: "eventos");
 
             migrationBuilder.DropTable(
                 name: "posts");

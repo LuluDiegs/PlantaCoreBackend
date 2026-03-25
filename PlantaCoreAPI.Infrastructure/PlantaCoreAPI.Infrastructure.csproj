@@ -34,4 +34,8 @@
     <ProjectReference Include="..\PlantaCoreAPI.Application\PlantaCoreAPI.Application.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Migrations\" />
+  </ItemGroup>
+
 </Project>
