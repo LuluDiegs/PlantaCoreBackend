@@ -849,18 +849,30 @@ public class PostService : IPostService
 
     public async Task<Resultado> VisualizarPostAsync(Guid usuarioId, Guid postId)
     {
-        if (await _repositorioPostView.ExisteAsync(usuarioId, postId))
+        try
+        {
+            if (await _repositorioPostView.ExisteAsync(usuarioId, postId))
+                return Resultado.Ok("Visualização já registrada");
+            await _repositorioPostView.AdicionarAsync(new PostView { Id = Guid.NewGuid(), UsuarioId = usuarioId, PostId = postId });
+            await _repositorioActivityLog.AdicionarAsync(new ActivityLog {
+                Id = Guid.NewGuid(),
+                UsuarioId = usuarioId,
+                Tipo = "POST_VISUALIZADO",
+                EntidadeId = postId,
+                EntidadeTipo = "Post",
+                DataCriacao = DateTime.UtcNow
+            });
+            return Resultado.Ok("Visualização registrada");
+        }
+        catch (Microsoft.EntityFrameworkCore.DbUpdateException ex) when (ex.InnerException?.Message.Contains("ix_postview_usuario_post") == true)
+        {
+            // Chave duplicada: visualização já existe
             return Resultado.Ok("Visualização já registrada");
-        await _repositorioPostView.AdicionarAsync(new PostView { Id = Guid.NewGuid(), UsuarioId = usuarioId, PostId = postId });
-        await _repositorioActivityLog.AdicionarAsync(new ActivityLog {
-            Id = Guid.NewGuid(),
-            UsuarioId = usuarioId,
-            Tipo = "POST_VISUALIZADO",
-            EntidadeId = postId,
-            EntidadeTipo = "Post",
-            DataCriacao = DateTime.UtcNow
-        });
-        return Resultado.Ok("Visualização registrada");
+        }
+        catch (Exception ex)
+        {
+            return Resultado.Erro($"Erro ao registrar visualização: {ex.Message}");
+        }
     }
 
     public async Task<Resultado<ComentarioDTOSaida>> ResponderComentarioAsync(Guid usuarioId, Guid comentarioId, string conteudo)
