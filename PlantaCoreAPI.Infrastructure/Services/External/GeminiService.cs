@@ -1,6 +1,9 @@
-Ôªøusing System.Net;
+using System.Net;
 using System.Text.Json.Serialization;
+
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
 using PlantaCoreAPI.Application.Interfaces;
 
 namespace PlantaCoreAPI.Infrastructure.Services.External;
@@ -10,80 +13,65 @@ public class GeminiService : IGeminiService
     private readonly HttpClient _httpClient;
     private readonly string _modelo;
     private readonly string _baseUrl;
-    private readonly List<string> _tokens;
-    private int _currentTokenIndex = 0;
-    private readonly string? _chaveApi;
+    private readonly IReadOnlyList<string> _tokens;
+    private readonly ILogger<GeminiService> _logger;
+    private static volatile int _currentTokenIndex = 0;
+    private static readonly object _tokenLock = new();
+    private static readonly System.Text.Json.JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
 
-    public GeminiService(HttpClient httpClient, IConfiguration configuration)
+    public GeminiService(HttpClient httpClient, IConfiguration configuration, ILogger<GeminiService> logger)
     {
         _httpClient = httpClient;
-
+        _logger = logger;
         var geminiConfig = configuration.GetSection("Gemini");
-
         var raw = geminiConfig["ChavesApi"]
-            ?? throw new InvalidOperationException("Gemini ChavesApi n√£o configurada");
-
+            ?? throw new InvalidOperationException("Gemini ChavesApi n„o configurada");
         _tokens = raw.Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
-                    .ToList();
-
+                    .Where(t => t.Length > 0)
+                    .ToList()
+                    .AsReadOnly();
+        if (_tokens.Count == 0)
+            throw new InvalidOperationException("Nenhum token Gemini v·lido configurado");
         _modelo = geminiConfig["Modelo"] ?? "gemini-2.5-flash";
         _baseUrl = geminiConfig["BaseUrl"] ?? "https://generativelanguage.googleapis.com";
-
-        _chaveApi = configuration["Gemini:ChaveApi"];
-        if (string.IsNullOrWhiteSpace(_chaveApi))
-        {
-            // N√£o lan√ßar exce√ß√£o aqui, s√≥ lan√ßar se realmente for usar a API
-        }
     }
 
     private string GetCurrentToken()
     {
-        return _tokens[_currentTokenIndex];
+        lock (_tokenLock)
+            return _tokens[_currentTokenIndex % _tokens.Count];
     }
 
     private void MoveNextToken()
     {
-        _currentTokenIndex = (_currentTokenIndex + 1) % _tokens.Count;
-    }
-
-    private void ValidarChaveApi()
-    {
-        if (string.IsNullOrWhiteSpace(_chaveApi))
-            throw new InvalidOperationException("Gemini ChavesApi n√£o configurada");
+        lock (_tokenLock)
+            _currentTokenIndex = (_currentTokenIndex + 1) % _tokens.Count;
     }
 
     public async Task<string?> GerarDescricaoPlantaAsync(DadosPlantaParaIA dados)
     {
-        // Adicionando valida√ß√£o para toxicidade
         if (string.IsNullOrWhiteSpace(dados.Toxicidade))
-        {
-            dados.Toxicidade = "Informa√ß√£o n√£o dispon√≠vel";
-        }
+            dados.Toxicidade = "InformaÁ„o n„o disponÌvel";
 
         if (string.IsNullOrWhiteSpace(dados.Descricao))
-        {
-            dados.Descricao = "Descri√ß√£o n√£o fornecida.";
-        }
+            dados.Descricao = "DescriÁ„o n„o fornecida.";
 
-        // Processamento adicional para toxicidade
         if (dados.ToxicoPets.HasValue && dados.ToxicoPets.Value)
-        {
-            dados.Descricao += " Aten√ß√£o: Esta planta √© t√≥xica para animais de estima√ß√£o.";
-        }
+            dados.Descricao += " AtenÁ„o: Esta planta È tÛxica para animais de estimaÁ„o.";
 
-        // Chamada ao servi√ßo Gemini
         return await EnviarPromptAsync(ConstruirPromptPrincipal(dados));
     }
 
     public async Task<string?> GerarReflexaoPlantaAsync(DadosPlantaParaIA dados, string respostaPrincipal)
     {
-        // Chama o Gemini com o prompt de reflex√£o, usando a resposta principal
-        var promptReflexao = ConstruirPromptReflexao(dados, respostaPrincipal);
-        return await EnviarPromptAsync(promptReflexao);
+        return await EnviarPromptAsync(ConstruirPromptReflexao(dados, respostaPrincipal));
     }
 
-    private async Task<(bool sucesso, string? texto, HttpStatusCode statusCode)> 
+    private async Task<(bool sucesso, string? texto, HttpStatusCode statusCode)>
         ExecutarPromptGeminiAsync(string token, string prompt)
     {
         var request = new GeminiRequestSimples
@@ -99,30 +87,17 @@ public class GeminiService : IGeminiService
                 }
             }
         };
-
         var url = $"{_baseUrl}/v1beta/models/{_modelo}:generateContent?key={token}";
-
         var json = System.Text.Json.JsonSerializer.Serialize(request);
         var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
-
         var response = await _httpClient.PostAsync(url, content);
         var statusCode = response.StatusCode;
-
         if (!response.IsSuccessStatusCode)
             return (false, null, statusCode);
-
         var responseJson = await response.Content.ReadAsStringAsync();
-
         if (string.IsNullOrEmpty(responseJson))
             return (false, null, statusCode);
-
-        var options = new System.Text.Json.JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        };
-
-        var resultado = System.Text.Json.JsonSerializer.Deserialize<GeminiResponse>(responseJson, options);
-
+        var resultado = System.Text.Json.JsonSerializer.Deserialize<GeminiResponse>(responseJson, _jsonOptions);
         if (resultado?.Candidates?.Count > 0)
         {
             var texto = resultado.Candidates[0].Content?.Parts?[0]?.Text;
@@ -135,111 +110,93 @@ public class GeminiService : IGeminiService
     private async Task<string?> EnviarPromptAsync(string prompt)
     {
         int tentativas = _tokens.Count;
-
         for (int i = 0; i < tentativas; i++)
         {
             var token = GetCurrentToken();
-
-            Console.WriteLine($"[Gemini] Token atual: {token}");
-
             var (sucesso, texto, statusCode) = await ExecutarPromptGeminiAsync(token, prompt);
-
             if (sucesso) return texto;
-
             if (statusCode is HttpStatusCode.TooManyRequests)
             {
-                Console.WriteLine($"[Gemini] Token {token} exaustado. Mudando para o pr√≥ximo...");
-
+                _logger.LogWarning("[Gemini] Token ...{Sufixo} com limite atingido (429). Alternando.",
+                    token.Length > 4 ? token[^4..] : "****");
                 MoveNextToken();
                 continue;
             }
 
+            if (statusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
+            {
+                _logger.LogWarning("[Gemini] Token ...{Sufixo} inv·lido ou expirado ({Status}). Alternando.",
+                    token.Length > 4 ? token[^4..] : "****", (int)statusCode);
+                MoveNextToken();
+                continue;
+            }
+
+            _logger.LogWarning("[Gemini] Erro inesperado {Status}. Abortando.", (int)statusCode);
             break;
         }
 
+        _logger.LogError("[Gemini] Todos os {Count} tokens falharam ou est„o exauridos.", _tokens.Count);
         return null;
     }
 
     private string ConstruirPromptPrincipal(DadosPlantaParaIA dados)
     {
-        return $@"Voc√™ √© um especialista em jardinagem, bot√¢nica, toxicologia de plantas e bi√≥logo com 20 anos de experi√™ncia.
-
+        return $@"VocÍ È um especialista em jardinagem, bot‚nica, toxicologia de plantas e biÛlogo com 20 anos de experiÍncia.
             Planta a pesquisar: {dados.NomeCientifico}
-
-            DEFINI√á√ÉO CR√çTICA DE TOXICIDADE (LEIA COM ATEN√á√ÉO):
-            Toxicidade = presen√ßa de compostos qu√≠micos ou biol√≥gicos nocivos: alcaloides, glicos√≠deos, oxalatos, saponinas, resinas t√≥xicas, etc.
-            N√ÉO √â toxicidade: risco de engasgamento, alergia leve, irrita√ß√£o de pele por contato f√≠sico, gordura em excesso.
-            Se a planta N√ÉO cont√©m compostos qu√≠micos t√≥xicos = responda ""N√£o"" em toxicidade.
-            Se a planta CONT√âM compostos t√≥xicos = responda ""Sim"" com descri√ß√£o precisa do composto e efeito.
-
-            REGRAS DE CONSIST√äNCIA:
-            - ""Sim"" em humanos ‚Üí descreva o composto t√≥xico e o efeito (ex: oxalato de c√°lcio causa irrita√ß√£o severa)
-            - ""N√£o"" em humanos ‚Üí confirme que √© segura quimicamente
-            - Se t√≥xica para humanos, avalie separadamente para animais e crian√ßas com a mesma rigorosidade
-            - NUNCA marque ""Sim"" apenas por risco mec√¢nico (espinho, engasgo, etc.)
+            DEFINI«√O CRÕTICA DE TOXICIDADE (LEIA COM ATEN«√O):
+            Toxicidade = presenÁa de compostos quÌmicos ou biolÛgicos nocivos: alcaloides, glicosÌdeos, oxalatos, saponinas, resinas tÛxicas, etc.
+            N√O … toxicidade: risco de engasgamento, alergia leve, irritaÁ„o de pele por contato fÌsico, gordura em excesso.
+            Se a planta N√O contÈm compostos quÌmicos tÛxicos = responda ""N„o"" em toxicidade.
+            Se a planta CONT…M compostos tÛxicos = responda ""Sim"" com descriÁ„o precisa do composto e efeito.
+            REGRAS DE CONSIST NCIA:
+            - ""Sim"" em humanos ? descreva o composto tÛxico e o efeito (ex: oxalato de c·lcio causa irritaÁ„o severa)
+            - ""N„o"" em humanos ? confirme que È segura quimicamente
+            - Se tÛxica para humanos, avalie separadamente para animais e crianÁas com a mesma rigorosidade
+            - NUNCA marque ""Sim"" apenas por risco mec‚nico (espinho, engasgo, etc.)
             - NUNCA marque ""Sim"" apenas por ser indigesta em excesso
-
             Responda EXATAMENTE neste formato sem markdown, sem negrito, sem asteriscos:
-
-            Nome cient√≠fico: [nome cient√≠fico correto]
-            Nome comum: [nome comum em portugu√™s]
-            Fam√≠lia: [fam√≠lia bot√¢nica]
-            G√™nero: [g√™nero]
-            Toxicidade para humanos: [Sim ou N√£o - descri√ß√£o do composto t√≥xico ou confirma√ß√£o de seguran√ßa]
-            Toxicidade para animais dom√©sticos: [Sim ou N√£o - descri√ß√£o espec√≠fica para c√£es e gatos]
-            Toxicidade para crian√ßas: [Sim ou N√£o - descri√ß√£o espec√≠fica]
-            Luz: [requisitos pr√°ticos - ex: Sol pleno, Meia sombra]
-            √Ågua: [frequ√™ncia e quantidade pr√°tica]
-            Temperatura ideal: [faixa em ¬∞C - ex: 18-28¬∞C]
-            Observa√ß√µes: [curiosidades e caracter√≠sticas relevantes]
-            Guia de cuidado completo: [m√≠nimo 5 passos pr√°ticos]";
+            Nome cientÌfico: [nome cientÌfico correto]
+            Nome comum: [nome comum em portuguÍs]
+            FamÌlia: [famÌlia bot‚nica]
+            GÍnero: [gÍnero]
+            Toxicidade para humanos: [Sim ou N„o - descriÁ„o do composto tÛxico ou confirmaÁ„o de seguranÁa]
+            Toxicidade para animais domÈsticos: [Sim ou N„o - descriÁ„o especÌfica para c„es e gatos]
+            Toxicidade para crianÁas: [Sim ou N„o - descriÁ„o especÌfica]
+            Luz: [requisitos pr·ticos - ex: Sol pleno, Meia sombra]
+            ¡gua: [frequÍncia e quantidade pr·tica]
+            Temperatura ideal: [faixa em ∞C - ex: 18-28∞C]
+            ObservaÁıes: [curiosidades e caracterÌsticas relevantes]
+            Guia de cuidado completo: [mÌnimo 5 passos pr·ticos]";
     }
 
     private string ConstruirPromptReflexao(DadosPlantaParaIA dados, string respostaPrincipal)
     {
-        return $@"Voc√™ √© um especialista em toxicologia de plantas e bot√¢nica com 20 anos de experi√™ncia.
-
+        return $@"VocÍ È um especialista em toxicologia de plantas e bot‚nica com 20 anos de experiÍncia.
             Planta: {dados.NomeCientifico}
-
             Resposta anterior:
             {respostaPrincipal}
-
-            VALIDA√á√ÉO OBRIGAT√ìRIA:
-
-            1. TOXICIDADE: verifique se cada campo ""Sim"" √© justificado por composto qu√≠mico/biol√≥gico t√≥xico real.
-               - Risco de engasgamento N√ÉO √© toxicidade ‚Üí corrija para ""N√£o""
-               - Gordura em excesso N√ÉO √© toxicidade ‚Üí corrija para ""N√£o""
-               - Alergia de contato f√≠sico N√ÉO √© toxicidade qu√≠mica ‚Üí corrija para ""N√£o""
-               - Alcaloide, glicos√≠deo, oxalato, saponina, veneno = toxicidade real ‚Üí mantenha ""Sim""
-
-            2. CONSIST√äNCIA: ""Sim"" deve ter descri√ß√£o do composto t√≥xico. ""N√£o"" deve confirmar seguran√ßa.
-
+            VALIDA«√O OBRIGAT”RIA:
+            1. TOXICIDADE: verifique se cada campo ""Sim"" È justificado por composto quÌmico/biolÛgico tÛxico real.
+               - Risco de engasgamento N√O È toxicidade ? corrija para ""N„o""
+               - Gordura em excesso N√O È toxicidade ? corrija para ""N„o""
+               - Alergia de contato fÌsico N√O È toxicidade quÌmica ? corrija para ""N„o""
+               - Alcaloide, glicosÌdeo, oxalato, saponina, veneno = toxicidade real ? mantenha ""Sim""
+            2. CONSIST NCIA: ""Sim"" deve ter descriÁ„o do composto tÛxico. ""N„o"" deve confirmar seguranÁa.
             3. FORMATO: sem markdown, sem asteriscos, sem negrito. Texto puro apenas.
-
             4. Todos os campos devem estar preenchidos.
-
             Retorne a resposta COMPLETA corrigida no mesmo formato:
-
-            Nome cient√≠fico: [VALIDADO]
+            Nome cientÌfico: [VALIDADO]
             Nome comum: [VALIDADO]
-            Fam√≠lia: [VALIDADO]
-            G√™nero: [VALIDADO]
-            Toxicidade para humanos: [Sim ou N√£o - APENAS toxicidade qu√≠mica/biol√≥gica real]
-            Toxicidade para animais dom√©sticos: [Sim ou N√£o - APENAS toxicidade qu√≠mica/biol√≥gica real]
-            Toxicidade para crian√ßas: [Sim ou N√£o - APENAS toxicidade qu√≠mica/biol√≥gica real]
+            FamÌlia: [VALIDADO]
+            GÍnero: [VALIDADO]
+            Toxicidade para humanos: [Sim ou N„o - APENAS toxicidade quÌmica/biolÛgica real]
+            Toxicidade para animais domÈsticos: [Sim ou N„o - APENAS toxicidade quÌmica/biolÛgica real]
+            Toxicidade para crianÁas: [Sim ou N„o - APENAS toxicidade quÌmica/biolÛgica real]
             Luz: [VALIDADO]
-            √Ågua: [VALIDADO]
+            ¡gua: [VALIDADO]
             Temperatura ideal: [VALIDADO]
-            Observa√ß√µes: [VALIDADO]
+            ObservaÁıes: [VALIDADO]
             Guia de cuidado completo: [VALIDADO]";
-    }
-
-    // Exemplo de uso:
-    public async Task<string> ChamadaGeminiAsync(string prompt)
-    {
-        ValidarChaveApi();
-        // ... chamada real
-        return "ok";
     }
 }
 

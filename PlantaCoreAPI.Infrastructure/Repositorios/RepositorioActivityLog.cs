@@ -16,7 +16,12 @@ public class RepositorioActivityLog : IRepositorioActivityLog
     public async Task AdicionarAsync(ActivityLog log)
     {
         _context.ActivityLogs.Add(log);
-        await _context.SaveChangesAsync();
+        await Task.CompletedTask;
+    }
+
+    public async Task<bool> SalvarMudancasAsync()
+    {
+        return await _context.SaveChangesAsync() > 0;
     }
 
     public async Task<List<ActivityLog>> ListarPorUsuarioAsync(Guid usuarioId, int pagina = 1, int tamanho = 20)

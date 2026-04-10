@@ -3,7 +3,6 @@ using System;
 namespace PlantaCoreAPI.Application.Comuns.Eventos;
 
 public interface IEventoDominio { }
-
 public class UsuarioSeguidoEvento : IEventoDominio
 {
     public Guid SeguidorId { get; set; }

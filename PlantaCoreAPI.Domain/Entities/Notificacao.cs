@@ -29,9 +29,9 @@ public class Notificacao
         Guid? postId = null)
     {
         if (string.IsNullOrWhiteSpace(mensagem))
-            throw new Exceptions.DomainException("Mensagem n„o pode estar vazia");
+            throw new Exceptions.DomainException("Mensagem n√£o pode estar vazia");
 
-        var notificacao = new Notificacao
+        return new Notificacao
         {
             Id = Guid.NewGuid(),
             UsuarioId = usuarioId,
@@ -43,8 +43,6 @@ public class Notificacao
             Lida = false,
             DataCriacao = DateTime.UtcNow
         };
-
-        return notificacao;
     }
 
     public void MarcarComoLida()

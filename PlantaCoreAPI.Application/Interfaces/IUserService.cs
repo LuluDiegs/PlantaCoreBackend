@@ -18,7 +18,6 @@ public interface IUserService
     Task<Resultado> SolicitarReativacaoAsync(string email);
     Task<Resultado> ReativarComTokenAsync(string email, string token, string novaSenha);
     Task<Resultado> VerificarTokenReativacaoAsync(string email, string token);
-    Task<Resultado> ResetarSenhaSemTokenAsync(string email, string novaSenha);
     Task<Resultado> SegurUserAsync(Guid usuarioId, Guid usuarioParaSeguirId);
     Task<Resultado> DesSeguirUserAsync(Guid usuarioId, Guid usuarioParaDesSeguirId);
     Task<Resultado> EnviarSolicitacaoSeguirAsync(Guid solicitanteId, Guid alvoId);

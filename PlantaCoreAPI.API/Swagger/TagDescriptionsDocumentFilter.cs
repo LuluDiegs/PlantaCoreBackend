@@ -1,5 +1,7 @@
 using Microsoft.OpenApi.Models;
+
 using Swashbuckle.AspNetCore.SwaggerGen;
+
 using System.Collections.Generic;
 
 namespace PlantaCoreAPI.API.Swagger;
@@ -10,15 +12,14 @@ public class TagDescriptionsDocumentFilter : IDocumentFilter
     {
         swaggerDoc.Tags = new List<OpenApiTag>
         {
-            new OpenApiTag { Name = "Autenticacao", Description = "Autenticação e registro de usuários" },
+            new OpenApiTag { Name = "Autenticacao", Description = "AutenticaÃ§Ã£o e registro de usuÃ¡rios" },
             new OpenApiTag { Name = "Comunidade", Description = "Comunidades e membros" },
-            new OpenApiTag { Name = "Evento", Description = "Eventos e participação" },
+            new OpenApiTag { Name = "Evento", Description = "Eventos e participaÃ§Ã£o" },
             new OpenApiTag { Name = "LembreteCuidado", Description = "Lembretes de cuidado de plantas" },
-            new OpenApiTag { Name = "Notificacao", Description = "Notificações e configurações" },
-            new OpenApiTag { Name = "Planta", Description = "Plantas, identificação e social" },
+            new OpenApiTag { Name = "Notificacao", Description = "NotificaÃ§Ãµes e configuraÃ§Ãµes" },
+            new OpenApiTag { Name = "Planta", Description = "Plantas, identificaÃ§Ã£o e social" },
             new OpenApiTag { Name = "Post", Description = "Feed, posts, engajamento" },
-            new OpenApiTag { Name = "Usuario", Description = "Operações de usuário e social" },
-
+            new OpenApiTag { Name = "Usuario", Description = "OperaÃ§Ãµes de usuÃ¡rio e social" },
         };
     }
 }

@@ -12,4 +12,5 @@ public interface IRepositorioComunidade : IRepositorio<Entities.Comunidade>
     Task AdicionarMembroAsync(Entities.MembroComunidade membro);
     Task RemoverMembroAsync(Entities.MembroComunidade membro);
     Task<PaginaResultado<Entities.Comunidade>> ObterComunidadesDoUsuarioAsync(Guid usuarioId, int pagina, int tamanho);
+    Task<IEnumerable<Entities.Comunidade>> ListarRecomendadasAsync(int quantidade);
 }

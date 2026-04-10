@@ -1,10 +1,14 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlantaCoreAPI.Application.Interfaces;
+using System.Security.Claims;
 
 namespace PlantaCoreAPI.API.Controllers;
 
 [ApiController]
 [Route("api/v1/busca")]
+[Authorize]
 [Tags("Busca")]
 public class BuscaController : ControllerBase
 {
@@ -23,14 +27,18 @@ public class BuscaController : ControllerBase
 
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> Buscar([FromQuery] string termo)
+    public async Task<IActionResult> Buscar([FromQuery] string? termo)
     {
         if (string.IsNullOrWhiteSpace(termo))
             return Ok(new { usuarios = new object[0], posts = new object[0], comunidades = new object[0], plantas = new object[0] });
 
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        Guid.TryParse(usuarioIdClaim, out var usuarioId);
+
         var usuarios = await _userService.BuscarUsuariosPorNomeAsync(termo);
-        var posts = await _postService.BuscarPostsPorPalavraChaveAsync(termo);
-        var comunidades = await _comunidadeService.BuscarComunidadesAsync(termo, Guid.Empty);
+        var resultadoPosts = await _postService.BuscarPostsAsync(termo, 1, 20);
+        var posts = resultadoPosts.Dados?.Itens ?? Enumerable.Empty<object>();
+        var comunidades = await _comunidadeService.BuscarComunidadesAsync(termo, usuarioId);
         var plantas = await _plantService.BuscarPlantasPorNomeAsync(termo);
 
         return Ok(new
@@ -40,5 +48,16 @@ public class BuscaController : ControllerBase
             comunidades = comunidades.Dados ?? Enumerable.Empty<object>(),
             plantas
         });
+    }
+
+    [HttpGet("usuarios")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> BuscarUsuarios([FromQuery] string? nome)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+            return Ok(new { usuarios = new object[0] });
+
+        var usuarios = await _userService.BuscarUsuariosPorNomeAsync(nome);
+        return Ok(new { usuarios });
     }
 }

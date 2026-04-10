@@ -1,9 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 using PlantaCoreAPI.API.Utils;
 using PlantaCoreAPI.Application.DTOs.Comunidade;
 using PlantaCoreAPI.Application.DTOs.Usuario;
 using PlantaCoreAPI.Application.Interfaces;
+
 using System.Security.Claims;
 
 namespace PlantaCoreAPI.API.Controllers;
@@ -14,7 +16,6 @@ namespace PlantaCoreAPI.API.Controllers;
 public class ComunidadeController : ControllerBase
 {
     private readonly IComunidadeService _servicioComunidade;
-
     public ComunidadeController(IComunidadeService servicioComunidade)
     {
         _servicioComunidade = servicioComunidade;
@@ -30,11 +31,10 @@ public class ComunidadeController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         var resultado = await _servicioComunidade.CriarComunidadeAsync(usuarioId, entrada);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
-        return CreatedAtAction(nameof(ObterComunidade), new { comunidadeId = resultado.Dados!.Id }, ResponseHelper.Padrao(true, resultado.Dados));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpPut("{comunidadeId:guid}")]
@@ -47,7 +47,6 @@ public class ComunidadeController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         var resultado = await _servicioComunidade.AtualizarComunidadeAsync(usuarioId, comunidadeId, entrada);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -62,7 +61,6 @@ public class ComunidadeController : ControllerBase
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var usuarioId = usuarioIdClaim != null && Guid.TryParse(usuarioIdClaim, out var id) ? id : Guid.Empty;
-
         var resultado = await _servicioComunidade.ObterComunidadeAsync(comunidadeId, usuarioId);
         if (!resultado.Sucesso)
             return NotFound(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -76,11 +74,11 @@ public class ComunidadeController : ControllerBase
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var usuarioId = usuarioIdClaim != null && Guid.TryParse(usuarioIdClaim, out var id) ? id : Guid.Empty;
-
         var resultado = await _servicioComunidade.ListarComunidadesAsync(pagina, tamanho, usuarioId);
         if (!resultado.Sucesso || resultado.Dados == null)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
-        var meta = new {
+        var meta = new
+        {
             pagina = resultado.Dados.Pagina,
             tamanho = resultado.Dados.TamanhoPagina,
             total = resultado.Dados.Total,
@@ -97,7 +95,6 @@ public class ComunidadeController : ControllerBase
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         var usuarioId = usuarioIdClaim != null && Guid.TryParse(usuarioIdClaim, out var id) ? id : Guid.Empty;
-
         var resultado = await _servicioComunidade.BuscarComunidadesAsync(termo, usuarioId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -113,11 +110,11 @@ public class ComunidadeController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         var resultado = await _servicioComunidade.ListarComunidadesDoUsuarioAsync(usuarioId, pagina, tamanho);
         if (!resultado.Sucesso || resultado.Dados == null)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
-        var meta = new {
+        var meta = new
+        {
             pagina = resultado.Dados.Pagina,
             tamanho = resultado.Dados.TamanhoPagina,
             total = resultado.Dados.Total,
@@ -134,7 +131,8 @@ public class ComunidadeController : ControllerBase
         var resultado = await _servicioComunidade.ListarComunidadesDoUsuarioAsync(usuarioId, pagina, tamanho);
         if (!resultado.Sucesso || resultado.Dados == null)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
-        var meta = new {
+        var meta = new
+        {
             pagina = resultado.Dados.Pagina,
             tamanho = resultado.Dados.TamanhoPagina,
             total = resultado.Dados.Total,
@@ -153,7 +151,6 @@ public class ComunidadeController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         var resultado = await _servicioComunidade.EntrarNaComunidadeAsync(usuarioId, comunidadeId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -170,7 +167,6 @@ public class ComunidadeController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         var resultado = await _servicioComunidade.SairDaComunidadeAsync(usuarioId, comunidadeId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -187,11 +183,11 @@ public class ComunidadeController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         var resultado = await _servicioComunidade.ObterPostsComunidadeAsync(comunidadeId, usuarioId, pagina, tamanho);
         if (!resultado.Sucesso || resultado.Dados == null)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
-        var meta = new {
+        var meta = new
+        {
             pagina = resultado.Dados.Pagina,
             tamanho = resultado.Dados.TamanhoPagina,
             total = resultado.Dados.Total,
@@ -210,7 +206,6 @@ public class ComunidadeController : ControllerBase
         var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(adminIdClaim, out var adminId))
             return Unauthorized();
-
         var resultado = await _servicioComunidade.ExpulsarUsuarioAsync(adminId, comunidadeId, usuarioId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -227,7 +222,6 @@ public class ComunidadeController : ControllerBase
         var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(adminIdClaim, out var adminId))
             return Unauthorized();
-
         var resultado = await _servicioComunidade.ExcluirComunidadeAsync(adminId, comunidadeId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -244,7 +238,6 @@ public class ComunidadeController : ControllerBase
         var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(adminIdClaim, out var adminId))
             return Unauthorized();
-
         var resultado = await _servicioComunidade.TransferirAdminAsync(adminId, comunidadeId, entrada.NovoAdminId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -256,12 +249,7 @@ public class ComunidadeController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ComunidadesRecomendadas([FromQuery] int quantidade = 10)
     {
-        var comunidades = await _servicioComunidade.ListarComunidadesAsync(1, 1000, Guid.Empty);
-        var recomendadas = comunidades.Dados?.Itens
-            .OrderByDescending(c => c.TotalMembros)
-            .ThenByDescending(c => c.DataCriacao)
-            .Take(quantidade)
-            .Select(c => new { c.Id, c.Nome, c.TotalMembros }) ?? Enumerable.Empty<object>();
+        var recomendadas = await _servicioComunidade.ListarRecomendadasAsync(quantidade);
         return Ok(ResponseHelper.Padrao(true, recomendadas));
     }
 
@@ -289,7 +277,7 @@ public class ComunidadeController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SouMembro(Guid comunidadeId)
     {
-        var usuarioIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
         var ehMembro = await _servicioComunidade.SouMembroAsync(comunidadeId, usuarioId);
@@ -303,7 +291,7 @@ public class ComunidadeController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> SolicitarEntrada(Guid comunidadeId)
     {
-        var usuarioIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
         var resultado = await _servicioComunidade.SolicitarEntradaAsync(comunidadeId, usuarioId);
@@ -318,13 +306,12 @@ public class ComunidadeController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ListarSolicitacoes(Guid comunidadeId)
     {
-        var usuarioIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-        // Apenas admins podem ver solicitações
         var comunidade = await _servicioComunidade.ObterComunidadeAsync(comunidadeId, usuarioId);
         if (!comunidade.Sucesso || !(comunidade.Dados?.UsuarioEhAdmin ?? false))
-            return Unauthorized();
+            return StatusCode(403, ResponseHelper.Padrao<object>(false, null, null, new[] { "Apenas administradores podem ver solicitaÃ§Ãµes" }));
         var solicitacoes = await _servicioComunidade.ListarSolicitacoesAsync(comunidadeId);
         return Ok(ResponseHelper.Padrao(true, solicitacoes));
     }
@@ -336,7 +323,7 @@ public class ComunidadeController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AprovarSolicitacao(Guid comunidadeId, Guid usuarioId)
     {
-        var adminIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var adminIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(adminIdClaim, out var adminId))
             return Unauthorized();
         var resultado = await _servicioComunidade.AprovarSolicitacaoAsync(comunidadeId, usuarioId, adminId);

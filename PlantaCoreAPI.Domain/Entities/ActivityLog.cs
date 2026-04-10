@@ -1,14 +1,28 @@
-using System;
-
 namespace PlantaCoreAPI.Domain.Entities;
 
 public class ActivityLog
 {
-    public Guid Id { get; set; }
-    public Guid UsuarioId { get; set; }
-    public string Tipo { get; set; } = null!; // Ex: "CURTIDA_POST", "COMENTARIO", etc.
-    public Guid? EntidadeId { get; set; } // Id do post, coment·rio, etc.
-    public string? EntidadeTipo { get; set; } // Ex: "Post", "Comentario", "Planta"
-    public string? MetaDados { get; set; } // JSON ou string para detalhes extras
-    public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
+    public Guid Id { get; private set; }
+    public Guid UsuarioId { get; private set; }
+    public string Tipo { get; private set; } = string.Empty;
+    public Guid? EntidadeId { get; private set; }
+    public string? EntidadeTipo { get; private set; }
+    public string? MetaDados { get; private set; }
+    public DateTime DataCriacao { get; private set; }
+    private ActivityLog() { }
+    public static ActivityLog Criar(Guid usuarioId, string tipo, Guid? entidadeId = null, string? entidadeTipo = null, string? metaDados = null)
+    {
+        if (string.IsNullOrWhiteSpace(tipo))
+            throw new Exceptions.DomainException("Tipo do log n√£o pode estar vazio");
+        return new ActivityLog
+        {
+            Id = Guid.NewGuid(),
+            UsuarioId = usuarioId,
+            Tipo = tipo,
+            EntidadeId = entidadeId,
+            EntidadeTipo = entidadeTipo,
+            MetaDados = metaDados,
+            DataCriacao = DateTime.UtcNow
+        };
+    }
 }

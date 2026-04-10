@@ -1,15 +1,14 @@
 using Microsoft.AspNetCore.Mvc;
 using PlantaCoreAPI.API.Extensions;
-using PlantaCoreAPI.Application.Interfaces;
-using PlantaCoreAPI.Application.Services;
-using PlantaCoreAPI.Infrastructure.Repositorios;
+using PlantaCoreAPI.API.Filters;
+using PlantaCoreAPI.API.Options;
 using PlantaCoreAPI.Infrastructure.Services;
 using PlantaCoreAPI.API.Swagger;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Configuration
-    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
 
 if (builder.Environment.IsDevelopment())
@@ -45,6 +44,8 @@ builder.Services.AddCors(options =>
     });
 });
 
+builder.Services.Configure<AdminOptions>(builder.Configuration.GetSection("Admin"));
+
 builder.Services.AddRepositorios();
 builder.Services.AddServicosAplicacao(builder.Configuration);
 builder.Services.AddServicosExternos(builder.Configuration);
@@ -52,7 +53,10 @@ builder.Services.RegistrarEventosHandlers();
 
 builder.Services.AddHostedService<PlantCareReminderBackgroundService>();
 
-builder.Services.AddControllers()
+builder.Services.AddControllers(options =>
+    {
+        options.Filters.Add<PaginacaoSanitizerFilter>();
+    })
     .ConfigureApiBehaviorOptions(options =>
     {
         options.InvalidModelStateResponseFactory = context =>
@@ -82,7 +86,6 @@ builder.Services.AddSwaggerGen(options =>
         Version = "v1"
     });
 
-    // Agrupamento por tags
     options.DocumentFilter<TagDescriptionsDocumentFilter>();
 
     options.AddSecurityDefinition("Bearer", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
@@ -108,26 +111,8 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-builder.Services.AddScoped<EventoService>();
-builder.Services.AddScoped<IRepositorioEvento, RepositorioEvento>();
-
 var app = builder.Build();
 
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PlantaCoreAPI v1");
-    c.RoutePrefix = string.Empty;
-});
-
-// CORS deve vir antes de qualquer autenticação/authorization
-app.UseCors("AllowFrontend");
-
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapControllers();
-
-// Middleware global de tratamento de erros
 app.Use(async (context, next) =>
 {
     try
@@ -136,19 +121,38 @@ app.Use(async (context, next) =>
     }
     catch (Exception ex)
     {
+        var logger = context.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "Exceção não tratada na requisição {Method} {Path}", context.Request.Method, context.Request.Path);
+
         if (!context.Response.HasStarted)
         {
-            context.Response.StatusCode = 500;
+            var isTransient = PlantaCoreAPI.Application.Utils.ExcecaoTransienteHelper.EhTransiente(ex);
+            context.Response.StatusCode = isTransient ? 503 : 500;
             context.Response.ContentType = "application/json";
-            var result = System.Text.Json.JsonSerializer.Serialize(new {
+            var result = System.Text.Json.JsonSerializer.Serialize(new
+            {
                 sucesso = false,
-                mensagem = "Erro interno no servidor.",
-                detalhes = ex.Message
+                mensagem = isTransient
+                    ? "Serviço temporariamente indisponível. Tente novamente em instantes."
+                    : "Erro interno no servidor. Tente novamente mais tarde."
             });
             await context.Response.WriteAsync(result);
         }
-        // Se a resposta já começou, apenas não faz nada para evitar o erro de status code
     }
 });
+
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "PlantaCoreAPI v1");
+    c.RoutePrefix = string.Empty;
+});
+
+
+app.UseCors("AllowFrontend");
+
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
 
 app.Run();

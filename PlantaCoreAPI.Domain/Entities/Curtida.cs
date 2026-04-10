@@ -2,19 +2,28 @@ namespace PlantaCoreAPI.Domain.Entities;
 
 public class Curtida
 {
-    public Guid Id { get; set; }
-    public Guid UsuarioId { get; set; }
-    public Usuario Usuario { get; set; } = null!; // Relacionamento com o usuário
-    public Guid? PostId { get; set; } // Relacionamento opcional com um post
-    public Post? Post { get; set; }
-    public Guid? ComentarioId { get; set; } // Relacionamento opcional com um comentário
-    public Comentario? Comentario { get; set; }
-    public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
+    public Guid Id { get; private set; }
+    public Guid UsuarioId { get; private set; }
+    public Usuario Usuario { get; private set; } = null!;
+    public Guid? PostId { get; private set; }
+    public Post? Post { get; private set; }
+    public Guid? ComentarioId { get; private set; }
+    public Comentario? Comentario { get; private set; }
+    public DateTime DataCriacao { get; private set; }
 
-    // Construtor público para permitir criação de instâncias
-    public Curtida() { }
+    private Curtida() { }
 
-    // Método de fábrica para criar curtidas para comentários
+    public static Curtida CriarParaPost(Guid postId, Guid usuarioId)
+    {
+        return new Curtida
+        {
+            Id = Guid.NewGuid(),
+            UsuarioId = usuarioId,
+            PostId = postId,
+            DataCriacao = DateTime.UtcNow
+        };
+    }
+
     public static Curtida CriarParaComentario(Guid comentarioId, Guid usuarioId)
     {
         return new Curtida

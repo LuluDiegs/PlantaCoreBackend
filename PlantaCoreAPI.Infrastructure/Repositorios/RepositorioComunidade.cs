@@ -55,7 +55,7 @@ public class RepositorioComunidade : IRepositorioComunidade
     public async Task<IEnumerable<Comunidade>> BuscarPorNomeAsync(string termo)
     {
         return await _contexto.Comunidades
-            .Where(c => c.Nome.ToLower().Contains(termo.ToLower()))
+            .Where(c => EF.Functions.ILike(c.Nome, $"%{termo}%"))
             .Include(c => c.Criador)
             .Include(c => c.Membros)
             .OrderBy(c => c.Nome)
@@ -139,5 +139,15 @@ public class RepositorioComunidade : IRepositorioComunidade
             TamanhoPagina = tamanho,
             Total = total
         };
+    }
+
+    public async Task<IEnumerable<Comunidade>> ListarRecomendadasAsync(int quantidade)
+    {
+        return await _contexto.Comunidades
+            .Include(c => c.Membros)
+            .OrderByDescending(c => c.Membros.Count(m => !m.Pendente))
+            .ThenByDescending(c => c.DataCriacao)
+            .Take(quantidade)
+            .ToListAsync();
     }
 }

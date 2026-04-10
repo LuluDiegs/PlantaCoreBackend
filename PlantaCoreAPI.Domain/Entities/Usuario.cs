@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace PlantaCoreAPI.Domain.Entities;
 
 public class Usuario
@@ -9,7 +11,6 @@ public class Usuario
     public string? Biografia { get; private set; }
     public string? FotoPerfil { get; private set; }
     public bool PerfilPrivado { get; private set; }
-
     public bool EmailConfirmado { get; private set; }
     public string? TokenConfirmacaoEmail { get; private set; }
     public string? TokenResetarSenha { get; private set; }
@@ -17,7 +18,6 @@ public class Usuario
     public DateTime DataCriacao { get; private set; }
     public DateTime? DataExclusao { get; private set; }
     public bool Ativo { get; private set; } = true;
-
     public List<Usuario> Seguindo { get; private set; } = new();
     public List<Usuario> Seguidores { get; private set; } = new();
     public List<SolicitacaoSeguir> SolicitacoesSeguirRecebidas { get; private set; } = new();
@@ -28,22 +28,16 @@ public class Usuario
     public List<MembroComunidade> ComunidadesParticipantes { get; private set; } = new();
     public List<Evento> EventosCriados { get; private set; } = new();
     public List<EventoParticipante> EventosParticipando { get; private set; } = new();
-
     private Usuario() { }
-
     public static Usuario Criar(string nome, string email, string senhaHash)
     {
         if (string.IsNullOrWhiteSpace(nome))
             throw new Exceptions.DomainException("Nome não pode estar vazio");
-
         if (string.IsNullOrWhiteSpace(email))
             throw new Exceptions.DomainException("Email não pode estar vazio");
-
         if (string.IsNullOrWhiteSpace(senhaHash))
             throw new Exceptions.DomainException("Senha não pode estar vazia");
-
         ValidarEmail(email);
-
         var usuario = new Usuario
         {
             Id = Guid.NewGuid(),
@@ -55,13 +49,16 @@ public class Usuario
             TokenConfirmacaoEmail = Guid.NewGuid().ToString(),
             PerfilPrivado = false
         };
-
         return usuario;
     }
 
+    private static readonly Regex EmailRegex = new(
+        @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     private static void ValidarEmail(string email)
     {
-        if (!email.Contains("@") || !email.Contains("."))
+        if (!EmailRegex.IsMatch(email))
             throw new Exceptions.DomainException("Formato de email inválido");
     }
 
@@ -90,9 +87,8 @@ public class Usuario
 
     public void ResetarSenha(string novaSenhaHash)
     {
-        if (DataTokenResetarSenha < DateTime.UtcNow)
-            throw new Exceptions.DomainException("Token de reset expirou");
-
+        if (DataTokenResetarSenha is null || DataTokenResetarSenha < DateTime.UtcNow)
+            throw new Exceptions.DomainException("Token de reset expirou ou é inválido");
         SenhaHash = novaSenhaHash;
         TokenResetarSenha = null;
         DataTokenResetarSenha = null;
@@ -107,7 +103,6 @@ public class Usuario
     {
         if (!string.IsNullOrWhiteSpace(nome))
             Nome = nome.Trim();
-
         if (biografia != null)
         {
             if (biografia.Length > 500)
@@ -123,7 +118,6 @@ public class Usuario
     {
         if (string.IsNullOrWhiteSpace(novoNome))
             throw new Exceptions.DomainException("Nome não pode estar vazio");
-
         Nome = novoNome.Trim();
     }
 
@@ -152,8 +146,7 @@ public class Usuario
     public void Seguir(Usuario usuario)
     {
         if (usuario.Id == Id)
-            throw new Exceptions.DomainException("Você  pode seguir a si mesmo");
-
+            throw new Exceptions.DomainException("Você não pode seguir a si mesmo");
         if (!Seguindo.Contains(usuario))
             Seguindo.Add(usuario);
     }

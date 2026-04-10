@@ -1,4 +1,4 @@
-namespace PlantaCoreAPI.Application.DTOs.Comunidade;
+﻿namespace PlantaCoreAPI.Application.DTOs.Comunidade;
 
 public class ComunidadeDTOSaida
 {
@@ -12,24 +12,25 @@ public class ComunidadeDTOSaida
     public bool UsuarioEhMembro { get; set; }
     public bool UsuarioEhAdmin { get; set; }
     public DateTime DataCriacao { get; set; }
-    public bool Privada { get; set; } // NOVO
+    public bool Privada { get; set; }
 }
 
 public class CriarComunidadeDTOEntrada
 {
     public string Nome { get; set; } = null!;
     public string? Descricao { get; set; }
-    public bool Privada { get; set; } // NOVO
+    public bool Privada { get; set; }
 }
 
 public class AtualizarComunidadeDTOEntrada
 {
     public string? Nome { get; set; }
     public string? Descricao { get; set; }
-    public bool? Privada { get; set; } // NOVO
+    public bool? Privada { get; set; }
 }
 
 public class TransferirAdminDTOEntrada
 {
     public Guid NovoAdminId { get; set; }
 }
+

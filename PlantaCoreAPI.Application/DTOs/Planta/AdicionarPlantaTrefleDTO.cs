@@ -4,12 +4,12 @@ namespace PlantaCoreAPI.Application.DTOs.Planta;
 
 public class AdicionarPlantaTrefleDTO
 {
-    [Required(ErrorMessage = "plantaTrefleId é obrigatório")]
+    [Required(ErrorMessage = "plantaTrefleId Ã© obrigatÃ³rio")]
     public int PlantaTrefleId { get; set; }
 
-    [Required(ErrorMessage = "nomeCientifico é obrigatório")]
+    [Required(ErrorMessage = "nomeCientifico Ã© obrigatÃ³rio")]
     public string NomeCientifico { get; set; } = "";
 
-    [Required(ErrorMessage = "urlImagem é obrigatório")]
+    [Required(ErrorMessage = "urlImagem Ã© obrigatÃ³rio")]
     public string UrlImagem { get; set; } = "";
 }

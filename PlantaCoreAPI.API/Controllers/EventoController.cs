@@ -2,11 +2,8 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlantaCoreAPI.Application.Comuns;
-using PlantaCoreAPI.Application.DTOs;
 using PlantaCoreAPI.Application.DTOs.Evento;
-using PlantaCoreAPI.Application.DTOs.Usuario;
 using PlantaCoreAPI.Application.Interfaces;
-using PlantaCoreAPI.Application.Services;
 using PlantaCoreAPI.API.Utils;
 
 namespace PlantaCoreAPI.API.Controllers;
@@ -15,25 +12,36 @@ namespace PlantaCoreAPI.API.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize]
 [Produces("application/json")]
+[Tags("Evento")]
 public class EventoController : ControllerBase
 {
-    private readonly EventoService _servicoEvento;
-    private readonly IRepositorioEvento _repositorioEvento;
+    private readonly IEventoService _servicoEvento;
 
-    public EventoController(EventoService servicoEvento, IRepositorioEvento repositorioEvento)
+    public EventoController(IEventoService servicoEvento)
     {
         _servicoEvento = servicoEvento;
-        _repositorioEvento = repositorioEvento;
+    }
+
+    private bool TentarObterUsuarioId(out Guid usuarioId)
+    {
+        usuarioId = Guid.Empty;
+        var claim = User.FindFirst(ClaimTypes.NameIdentifier);
+        return claim is not null && Guid.TryParse(claim.Value, out usuarioId);
     }
 
     [HttpGet]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ObterEventos()
     {
         Resultado<List<EventoDTOSaida>> resultado = await _servicoEvento.ObterEventosAsync();
+        if (!resultado.Sucesso)
+            return StatusCode(StatusCodes.Status500InternalServerError, ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
         return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> ObterEvento([FromRoute] Guid id)
     {
         Resultado<EventoDTOSaida> resultado = await _servicoEvento.ObterEventoPorIdAsync(id);
@@ -43,41 +51,44 @@ public class EventoController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AdicionarEvento([FromBody] CriarEventoDTO eventoDTO)
     {
-        Claim? claim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (claim is null) return Unauthorized();
-        string valor = claim.Value;
-        bool sucesso = Guid.TryParse(valor, out Guid anfitriaoId);
-        if (!sucesso) return Unauthorized();
-        Resultado resultado = await _servicoEvento.AdicionarEventoAsync(eventoDTO, anfitriaoId);
+        if (!TentarObterUsuarioId(out var anfitriaoId))
+            return Unauthorized();
+
+        var resultado = await _servicoEvento.AdicionarEventoAsync(eventoDTO, anfitriaoId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
-        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
+        return StatusCode(StatusCodes.Status201Created, ResponseHelper.Padrao(true, new { id = resultado.Dados }, meta: new { mensagem = resultado.Mensagem }));
     }
 
-    [HttpPut("marcar-participacao")]
-    public async Task<IActionResult> MarcarParticipacaoEvento(Guid eventoId)
+    [HttpPost("{eventoId:guid}/participacao")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> MarcarParticipacao([FromRoute] Guid eventoId)
     {
-        Claim? claim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (claim is null) return Unauthorized();
-        string valor = claim.Value;
-        bool sucesso = Guid.TryParse(valor, out Guid usuarioId);
-        if (!sucesso) return Unauthorized();
+        if (!TentarObterUsuarioId(out var usuarioId))
+            return Unauthorized();
+
         Resultado resultado = await _servicoEvento.MarcarParticipacaoEvento(eventoId, usuarioId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
         return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
-    [HttpPut("desmarcar-participacao")]
-    public async Task<IActionResult> DesmarcarParticipacaoEvento(Guid eventoId)
+    [HttpDelete("{eventoId:guid}/participacao")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> DesmarcarParticipacao([FromRoute] Guid eventoId)
     {
-        Claim? claim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (claim is null) return Unauthorized();
-        string valor = claim.Value;
-        bool sucesso = Guid.TryParse(valor, out Guid usuarioId);
-        if (!sucesso) return Unauthorized();
+        if (!TentarObterUsuarioId(out var usuarioId))
+            return Unauthorized();
+
         Resultado resultado = await _servicoEvento.DesmarcarParticipacaoEvento(eventoId, usuarioId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -85,15 +96,14 @@ public class EventoController : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<IActionResult> AtualizarEvento(
-        [FromRoute] Guid id, 
-        [FromBody] AtualizarEventoDTO eventoDTO)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> AtualizarEvento([FromRoute] Guid id, [FromBody] AtualizarEventoDTO eventoDTO)
     {
-        Claim? claim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (claim is null) return Unauthorized();
-        string valor = claim.Value;
-        bool sucesso = Guid.TryParse(valor, out Guid usuarioId);
-        if (!sucesso) return Unauthorized();
+        if (!TentarObterUsuarioId(out var usuarioId))
+            return Unauthorized();
+
         Resultado resultado = await _servicoEvento.AtualizarEvento(id, eventoDTO, usuarioId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -101,13 +111,14 @@ public class EventoController : ControllerBase
     }
 
     [HttpDelete("{eventoId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RemoverEvento([FromRoute] Guid eventoId)
     {
-        Claim? claim = User.FindFirst(ClaimTypes.NameIdentifier);
-        if (claim is null) return Unauthorized();
-        string valor = claim.Value;
-        bool sucesso = Guid.TryParse(valor, out Guid usuarioId);
-        if (!sucesso) return Unauthorized();
+        if (!TentarObterUsuarioId(out var usuarioId))
+            return Unauthorized();
+
         Resultado resultado = await _servicoEvento.RemoverEvento(eventoId, usuarioId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -117,9 +128,12 @@ public class EventoController : ControllerBase
     [HttpGet("{eventoId:guid}/participantes")]
     [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ListarParticipantes(Guid eventoId)
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> ListarParticipantes([FromRoute] Guid eventoId)
     {
-        var participantes = await _repositorioEvento.ListarParticipantesAsync(eventoId);
-        return Ok(ResponseHelper.Padrao(true, participantes));
+        var resultado = await _servicoEvento.ListarParticipantesAsync(eventoId);
+        if (!resultado.Sucesso)
+            return NotFound(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 }

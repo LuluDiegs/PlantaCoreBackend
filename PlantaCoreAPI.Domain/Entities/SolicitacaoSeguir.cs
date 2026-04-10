@@ -9,13 +9,14 @@ public class SolicitacaoSeguir
     public Usuario? Alvo { get; private set; }
     public DateTime DataSolicitacao { get; private set; }
     public bool Pendente { get; private set; } = true;
+    public bool Aceita { get; private set; }
 
     private SolicitacaoSeguir() { }
 
     public static SolicitacaoSeguir Criar(Guid solicitanteId, Guid alvoId)
     {
         if (solicitanteId == alvoId)
-            throw new Exceptions.DomainException("Você não pode enviar solicitação para si mesmo");
+            throw new Exceptions.DomainException("VocÃª nÃ£o pode enviar solicitaÃ§Ã£o para si mesmo");
 
         return new SolicitacaoSeguir
         {
@@ -23,17 +24,20 @@ public class SolicitacaoSeguir
             SolicitanteId = solicitanteId,
             AlvoId = alvoId,
             DataSolicitacao = DateTime.UtcNow,
-            Pendente = true
+            Pendente = true,
+            Aceita = false
         };
     }
 
     public void Aceitar()
     {
         Pendente = false;
+        Aceita = true;
     }
 
     public void Rejeitar()
     {
         Pendente = false;
+        Aceita = false;
     }
 }

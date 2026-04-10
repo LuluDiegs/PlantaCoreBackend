@@ -24,11 +24,7 @@ public interface IPostService
     Task<Resultado> ExcluirComentarioAsync(Guid usuarioId, Guid comentarioId);
     Task<Resultado> ExcluirComentarioComoDonoPostAsync(Guid donoPostId, Guid comentarioId);
     Task<Resultado<IEnumerable<ComentarioDTOSaida>>> ListarComentariosPostAsync(Guid postId, Guid usuarioAutenticadoId, int pagina = 1, int tamanho = 20, string? ordenar = null);
-    Task<Resultado<PaginaResultado<PostDTOSaida>>> ObterFeedFiltradoAsync(Guid usuarioId, string? ordenarPor, int pagina, int tamanho);
     Task<Resultado<PaginaResultado<PostDTOSaida>>> BuscarPostsPorPlantaAsync(string nomePlanta, int pagina, int tamanho);
-    Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorHashtagAsync(string hashtag);
-    Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorCategoriaAsync(string categoria);
-    Task<Resultado<IEnumerable<PostDTOSaida>>> BuscarPostsPorPalavraChaveAsync(string palavraChave);
     Task<IEnumerable<PostDTOSaida>> ObterTrendingPostsAsync(int quantidade = 10);
     Task<Resultado> SalvarPostAsync(Guid usuarioId, Guid postId);
     Task<Resultado> RemoverPostSalvoAsync(Guid usuarioId, Guid postId);
@@ -37,6 +33,5 @@ public interface IPostService
     Task<Resultado> VisualizarPostAsync(Guid usuarioId, Guid postId);
     Task<Resultado<ComentarioDTOSaida>> ResponderComentarioAsync(Guid usuarioId, Guid comentarioId, string conteudo);
     Task<Resultado<PaginaResultado<PostDTOSaida>>> ListarPostsComunidadeAsync(Guid comunidadeId, Guid usuarioId, int pagina, int tamanho, string? ordenarPor);
-    Task<Resultado<PaginaResultado<PostDTOSaida>>> BuscarPostsAsync(string? hashtag, string? categoria, string? palavraChave, Guid? usuarioId, Guid? comunidadeId, int pagina, int tamanho);
-    Task<Resultado<PaginaResultado<PostDTOSaida>>> ObterFeedFiltradoPorDataAsync(Guid usuarioId, int pagina, int tamanho, DateTime? dataInicio, DateTime? dataFim);
+    Task<Resultado<PaginaResultado<PostDTOSaida>>> BuscarPostsAsync(string? q, int pagina, int tamanho);
 }

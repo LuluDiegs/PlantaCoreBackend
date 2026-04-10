@@ -9,9 +9,7 @@ internal static class AuthExtensions
     internal static IServiceCollection AddAutenticacaoJwt(this IServiceCollection services, IConfiguration configuration)
     {
         var chaveSecreta = configuration["Jwt:ChaveSecreta"]
-            ?? throw new InvalidOperationException("Jwt:ChaveSecreta n„o configurada.");
-
-        var minutosValidade = int.Parse(configuration["Jwt:MinutosValidadeTokenAcesso"] ?? "15");
+            ?? throw new InvalidOperationException("Jwt:ChaveSecreta n√£o configurada.");
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

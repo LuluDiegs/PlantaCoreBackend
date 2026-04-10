@@ -5,6 +5,7 @@ namespace PlantaCoreAPI.Application.DTOs.Evento;
 public class CriarEventoDTO
 {
     [Required(ErrorMessage = "Titulo é obrigatório")]
+    [StringLength(200, ErrorMessage = "Titulo não pode ter mais de 200 caracteres")]
     public string Titulo { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Descrição é obrigatória")]

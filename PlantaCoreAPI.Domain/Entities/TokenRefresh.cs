@@ -10,15 +10,12 @@ public class TokenRefresh
     public DateTime DataCriacao { get; private set; }
     public bool Revogado { get; private set; }
     public DateTime? DataRevogacao { get; private set; }
-
     private TokenRefresh() { }
-
     public static TokenRefresh Criar(Guid usuarioId, string token, int diasValidade = 7)
     {
         if (string.IsNullOrWhiteSpace(token))
-            throw new Exceptions.DomainException("Token n„o pode estar vazio");
-
-        var tokenRefresh = new TokenRefresh
+            throw new Exceptions.DomainException("Token n√£o pode estar vazio");
+        return new TokenRefresh
         {
             Id = Guid.NewGuid(),
             UsuarioId = usuarioId,
@@ -27,8 +24,6 @@ public class TokenRefresh
             DataExpiracao = DateTime.UtcNow.AddDays(diasValidade),
             Revogado = false
         };
-
-        return tokenRefresh;
     }
 
     public void Revogar()

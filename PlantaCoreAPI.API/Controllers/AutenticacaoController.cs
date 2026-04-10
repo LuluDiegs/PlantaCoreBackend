@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using PlantaCoreAPI.Application.DTOs.Auth;
 using PlantaCoreAPI.Application.Interfaces;
 using PlantaCoreAPI.API.Utils;
+using PlantaCoreAPI.Application.Comuns.RateLimit;
 using System.Security.Claims;
 
 namespace PlantaCoreAPI.API.Controllers;
@@ -13,10 +14,12 @@ namespace PlantaCoreAPI.API.Controllers;
 public class AutenticacaoController : ControllerBase
 {
     private readonly IAuthenticationService _servicioAutenticacao;
+    private readonly IRateLimitService _rateLimitService;
 
-    public AutenticacaoController(IAuthenticationService servicioAutenticacao)
+    public AutenticacaoController(IAuthenticationService servicioAutenticacao, IRateLimitService rateLimitService)
     {
         _servicioAutenticacao = servicioAutenticacao;
+        _rateLimitService = rateLimitService;
     }
 
     [HttpPost("registrar")]
@@ -33,8 +36,13 @@ public class AutenticacaoController : ControllerBase
     [HttpPost("login")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Login([FromBody] LoginDTOEntrada entrada)
     {
+        var rateKey = $"login:{entrada.Email?.ToLower().Trim()}";
+        if (_rateLimitService.IsLimited(rateKey, 10, TimeSpan.FromMinutes(15)))
+            return StatusCode(429, new { sucesso = false, mensagem = "Muitas tentativas de login. Aguarde 15 minutos." });
+
         var resultado = await _servicioAutenticacao.LoginAsync(entrada);
         if (!resultado.Sucesso)
             return Unauthorized(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
@@ -81,8 +89,13 @@ public class AutenticacaoController : ControllerBase
 
     [HttpPost("resetar-senha")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> ResetarSenha([FromBody] ResetarSenhaDTOEntrada entrada)
     {
+        var rateKey = $"reset:{entrada.Email?.ToLower().Trim()}";
+        if (_rateLimitService.IsLimited(rateKey, 3, TimeSpan.FromHours(1)))
+            return StatusCode(429, new { sucesso = false, mensagem = "Muitas tentativas de reset. Aguarde 1 hora." });
+
         var resultado = await _servicioAutenticacao.ResetarSenhaAsync(entrada);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));

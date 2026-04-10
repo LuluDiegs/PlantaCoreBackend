@@ -1,7 +1,9 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
+
 using PlantaCoreAPI.Infrastructure.Dados;
+
 using System.IO;
 
 namespace PlantaCoreAPI.Infrastructure;
@@ -15,10 +17,8 @@ public class PlantaCoreDbContextFactory : IDesignTimeDbContextFactory<PlantaCore
             .SetBasePath(basePath)
             .AddJsonFile("appsettings.json")
             .Build();
-
         var optionsBuilder = new DbContextOptionsBuilder<PlantaCoreDbContext>();
         optionsBuilder.UseNpgsql(configuration.GetConnectionString("DefaultConnection"));
-
         return new PlantaCoreDbContext(optionsBuilder.Options);
     }
 }

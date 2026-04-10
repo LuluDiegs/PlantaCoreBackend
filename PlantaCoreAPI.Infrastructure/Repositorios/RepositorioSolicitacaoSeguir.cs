@@ -18,8 +18,6 @@ public class RepositorioSolicitacaoSeguir : IRepositorioSolicitacaoSeguir
     {
         return await _contexto.SolicitacoesSeguir
             .AsTracking()
-            .Include(s => s.Solicitante)
-            .Include(s => s.Alvo)
             .FirstOrDefaultAsync(s => s.Id == id);
     }
 

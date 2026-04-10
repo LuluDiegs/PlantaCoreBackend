@@ -11,4 +11,5 @@ public interface IRepositorioPostView
     Task RemoverAsync(Guid usuarioId, Guid postId);
     Task<bool> ExisteAsync(Guid usuarioId, Guid postId);
     Task<List<PostView>> ListarPorUsuarioAsync(Guid usuarioId);
+    Task<bool> SalvarMudancasAsync();
 }

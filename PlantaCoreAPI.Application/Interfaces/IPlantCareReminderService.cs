@@ -1,5 +1,6 @@
 using PlantaCoreAPI.Domain.Entities;
-using PlantaCoreAPI.Application.Interfaces;
+
+namespace PlantaCoreAPI.Application.Interfaces;
 
 public interface IPlantCareReminderService
 {

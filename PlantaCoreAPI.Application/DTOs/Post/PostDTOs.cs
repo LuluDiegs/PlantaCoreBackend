@@ -12,6 +12,9 @@ public class PostDTOSaida
     public string? NomePlanta { get; set; }
     public string? FotoPlanta { get; set; }
     public string Conteudo { get; set; } = null!;
+    public List<string> Hashtags { get; set; } = new();
+    public List<string> Categorias { get; set; } = new();
+    public List<string> PalavrasChave { get; set; } = new();
     public int TotalCurtidas { get; set; }
     public int TotalComentarios { get; set; }
     public bool CurtiuUsuario { get; set; }
@@ -22,12 +25,20 @@ public class PostDTOSaida
 
 public class CriarPostDTOEntrada
 {
+    [System.ComponentModel.DataAnnotations.Required]
+    [System.ComponentModel.DataAnnotations.MinLength(1)]
     public string Conteudo { get; set; } = null!;
-    public Guid? PlantaId { get; set; } // Relacionamento opcional com uma planta
-    public Guid? ComunidadeId { get; set; } // Relacionamento opcional com uma comunidade
+    public Guid? PlantaId { get; set; }
+    public Guid? ComunidadeId { get; set; }
+    public List<string>? Hashtags { get; set; }
+    public List<string>? Categorias { get; set; }
+    public List<string>? PalavrasChave { get; set; }
 }
 
 public class AtualizarPostDTOEntrada
 {
     public string Conteudo { get; set; } = null!;
+    public List<string>? Hashtags { get; set; }
+    public List<string>? Categorias { get; set; }
+    public List<string>? PalavrasChave { get; set; }
 }

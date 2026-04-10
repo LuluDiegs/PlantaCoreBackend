@@ -26,4 +26,5 @@ public interface IComunidadeService
     Task<Resultado> SolicitarEntradaAsync(Guid comunidadeId, Guid usuarioId);
     Task<IEnumerable<UsuarioListaDTOSaida>> ListarSolicitacoesAsync(Guid comunidadeId);
     Task<Resultado> AprovarSolicitacaoAsync(Guid comunidadeId, Guid usuarioId, Guid adminId);
+    Task<IEnumerable<ComunidadeDTOSaida>> ListarRecomendadasAsync(int quantidade);
 }

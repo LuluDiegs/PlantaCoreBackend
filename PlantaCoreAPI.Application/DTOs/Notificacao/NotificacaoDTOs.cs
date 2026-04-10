@@ -20,3 +20,13 @@ public class ListarNotificacoesDTOSaida
     public List<NotificacaoDTOSaida> Notificacoes { get; set; } = new();
     public int TotalNaoLidas { get; set; }
 }
+
+public class PaginaResultadoNotificacao
+{
+    public IEnumerable<NotificacaoDTOSaida> Notificacoes { get; set; } = new List<NotificacaoDTOSaida>();
+    public int Pagina { get; set; }
+    public int TamanhoPagina { get; set; }
+    public int Total { get; set; }
+    public int TotalPaginas { get; set; }
+    public int TotalNaoLidas { get; set; }
+}

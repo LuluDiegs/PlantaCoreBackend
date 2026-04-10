@@ -1,6 +1,10 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+
+using PlantaCoreAPI.API.Options;
 using PlantaCoreAPI.Application.Interfaces;
+
 using System.Security.Claims;
 
 namespace PlantaCoreAPI.API.Controllers;
@@ -12,19 +16,21 @@ namespace PlantaCoreAPI.API.Controllers;
 public class ArmazenamentoController : ControllerBase
 {
     private readonly IFileStorageService _fileStorageService;
-    private readonly IConfiguration _configuration;
-
-    public ArmazenamentoController(IFileStorageService fileStorageService, IConfiguration configuration)
+    private readonly string _adminChaveSecreta;
+    public ArmazenamentoController(IFileStorageService fileStorageService, IOptions<AdminOptions> adminOptions)
     {
         _fileStorageService = fileStorageService;
-        _configuration = configuration;
+        _adminChaveSecreta = adminOptions.Value.ChaveSecreta;
     }
 
     [HttpGet("fotos/listar")]
-    [AllowAnonymous]
+    [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> ListarTodasAsFotos()
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    public async Task<IActionResult> ListarTodasAsFotos([FromHeader(Name = "X-Admin-Key")] string? adminKey)
     {
+        if (string.IsNullOrWhiteSpace(_adminChaveSecreta) || adminKey != _adminChaveSecreta)
+            return StatusCode(403, new { sucesso = false, mensagem = "Acesso negado. Chave de administrador inv√°lida." });
         var urls = await _fileStorageService.ListarTodosArquivosAsync();
         return Ok(new { sucesso = true, total = urls.Count, urls });
     }
@@ -34,18 +40,16 @@ public class ArmazenamentoController : ControllerBase
     [Consumes("multipart/form-data")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> FazerUploadFoto(IFormFile foto)
     {
         if (foto == null || foto.Length == 0)
             return BadRequest(new { sucesso = false, mensagem = "Nenhuma foto enviada" });
-
+        if (foto.Length > 5 * 1024 * 1024)
+            return BadRequest(new { sucesso = false, mensagem = "Arquivo excede o tamanho m√°ximo de 5MB" });
         if (!foto.ContentType.StartsWith("image/"))
             return BadRequest(new { sucesso = false, mensagem = "Arquivo deve ser uma imagem" });
-
         using var stream = new MemoryStream();
         await foto.CopyToAsync(stream);
-
         var urlPublica = await _fileStorageService.FazerUploadAsync(stream.ToArray(), foto.FileName, foto.ContentType);
         return Ok(new { sucesso = true, url = urlPublica });
     }
@@ -54,23 +58,20 @@ public class ArmazenamentoController : ControllerBase
     [Authorize]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> FazerUploadFotoPerfil(IFormFile foto)
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         if (foto == null || foto.Length == 0)
             return BadRequest(new { sucesso = false, mensagem = "Nenhuma foto enviada" });
-
+        if (foto.Length > 5 * 1024 * 1024)
+            return BadRequest(new { sucesso = false, mensagem = "Arquivo excede o tamanho m√°ximo de 5MB" });
         if (!foto.ContentType.StartsWith("image/"))
             return BadRequest(new { sucesso = false, mensagem = "Arquivo deve ser uma imagem" });
-
         using var stream = new MemoryStream();
         await foto.CopyToAsync(stream);
-
         var urlPublica = await _fileStorageService.FazerUploadFotoPerfilAsync(stream.ToArray(), foto.FileName, usuarioId);
         return Ok(new { sucesso = true, url = urlPublica });
     }
@@ -79,56 +80,44 @@ public class ArmazenamentoController : ControllerBase
     [Authorize]
     [Consumes("multipart/form-data")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> FazerUploadFotoPlanta(IFormFile foto)
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         if (foto == null || foto.Length == 0)
             return BadRequest(new { sucesso = false, mensagem = "Nenhuma foto enviada" });
-
+        if (foto.Length > 5 * 1024 * 1024)
+            return BadRequest(new { sucesso = false, mensagem = "Arquivo excede o tamanho m√°ximo de 5MB" });
         if (!foto.ContentType.StartsWith("image/"))
             return BadRequest(new { sucesso = false, mensagem = "Arquivo deve ser uma imagem" });
-
         using var stream = new MemoryStream();
         await foto.CopyToAsync(stream);
-
         var urlPublica = await _fileStorageService.FazerUploadFotoPlantaAsync(stream.ToArray(), foto.FileName, usuarioId);
         return Ok(new { sucesso = true, url = urlPublica });
     }
 
     [HttpDelete("foto")]
     [Authorize]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ExcluirFoto([FromQuery] string nomeArquivo)
     {
         if (string.IsNullOrWhiteSpace(nomeArquivo))
-            return BadRequest(new { sucesso = false, mensagem = "nomeArquivo È obrigatÛrio" });
-
+            return BadRequest(new { sucesso = false, mensagem = "nomeArquivo √© obrigat√≥rio" });
         var sucesso = await _fileStorageService.ExcluirArquivoAsync(nomeArquivo);
         return sucesso
-            ? Ok(new { sucesso = true, mensagem = "Arquivo excluÌdo com sucesso" })
-            : BadRequest(new { sucesso = false, mensagem = "N„o foi possÌvel excluir o arquivo" });
+            ? Ok(new { sucesso = true, mensagem = "Arquivo exclu√≠do com sucesso" })
+            : BadRequest(new { sucesso = false, mensagem = "N√£o foi poss√≠vel excluir o arquivo" });
     }
 
     [HttpDelete("fotos/todas")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
-    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ExcluirTodasAsFotos([FromHeader(Name = "X-Admin-Key")] string? adminKey)
     {
-        var chaveEsperada = _configuration["Admin:ChaveSecreta"];
-
-        if (string.IsNullOrWhiteSpace(chaveEsperada) || adminKey != chaveEsperada)
-            return StatusCode(403, new { sucesso = false, mensagem = "Acesso negado. Chave de administrador inv·lida." });
-
+        if (string.IsNullOrWhiteSpace(_adminChaveSecreta) || adminKey != _adminChaveSecreta)
+            return StatusCode(403, new { sucesso = false, mensagem = "Acesso negado. Chave de administrador inv√°lida." });
         var total = await _fileStorageService.ExcluirTodosArquivosAsync();
-        return Ok(new { sucesso = true, mensagem = $"{total} arquivo(s) excluÌdo(s) com sucesso", total });
+        return Ok(new { sucesso = true, mensagem = $"{total} arquivo(s) exclu√≠do(s) com sucesso", total });
     }
 }

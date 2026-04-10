@@ -30,7 +30,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -67,20 +67,23 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("nome");
 
                     b.Property<Guid>("PostId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("PostId");
 
-                    b.ToTable("Categorias");
+                    b.ToTable("categorias", (string)null);
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Comentario", b =>
@@ -96,7 +99,8 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasColumnName("ativo");
 
                     b.Property<Guid?>("ComentarioPaiId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("comentario_pai_id");
 
                     b.Property<string>("Conteudo")
                         .IsRequired()
@@ -104,21 +108,23 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasColumnName("conteudo");
 
                     b.Property<DateTime?>("DataAtualizacao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_atualizacao");
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime?>("DataExclusao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_exclusao");
 
                     b.Property<int>("PontuacaoTotal")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
+                        .HasDefaultValue(0)
                         .HasColumnName("pontuacao_total");
 
                     b.Property<Guid>("PostId")
@@ -158,7 +164,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -180,7 +186,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
-                        .HasColumnName("Privada");
+                        .HasColumnName("privada");
 
                     b.HasKey("Id");
 
@@ -204,7 +210,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -249,7 +255,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasColumnName("anfitriao_id");
 
                     b.Property<DateTime>("DataInicio")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_inicio");
 
                     b.Property<string>("Descricao")
@@ -277,36 +283,41 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.EventoParticipante", b =>
                 {
                     b.Property<Guid>("EventoId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("evento_id");
 
                     b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
 
                     b.HasKey("EventoId", "UsuarioId");
 
                     b.HasIndex("UsuarioId");
 
-                    b.ToTable("evento_participantes", (string)null);
+                    b.ToTable("eventos_participantes", (string)null);
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Hashtag", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<string>("Nome")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("nome");
 
                     b.Property<Guid>("PostId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("PostId");
 
-                    b.ToTable("Hashtags");
+                    b.ToTable("hashtags", (string)null);
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.MembroComunidade", b =>
@@ -321,7 +332,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataEntrada")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_entrada")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -330,6 +341,12 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(false)
                         .HasColumnName("eh_admin");
+
+                    b.Property<bool>("Pendente")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("pendente");
 
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uuid")
@@ -354,16 +371,16 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime?>("DataDelecao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_delecao");
 
                     b.Property<DateTime?>("DataLeitura")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_leitura");
 
                     b.Property<bool>("Lida")
@@ -419,20 +436,23 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
 
                     b.Property<string>("Palavra")
                         .IsRequired()
-                        .HasColumnType("text");
+                        .HasColumnType("text")
+                        .HasColumnName("palavra");
 
                     b.Property<Guid>("PostId")
-                        .HasColumnType("uuid");
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
 
                     b.HasKey("Id");
 
                     b.HasIndex("PostId");
 
-                    b.ToTable("PalavrasChave");
+                    b.ToTable("palavras_chave", (string)null);
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Planta", b =>
@@ -451,12 +471,12 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime>("DataIdentificacao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_identificacao");
 
                     b.Property<string>("DescricaoToxicidade")
@@ -559,26 +579,22 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasColumnName("conteudo");
 
                     b.Property<DateTime?>("DataAtualizacao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_atualizacao");
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime?>("DataExclusao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_exclusao");
 
                     b.Property<Guid?>("PlantaId")
                         .HasColumnType("uuid")
                         .HasColumnName("planta_id");
-
-                    b.Property<int>("PontuacaoTotal")
-                        .HasColumnType("integer")
-                        .HasColumnName("pontuacao_total");
 
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uuid")
@@ -606,7 +622,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -619,6 +635,8 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasColumnName("usuario_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PostId");
 
                     b.HasIndex("UsuarioId", "PostId")
                         .IsUnique()
@@ -635,7 +653,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -648,6 +666,8 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasColumnName("usuario_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PostId");
 
                     b.HasIndex("UsuarioId", "PostId")
                         .IsUnique()
@@ -664,7 +684,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -677,6 +697,8 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasColumnName("usuario_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PostId");
 
                     b.HasIndex("UsuarioId", "PostId")
                         .IsUnique()
@@ -691,13 +713,19 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<bool>("Aceita")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("aceita");
+
                     b.Property<Guid>("AlvoId")
                         .HasColumnType("uuid")
                         .HasColumnName("alvo_id");
 
                     b.Property<DateTime>("DataSolicitacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_solicitacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -729,16 +757,16 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime>("DataExpiracao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_expiracao");
 
                     b.Property<DateTime?>("DataRevogacao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_revogacao");
 
                     b.Property<bool>("Revogado")
@@ -788,16 +816,16 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime?>("DataExclusao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_exclusao");
 
                     b.Property<DateTime?>("DataTokenResetarSenha")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_token_resetar");
 
                     b.Property<string>("Email")
@@ -858,6 +886,16 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.HasIndex("seguido_id");
 
                     b.ToTable("seguidores", (string)null);
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.ActivityLog", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_activitylog_usuario");
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Categoria", b =>
@@ -1078,6 +1116,57 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Navigation("Planta");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PostSave", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", null)
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postsave_post");
+
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postsave_usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PostShare", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", null)
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postshare_post");
+
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postshare_usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PostView", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", null)
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postview_post");
+
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postview_usuario");
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.SolicitacaoSeguir", b =>

@@ -18,11 +18,23 @@ public class ComentarioDTOSaida
 
 public class CriarComentarioDTOEntrada
 {
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "PostId é obrigatório")]
     public Guid PostId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Conteúdo é obrigatório")]
+    [System.ComponentModel.DataAnnotations.MinLength(1, ErrorMessage = "Conteúdo não pode estar vazio")]
     public string Conteudo { get; set; } = null!;
 }
 
 public class AtualizarComentarioDTOEntrada
 {
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Conteúdo é obrigatório")]
+    [System.ComponentModel.DataAnnotations.MinLength(1, ErrorMessage = "Conteúdo não pode estar vazio")]
+    public string Conteudo { get; set; } = null!;
+}
+
+public class ResponderComentarioDTOEntrada
+{
+    [System.ComponentModel.DataAnnotations.Required]
     public string Conteudo { get; set; } = null!;
 }

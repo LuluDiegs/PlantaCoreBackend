@@ -11,20 +11,15 @@ public class Comunidade
     public DateTime DataCriacao { get; private set; }
     public bool Ativa { get; private set; } = true;
     public bool Privada { get; private set; } = false;
-
     public List<MembroComunidade> Membros { get; private set; } = new();
     public List<Post> Posts { get; private set; } = new();
-
     private Comunidade() { }
-
     public static Comunidade Criar(Guid criadorId, string nome, string? descricao = null, bool privada = false)
     {
         if (string.IsNullOrWhiteSpace(nome))
-            throw new Exceptions.DomainException("Nome da comunidade n„o pode estar vazio");
-
+            throw new Exceptions.DomainException("Nome da comunidade n√£o pode estar vazio");
         if (nome.Length > 100)
-            throw new Exceptions.DomainException("Nome da comunidade n„o pode ter mais de 100 caracteres");
-
+            throw new Exceptions.DomainException("Nome da comunidade n√£o pode ter mais de 100 caracteres");
         return new Comunidade
         {
             Id = Guid.NewGuid(),
@@ -42,16 +37,14 @@ public class Comunidade
         if (!string.IsNullOrWhiteSpace(nome))
         {
             if (nome.Length > 100)
-                throw new Exceptions.DomainException("Nome da comunidade n„o pode ter mais de 100 caracteres");
+                throw new Exceptions.DomainException("Nome da comunidade n√£o pode ter mais de 100 caracteres");
             Nome = nome.Trim();
         }
 
         if (descricao != null)
             Descricao = descricao.Trim();
-
         if (!string.IsNullOrWhiteSpace(fotoComunidade))
             FotoComunidade = fotoComunidade;
-
         if (privada.HasValue)
             Privada = privada.Value;
     }

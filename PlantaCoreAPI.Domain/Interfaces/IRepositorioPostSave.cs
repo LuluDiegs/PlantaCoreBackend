@@ -11,4 +11,5 @@ public interface IRepositorioPostSave
     Task RemoverAsync(Guid usuarioId, Guid postId);
     Task<bool> ExisteAsync(Guid usuarioId, Guid postId);
     Task<List<PostSave>> ListarPorUsuarioAsync(Guid usuarioId);
+    Task<bool> SalvarMudancasAsync();
 }

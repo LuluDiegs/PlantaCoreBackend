@@ -46,11 +46,10 @@ public class NotificacaoController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioNotificacao.ObterNotificacoesPaginadasAsync(usuarioId, 1, int.MaxValue);
+        var resultado = await _servicioNotificacao.ObterNaoLidasAsync(usuarioId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
-        var naoLidas = resultado.Dados?.Notificacoes?.Where(n => !n.Lida).ToList() ?? new List<PlantaCoreAPI.Application.DTOs.Notificacao.NotificacaoDTOSaida>();
-        return Ok(ResponseHelper.Padrao(true, naoLidas));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpPut("{notificacaoId:guid}/marcar-como-lida")]
@@ -59,7 +58,11 @@ public class NotificacaoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> MarcarComoLida(Guid notificacaoId)
     {
-        var resultado = await _servicioNotificacao.MarcarComoLidaAsync(notificacaoId);
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+
+        var resultado = await _servicioNotificacao.MarcarComoLidaAsync(notificacaoId, usuarioId);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
         return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));

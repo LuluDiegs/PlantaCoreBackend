@@ -2,48 +2,46 @@ namespace PlantaCoreAPI.Domain.Entities;
 
 public class Post
 {
-    public Guid Id { get; set; }
-    public Guid UsuarioId { get; set; }
-    public Usuario Usuario { get; set; } = null!; // Relacionamento com o usuário
-    public string Conteudo { get; set; } = null!;
-    public DateTime DataCriacao { get; set; } = DateTime.UtcNow;
-    public DateTime? DataAtualizacao { get; set; }
-    public bool Ativo { get; set; } = true;
-    public DateTime? DataExclusao { get; set; }
-    public int PontuacaoTotal { get; set; }
-
-    // Novas propriedades para indexação
+    public Guid Id { get; private set; }
+    public Guid UsuarioId { get; private set; }
+    public Usuario Usuario { get; private set; } = null!;
+    public string Conteudo { get; private set; } = null!;
+    public DateTime DataCriacao { get; private set; }
+    public DateTime? DataAtualizacao { get; private set; }
+    public bool Ativo { get; private set; } = true;
+    public DateTime? DataExclusao { get; private set; }
     public List<Hashtag> Hashtags { get; set; } = new();
     public List<Categoria> Categorias { get; set; } = new();
     public List<PalavraChave> PalavrasChave { get; set; } = new();
-
-    public Guid? PlantaId { get; set; } // Relacionamento opcional com uma planta
-    public Planta? Planta { get; set; }
-
-    public Guid? ComunidadeId { get; set; } // Relacionamento opcional com uma comunidade
-    public Comunidade? Comunidade { get; set; }
-
+    public Guid? PlantaId { get; private set; }
+    public Planta? Planta { get; private set; }
+    public Guid? ComunidadeId { get; private set; }
+    public Comunidade? Comunidade { get; private set; }
     public List<Comentario> Comentarios { get; set; } = new();
     public List<Curtida> Curtidas { get; set; } = new();
-
-    // Método de fábrica para criar um post
+    public int PontuacaoTotal => Curtidas.Count;
+    private Post() { }
     public static Post Criar(Guid usuarioId, string conteudo, Guid? plantaId, Guid? comunidadeId)
     {
+        if (string.IsNullOrWhiteSpace(conteudo))
+            throw new Exceptions.DomainException("ConteÃºdo do post nÃ£o pode estar vazio");
         return new Post
         {
             Id = Guid.NewGuid(),
             UsuarioId = usuarioId,
-            Conteudo = conteudo,
+            Conteudo = conteudo.Trim(),
             PlantaId = plantaId,
             ComunidadeId = comunidadeId,
-            DataCriacao = DateTime.UtcNow
+            DataCriacao = DateTime.UtcNow,
+            Ativo = true
         };
     }
 
-    // Métodos adicionais
     public void Atualizar(string conteudo)
     {
-        Conteudo = conteudo;
+        if (string.IsNullOrWhiteSpace(conteudo))
+            throw new Exceptions.DomainException("ConteÃºdo do post nÃ£o pode estar vazio");
+        Conteudo = conteudo.Trim();
         DataAtualizacao = DateTime.UtcNow;
     }
 
@@ -51,22 +49,6 @@ public class Post
     {
         Ativo = false;
         DataExclusao = DateTime.UtcNow;
-    }
-
-    public void AdicionarCurtida(Curtida curtida)
-    {
-        Curtidas.Add(curtida);
-        PontuacaoTotal++;
-    }
-
-    public void RemoverCurtida(Guid usuarioId)
-    {
-        var curtida = Curtidas.FirstOrDefault(c => c.UsuarioId == usuarioId);
-        if (curtida != null)
-        {
-            Curtidas.Remove(curtida);
-            PontuacaoTotal--;
-        }
     }
 
     public void AdicionarComentario(Comentario comentario)

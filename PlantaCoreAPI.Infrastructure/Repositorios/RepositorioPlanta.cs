@@ -56,6 +56,15 @@ public class RepositorioPlanta : IRepositorioPlanta
             .FirstOrDefaultAsync(p => p.NomeCientifico.ToLower() == nomeCientifico.ToLower());
     }
 
+    public async Task<Planta?> ObterPorNomeCientificoEUsuarioAsync(string nomeCientifico, Guid usuarioId)
+    {
+        return await _contexto.Plantas
+            .AsTracking()
+            .FirstOrDefaultAsync(p =>
+                p.UsuarioId == usuarioId &&
+                p.NomeCientifico.ToLower() == nomeCientifico.ToLower());
+    }
+
     public async Task<IEnumerable<Planta>> ObterPorUsuarioAsync(Guid usuarioId)
     {
         return await _contexto.Plantas
@@ -65,11 +74,33 @@ public class RepositorioPlanta : IRepositorioPlanta
 
     public async Task<IEnumerable<Planta>> BuscarPorNomeAsync(string termo)
     {
-        var termoLower = termo.ToLower();
         return await _contexto.Plantas
-            .Where(p => p.NomeCientifico.ToLower().Contains(termoLower) ||
-                       (p.NomeComum != null && p.NomeComum.ToLower().Contains(termoLower)))
+            .Where(p => EF.Functions.ILike(p.NomeCientifico, $"%{termo}%") ||
+                       (p.NomeComum != null && EF.Functions.ILike(p.NomeComum, $"%{termo}%")))
             .ToListAsync();
+    }
+
+    public async Task<PaginaResultado<Planta>> BuscarPorUsuarioETermoAsync(Guid usuarioId, string termo, int pagina, int tamanho)
+    {
+        var query = _contexto.Plantas
+            .Where(p => p.UsuarioId == usuarioId &&
+                       (EF.Functions.ILike(p.NomeCientifico, $"%{termo}%") ||
+                        (p.NomeComum != null && EF.Functions.ILike(p.NomeComum, $"%{termo}%"))));
+
+        var total = await query.CountAsync();
+        var itens = await query
+            .OrderByDescending(p => p.DataIdentificacao)
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToListAsync();
+
+        return new PaginaResultado<Planta>
+        {
+            Itens = itens,
+            Pagina = pagina,
+            TamanhoPagina = tamanho,
+            Total = total
+        };
     }
 
     public async Task<PaginaResultado<Planta>> ObterPorUsuarioPaginadoAsync(Guid usuarioId, int pagina, int tamanho)
@@ -90,5 +121,14 @@ public class RepositorioPlanta : IRepositorioPlanta
             TamanhoPagina = tamanho,
             Total = total
         };
+    }
+
+    public async Task<IEnumerable<Planta>> ObterTodasParaLembreteAsync(int skip, int take)
+    {
+        return await _contexto.Plantas
+            .OrderBy(p => p.Id)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync();
     }
 }

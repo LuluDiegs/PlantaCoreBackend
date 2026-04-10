@@ -1,5 +1,7 @@
 using PlantaCoreAPI.Infrastructure.Dados;
+
 using Microsoft.EntityFrameworkCore;
+
 using PlantaCoreAPI.Domain.Entities;
 using PlantaCoreAPI.Domain.Interfaces;
 
@@ -8,7 +10,6 @@ namespace PlantaCoreAPI.Infrastructure.Repositorios;
 public class RepositorioTokenRefresh : IRepositorioTokenRefresh
 {
     private readonly PlantaCoreDbContext _contexto;
-
     public RepositorioTokenRefresh(PlantaCoreDbContext contexto)
     {
         _contexto = contexto;
@@ -66,7 +67,6 @@ public class RepositorioTokenRefresh : IRepositorioTokenRefresh
             .AsTracking()
             .Where(t => t.UsuarioId == usuarioId && !t.Revogado)
             .ToListAsync();
-
         foreach (var token in tokens)
         {
             token.Revogar();
