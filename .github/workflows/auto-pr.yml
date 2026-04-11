@@ -59,8 +59,7 @@ jobs:
           4. Aprovar migrations em PROD (se houver)
 
           ---
-          *PR criado automaticamente pelo workflow auto-pr.yml*" \
-            --label "auto-pr"
+          *PR criado automaticamente pelo workflow auto-pr.yml*"
 
       - name: Atualizar PR existente
         if: steps.check.outputs.pr_exists == 'true'
