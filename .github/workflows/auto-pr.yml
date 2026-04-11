@@ -3,7 +3,7 @@ name: Auto PR para Main
 on:
   push:
     branches:
-      - dev
+      - developer
 
 permissions:
   contents: write
@@ -14,62 +14,27 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
+      - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Instalar GitHub CLI
         run: |
           sudo apt-get update
           sudo apt-get install -y gh
 
-      - name: Verificar PR existente
-        id: check
+      - name: Criar PR se não existir
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          PR_NUMBER=$(gh pr list --base main --head dev --state open --json number --jq '.[0].number')
+          PR_NUMBER=$(gh pr list --base main --head developer --state open --json number --jq '.[0].number')
 
           if [ "$PR_NUMBER" != "null" ] && [ -n "$PR_NUMBER" ]; then
-            echo "pr_exists=true" >> $GITHUB_OUTPUT
-            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
-          else
-            echo "pr_exists=false" >> $GITHUB_OUTPUT
+            echo "PR já existe: $PR_NUMBER"
+            exit 0
           fi
 
-      - name: Criar novo PR
-        if: steps.check.outputs.pr_exists == 'false'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
           gh pr create \
             --base main \
-            --head dev \
-            --title "Merge dev → main" \
-            --body "## Pull Request Automático
-
-Ultimo commit: ${{ github.event.head_commit.message }}
-Autor: ${{ github.event.head_commit.author.name }}
-Data: $(date)
-
-### Checklist
-
-- [ ] Codigo revisado
-- [ ] Migrations verificadas
-- [ ] Testes passando
-
----
-
-PR criado automaticamente pelo workflow."
-
-      - name: Atualizar PR existente
-        if: steps.check.outputs.pr_exists == 'true'
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh pr comment ${{ steps.check.outputs.pr_number }} --body "**Nova atualização detectada**
-
-Commit: ${{ github.event.head_commit.message }}
-Autor: ${{ github.event.head_commit.author.name }}
-Data: $(date)"
+            --head developer \
+            --title "Merge developer → main" \
+            --body "PR automático criado pelo GitHub Actions"

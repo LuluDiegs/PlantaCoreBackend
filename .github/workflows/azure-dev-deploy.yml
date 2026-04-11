@@ -6,7 +6,7 @@ name: Build and deploy ASP.Net Core app to Azure Web App - DevPlantaCoreBackend
 on:
   push:
     branches:
-      - dev
+      - developer
   workflow_dispatch:
 
 jobs:
@@ -73,4 +73,4 @@ jobs:
         run: |
           Write-Host "Deploy DEV concluido com sucesso!"
           Write-Host "App: DevPlantaCoreBackend"
-          Write-Host "Branch: dev"
+          Write-Host "Branch: developer"
