@@ -31,7 +31,7 @@ public class PlantCareReminderBackgroundService : BackgroundService
                 if (now >= nextRun)
                     nextRun = nextRun.AddDays(1);
                 var delay = nextRun - now;
-                _logger.LogInformation("Próxima execução de lembretes em {Delay:hh\\:mm\\:ss}.", delay);
+                _logger.LogInformation("PrÃ³xima execuÃ§Ã£o de lembretes em {Delay:hh\\:mm\\:ss}.", delay);
                 await Task.Delay(delay, stoppingToken);
                 await ExecutarLembretesAsync(stoppingToken);
             }
@@ -72,7 +72,7 @@ public class PlantCareReminderBackgroundService : BackgroundService
                 }
             }
 
-            _logger.LogInformation("Geração de lembretes concluída.");
+            _logger.LogInformation("GeraÃ§Ã£o de lembretes concluÃ­da.");
         }
         catch (Exception ex)
         {

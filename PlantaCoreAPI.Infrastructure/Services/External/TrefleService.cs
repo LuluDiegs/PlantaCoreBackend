@@ -110,16 +110,16 @@ public class TrefleService : ITrefleService
             { "leaf", "folha" }, { "leaves", "folhas" }, { "stem", "caule" },
             { "flower", "flor" }, { "flowers", "flores" }, { "fruit", "fruto" },
             { "fruits", "frutos" }, { "seed", "semente" }, { "seeds", "sementes" },
-            { "root", "raiz" }, { "roots", "raízes" }, { "tree", "árvore" },
-            { "trees", "árvores" }, { "shrub", "arbusto" }, { "shrubs", "arbustos" },
+            { "root", "raiz" }, { "roots", "raÃ­zes" }, { "tree", "Ã¡rvore" },
+            { "trees", "Ã¡rvores" }, { "shrub", "arbusto" }, { "shrubs", "arbustos" },
             { "herb", "erva" }, { "herbs", "ervas" }, { "vine", "videira" },
             { "vines", "videiras" }, { "grass", "grama" }, { "grasses", "gramas" },
-            { "annual", "anual" }, { "perennial", "perene" }, { "deciduous", "decídua" },
-            { "evergreen", "perene" }, { "conifer", "conífera" }, { "coniferous", "conífero" },
+            { "annual", "anual" }, { "perennial", "perene" }, { "deciduous", "decÃ­dua" },
+            { "evergreen", "perene" }, { "conifer", "conÃ­fera" }, { "coniferous", "conÃ­fero" },
             { "broadleaf", "folha larga" }, { "succulent", "suculenta" }, { "cactus", "cacto" },
             { "fern", "samambaia" }, { "moss", "musgo" }, { "fungus", "fungo" },
-            { "epiphyte", "epífita" }, { "parasite", "parasita" }, { "saprophyte", "saprofita" },
-            { "nitrogen fixer", "fixadora de nitrogênio" }
+            { "epiphyte", "epÃ­fita" }, { "parasite", "parasita" }, { "saprophyte", "saprofita" },
+            { "nitrogen fixer", "fixadora de nitrogÃªnio" }
         };
         var resultado = texto;
         foreach (var kvp in dicionario)

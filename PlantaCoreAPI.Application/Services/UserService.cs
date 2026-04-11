@@ -63,7 +63,7 @@ public class UserService : IUserService
         {
             var usuario = await _repositorioUsuario.ObterComPlantasAsync(usuarioId);
             if (usuario == null)
-                return Resultado<UsuarioDTOSaida>.Erro("Usu·rio n„o encontrado");
+                return Resultado<UsuarioDTOSaida>.Erro("Usu√°rio n√£o encontrado");
             var totalPosts = await _repositorioPost.ContarPorUsuarioAsync(usuarioId);
             var totalCurtidas = await _repositorioPost.ObterTotalCurtidasRecebidasAsync(usuarioId);
             var result = Resultado<UsuarioDTOSaida>.Ok(new UsuarioDTOSaida
@@ -97,7 +97,7 @@ public class UserService : IUserService
         {
             var usuario = await _repositorioUsuario.ObterComPlantasAsync(usuarioId);
             if (usuario == null)
-                return Resultado<PerfilPublicoDTOSaida>.Erro("Usu·rio n„o encontrado");
+                return Resultado<PerfilPublicoDTOSaida>.Erro("Usu√°rio n√£o encontrado");
             var userSegueEste = false;
             var solicitacaoPendente = false;
             if (usuarioAutenticadoId != Guid.Empty)
@@ -127,7 +127,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao obter perfil p˙blico do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao obter perfil p√∫blico do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PerfilPublicoDTOSaida>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -138,7 +138,7 @@ public class UserService : IUserService
         {
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
             usuario.AtualizarPerfil(entrada.Nome, entrada.Biografia, entrada.UrlFotoPerfil);
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
@@ -148,7 +148,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao atualizar perfil do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao atualizar perfil do usu√°rio {UsuarioId}", usuarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -158,10 +158,10 @@ public class UserService : IUserService
         try
         {
             if (string.IsNullOrWhiteSpace(novoNome))
-                return Resultado.Erro("Nome n„o pode estar vazio");
+                return Resultado.Erro("Nome n√£o pode estar vazio");
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
             usuario.AtualizarNome(novoNome);
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
@@ -171,7 +171,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao atualizar nome do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao atualizar nome do usu√°rio {UsuarioId}", usuarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -184,7 +184,7 @@ public class UserService : IUserService
                 return Resultado.Erro("Nenhuma foto enviada");
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
             using var ms = new MemoryStream();
             await fotoStream.CopyToAsync(ms);
             var bytes = ms.ToArray();
@@ -200,7 +200,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao atualizar foto de perfil do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao atualizar foto de perfil do usu√°rio {UsuarioId}", usuarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -211,17 +211,17 @@ public class UserService : IUserService
         {
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
             usuario.AlterarPrivacidadePerfil(privado);
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
             _cacheService.Remove($"perfil:{usuarioId}");
-            return Resultado.Ok(privado ? "Perfil alterado para privado" : "Perfil alterado para p˙blico");
+            return Resultado.Ok(privado ? "Perfil alterado para privado" : "Perfil alterado para p√∫blico");
         }
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao alterar privacidade do perfil do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao alterar privacidade do perfil do usu√°rio {UsuarioId}", usuarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -232,17 +232,17 @@ public class UserService : IUserService
         {
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
             usuario.Excluir();
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
             _cacheService.Remove($"perfil:{usuarioId}");
-            return Resultado.Ok("Conta marcada como excluÌda (soft delete)");
+            return Resultado.Ok("Conta marcada como exclu√≠da (soft delete)");
         }
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao excluir conta do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao excluir conta do usu√°rio {UsuarioId}", usuarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -260,35 +260,35 @@ public class UserService : IUserService
     {
         try
         {
-            _logger.LogInformation("Usu·rio {UsuarioId} tentando seguir {SeguidoId}", usuarioId, usuarioParaSeguirId);
+            _logger.LogInformation("Usu√°rio {UsuarioId} tentando seguir {SeguidoId}", usuarioId, usuarioParaSeguirId);
             if (usuarioId == usuarioParaSeguirId)
-                return Resultado.Erro("VocÍ n„o pode seguir a si mesmo");
+                return Resultado.Erro("Voc√™ n√£o pode seguir a si mesmo");
             var usuario = await _repositorioUsuario.ObterComSeguindoESeguidoresAsync(usuarioId);
             var usuarioParaSeguir = await _repositorioUsuario.ObterComSeguindoESeguidoresAsync(usuarioParaSeguirId);
             if (usuario == null || usuarioParaSeguir == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
             var jaSegue = usuario.Seguindo.Any(u => u.Id == usuarioParaSeguirId);
             if (jaSegue)
-                return Resultado.Erro("VocÍ j· segue este usu·rio");
+                return Resultado.Erro("Voc√™ j√° segue este usu√°rio");
             if (usuarioParaSeguir.PerfilPrivado)
-                return Resultado.Erro("Este perfil È privado. Use enviar solicitaÁ„o de seguir.");
+                return Resultado.Erro("Este perfil √© privado. Use enviar solicita√ß√£o de seguir.");
             usuario.Seguir(usuarioParaSeguir);
             await _repositorioUsuario.SalvarMudancasAsync();
             await _eventoDispatcher.PublicarAsync(new UsuarioSeguidoEvento { SeguidorId = usuarioId, SeguidoId = usuarioParaSeguirId });
             var notificacao = Notificacao.Criar(
                 usuarioParaSeguirId,
                 Domain.Enums.TipoNotificacao.NovoSeguidor,
-                $"{usuario.Nome} comeÁou a seguir vocÍ",
+                $"{usuario.Nome} come√ßou a seguir voc√™",
                 usuarioId);
             await _repositorioNotificacao.AdicionarAsync(notificacao);
             await _repositorioNotificacao.SalvarMudancasAsync();
-            _logger.LogInformation("Usu·rio {UsuarioId} seguiu {SeguidoId}", usuarioId, usuarioParaSeguirId);
-            return Resultado.Ok("Usu·rio seguido com sucesso");
+            _logger.LogInformation("Usu√°rio {UsuarioId} seguiu {SeguidoId}", usuarioId, usuarioParaSeguirId);
+            return Resultado.Ok("Usu√°rio seguido com sucesso");
         }
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao seguir usu·rio {UsuarioId} -> {SeguidoId}", usuarioId, usuarioParaSeguirId);
+            _logger.LogError(ex, "Erro ao seguir usu√°rio {UsuarioId} -> {SeguidoId}", usuarioId, usuarioParaSeguirId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -300,18 +300,18 @@ public class UserService : IUserService
             var usuario = await _repositorioUsuario.ObterComSeguindoESeguidoresAsync(usuarioId);
             var usuarioParaDesSeguir = await _repositorioUsuario.ObterComSeguindoESeguidoresAsync(usuarioParaDesSeguirId);
             if (usuario == null || usuarioParaDesSeguir == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
             var jaSegue = usuario.Seguindo.Any(u => u.Id == usuarioParaDesSeguirId);
             if (!jaSegue)
-                return Resultado.Erro("VocÍ n„o segue este usu·rio");
+                return Resultado.Erro("Voc√™ n√£o segue este usu√°rio");
             usuario.DeseguirDe(usuarioParaDesSeguir);
             await _repositorioUsuario.SalvarMudancasAsync();
-            return Resultado.Ok("Usu·rio deseguido com sucesso");
+            return Resultado.Ok("Usu√°rio deseguido com sucesso");
         }
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao deseguir usu·rio {UsuarioId} -> {DeseguidoId}", usuarioId, usuarioParaDesSeguirId);
+            _logger.LogError(ex, "Erro ao deseguir usu√°rio {UsuarioId} -> {DeseguidoId}", usuarioId, usuarioParaDesSeguirId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -321,35 +321,35 @@ public class UserService : IUserService
         try
         {
             if (solicitanteId == alvoId)
-                return Resultado.Erro("VocÍ n„o pode enviar solicitaÁ„o para si mesmo");
+                return Resultado.Erro("Voc√™ n√£o pode enviar solicita√ß√£o para si mesmo");
             var solicitante = await _repositorioUsuario.ObterPorIdAsync(solicitanteId);
             var alvo = await _repositorioUsuario.ObterPorIdAsync(alvoId);
             if (solicitante == null || alvo == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
             if (!alvo.PerfilPrivado)
-                return Resultado.Erro("Este perfil È p˙blico. Use seguir diretamente.");
+                return Resultado.Erro("Este perfil √© p√∫blico. Use seguir diretamente.");
             var jaSegue = await _repositorioUsuario.UsuarioSegueAsync(solicitanteId, alvoId);
             if (jaSegue)
-                return Resultado.Erro("VocÍ j· segue este usu·rio");
+                return Resultado.Erro("Voc√™ j√° segue este usu√°rio");
             var jaExiste = await _repositorioSolicitacao.ExisteSolicitacaoPendenteAsync(solicitanteId, alvoId);
             if (jaExiste)
-                return Resultado.Erro("J· existe uma solicitaÁ„o pendente");
+                return Resultado.Erro("J√° existe uma solicita√ß√£o pendente");
             var solicitacao = SolicitacaoSeguir.Criar(solicitanteId, alvoId);
             await _repositorioSolicitacao.AdicionarAsync(solicitacao);
             await _repositorioSolicitacao.SalvarMudancasAsync();
             var notificacao = Notificacao.Criar(
                 alvoId,
                 Domain.Enums.TipoNotificacao.PedidoSeguir,
-                $"{solicitante.Nome} quer seguir vocÍ",
+                $"{solicitante.Nome} quer seguir voc√™",
                 solicitanteId);
             await _repositorioNotificacao.AdicionarAsync(notificacao);
             await _repositorioNotificacao.SalvarMudancasAsync();
-            return Resultado.Ok("SolicitaÁ„o de seguir enviada com sucesso");
+            return Resultado.Ok("Solicita√ß√£o de seguir enviada com sucesso");
         }
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao enviar solicitaÁ„o de seguir {SolicitanteId} -> {AlvoId}", solicitanteId, alvoId);
+            _logger.LogError(ex, "Erro ao enviar solicita√ß√£o de seguir {SolicitanteId} -> {AlvoId}", solicitanteId, alvoId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -360,9 +360,9 @@ public class UserService : IUserService
         {
             var solicitacao = await _repositorioSolicitacao.ObterPorIdAsync(solicitacaoId);
             if (solicitacao == null || !solicitacao.Pendente)
-                return Resultado.Erro("SolicitaÁ„o n„o encontrada ou j· processada");
+                return Resultado.Erro("Solicita√ß√£o n√£o encontrada ou j√° processada");
             if (solicitacao.AlvoId != alvoId)
-                return Resultado.Erro("Sem permiss„o para aceitar esta solicitaÁ„o");
+                return Resultado.Erro("Sem permiss√£o para aceitar esta solicita√ß√£o");
             solicitacao.Aceitar();
             var solicitante = await _repositorioUsuario.ObterComSeguindoESeguidoresAsync(solicitacao.SolicitanteId);
             var alvoUsuario = await _repositorioUsuario.ObterComSeguindoESeguidoresAsync(alvoId);
@@ -379,12 +379,12 @@ public class UserService : IUserService
             }
 
             await _repositorioSolicitacao.SalvarMudancasAsync();
-            return Resultado.Ok("SolicitaÁ„o aceita com sucesso");
+            return Resultado.Ok("Solicita√ß√£o aceita com sucesso");
         }
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao aceitar solicitaÁ„o {SolicitacaoId}", solicitacaoId);
+            _logger.LogError(ex, "Erro ao aceitar solicita√ß√£o {SolicitacaoId}", solicitacaoId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -395,18 +395,18 @@ public class UserService : IUserService
         {
             var solicitacao = await _repositorioSolicitacao.ObterPorIdAsync(solicitacaoId);
             if (solicitacao == null || !solicitacao.Pendente)
-                return Resultado.Erro("SolicitaÁ„o n„o encontrada ou j· processada");
+                return Resultado.Erro("Solicita√ß√£o n√£o encontrada ou j√° processada");
             if (solicitacao.AlvoId != alvoId)
-                return Resultado.Erro("Sem permiss„o para rejeitar esta solicitaÁ„o");
+                return Resultado.Erro("Sem permiss√£o para rejeitar esta solicita√ß√£o");
             solicitacao.Rejeitar();
             await _repositorioSolicitacao.AtualizarAsync(solicitacao);
             await _repositorioSolicitacao.SalvarMudancasAsync();
-            return Resultado.Ok("SolicitaÁ„o rejeitada");
+            return Resultado.Ok("Solicita√ß√£o rejeitada");
         }
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao rejeitar solicitaÁ„o {SolicitacaoId}", solicitacaoId);
+            _logger.LogError(ex, "Erro ao rejeitar solicita√ß√£o {SolicitacaoId}", solicitacaoId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -429,7 +429,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao listar solicitaÁıes pendentes do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar solicita√ß√µes pendentes do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<IEnumerable<SolicitacaoSeguirDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -450,7 +450,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao listar seguidores do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar seguidores do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PaginaResultado<PerfilPublicoDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -471,7 +471,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao listar seguindo do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar seguindo do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PaginaResultado<PerfilPublicoDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -482,12 +482,12 @@ public class UserService : IUserService
         {
             var alvo = await _repositorioUsuario.ObterComPlantasAsync(usuarioId);
             if (alvo == null)
-                return Resultado<PaginaResultado<PlantaDTOSaida>>.Erro("Usu·rio n„o encontrado");
+                return Resultado<PaginaResultado<PlantaDTOSaida>>.Erro("Usu√°rio n√£o encontrado");
             if (alvo.PerfilPrivado && usuarioAutenticadoId != usuarioId)
             {
                 var segue = alvo.Seguidores.Any(s => s.Id == usuarioAutenticadoId);
                 if (!segue)
-                    return Resultado<PaginaResultado<PlantaDTOSaida>>.Erro("Este perfil È privado");
+                    return Resultado<PaginaResultado<PlantaDTOSaida>>.Erro("Este perfil √© privado");
             }
 
             var paginaPlantas = await _repositorioPlanta.ObterPorUsuarioPaginadoAsync(usuarioId, pagina, tamanho);
@@ -503,7 +503,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao listar plantas do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar plantas do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PaginaResultado<PlantaDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -514,12 +514,12 @@ public class UserService : IUserService
         {
             var alvo = await _repositorioUsuario.ObterComPlantasAsync(usuarioId);
             if (alvo == null)
-                return Resultado<PaginaResultado<PostDTOSaida>>.Erro("Usu·rio n„o encontrado");
+                return Resultado<PaginaResultado<PostDTOSaida>>.Erro("Usu√°rio n√£o encontrado");
             if (alvo.PerfilPrivado && usuarioAutenticadoId != usuarioId)
             {
                 var segue = alvo.Seguidores.Any(s => s.Id == usuarioAutenticadoId);
                 if (!segue)
-                    return Resultado<PaginaResultado<PostDTOSaida>>.Erro("Este perfil È privado");
+                    return Resultado<PaginaResultado<PostDTOSaida>>.Erro("Este perfil √© privado");
             }
 
             var paginaPosts = await _repositorioPost.ObterPorUsuarioPaginadoAsync(usuarioId, pagina, tamanho, null);
@@ -571,7 +571,7 @@ public class UserService : IUserService
             var usuario = await _repositorioUsuario.ObterComPlantasAsync(usuarioId);
             var alvo = await _repositorioUsuario.ObterComPlantasAsync(usuarioAlvoId);
             if (usuario == null || alvo == null)
-                return Resultado<RelacaoUsuarioDTOSaida>.Erro("Usu·rio n„o encontrado");
+                return Resultado<RelacaoUsuarioDTOSaida>.Erro("Usu√°rio n√£o encontrado");
             var seguir = usuario.Seguindo.Any(u => u.Id == usuarioAlvoId);
             var segueVoce = usuario.Seguidores.Any(u => u.Id == usuarioAlvoId);
             var solicitacaoPendente = await _repositorioSolicitacao.ExisteSolicitacaoPendenteAsync(usuarioId, usuarioAlvoId);
@@ -585,7 +585,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao obter relaÁ„o entre {UsuarioId} e {AlvoId}", usuarioId, usuarioAlvoId);
+            _logger.LogError(ex, "Erro ao obter rela√ß√£o entre {UsuarioId} e {AlvoId}", usuarioId, usuarioAlvoId);
             return Resultado<RelacaoUsuarioDTOSaida>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -614,7 +614,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao listar seguidores do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar seguidores do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PaginaResultado<UsuarioListaDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -643,7 +643,7 @@ public class UserService : IUserService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao listar seguindo do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar seguindo do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PaginaResultado<UsuarioListaDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }

@@ -17,7 +17,7 @@ public class AcoesReversiveisTests
     }
 
     // ================================================================
-    // EVENTO — marcar / desmarcar participacao
+    // EVENTO â€” marcar / desmarcar participacao
     // ================================================================
 
     [Fact(DisplayName = "EV01 - User2 marca participacao no evento retorna 200")]
@@ -134,7 +134,7 @@ public class AcoesReversiveisTests
     }
 
     // ================================================================
-    // POST — salvar / dessalvar / compartilhar / visualizar
+    // POST â€” salvar / dessalvar / compartilhar / visualizar
     // ================================================================
 
     [Fact(DisplayName = "PS01 - User1 salva post de User2 retorna 200")]
@@ -267,7 +267,7 @@ public class AcoesReversiveisTests
     }
 
     // ================================================================
-    // COMUNIDADE — entrar, sair, transferir admin, expulsar
+    // COMUNIDADE â€” entrar, sair, transferir admin, expulsar
     // ================================================================
 
     [Fact(DisplayName = "CM01 - User2 entra na comunidade publica retorna 200")]

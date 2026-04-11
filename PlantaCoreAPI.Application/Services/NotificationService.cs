@@ -71,34 +71,34 @@ public class NotificationService : INotificationService
     {
         var notificacao = await _repositorioNotificacao.ObterPorIdAsync(notificacaoId);
         if (notificacao is null)
-            return Resultado.Erro("NotificaÁ„o n„o encontrada");
+            return Resultado.Erro("Notifica√ß√£o n√£o encontrada");
         if (notificacao.UsuarioId != usuarioId)
-            return Resultado.Erro("Sem permiss„o para marcar esta notificaÁ„o");
+            return Resultado.Erro("Sem permiss√£o para marcar esta notifica√ß√£o");
         await _repositorioNotificacao.MarcarComoLidaAsync(notificacaoId);
-        return Resultado.Ok("NotificaÁ„o marcada como lida");
+        return Resultado.Ok("Notifica√ß√£o marcada como lida");
     }
 
     public async Task<Resultado> MarcarTodasComoLidasAsync(Guid usuarioId)
     {
         await _repositorioNotificacao.MarcarTodasComoLidasAsync(usuarioId);
-        return Resultado.Ok("Todas notificaÁıes marcadas como lidas");
+        return Resultado.Ok("Todas notifica√ß√µes marcadas como lidas");
     }
 
     public async Task<Resultado> DeletarNotificacaoAsync(Guid notificacaoId, Guid usuarioId)
     {
         var notificacao = await _repositorioNotificacao.ObterPorIdAsync(notificacaoId);
         if (notificacao is null)
-            return Resultado.Erro("NotificaÁ„o n„o encontrada");
+            return Resultado.Erro("Notifica√ß√£o n√£o encontrada");
         if (notificacao.UsuarioId != usuarioId)
-            return Resultado.Erro("Sem permiss„o para deletar esta notificaÁ„o");
+            return Resultado.Erro("Sem permiss√£o para deletar esta notifica√ß√£o");
         await _repositorioNotificacao.DeletarNotificacaoAsync(notificacaoId, usuarioId);
-        return Resultado.Ok("NotificaÁ„o removida");
+        return Resultado.Ok("Notifica√ß√£o removida");
     }
 
     public async Task<Resultado> DeletarTodasNotificacoesAsync(Guid usuarioId)
     {
         await _repositorioNotificacao.DeletarTodasNotificacoesUsuarioAsync(usuarioId);
-        return Resultado.Ok("Todas notificaÁıes removidas");
+        return Resultado.Ok("Todas notifica√ß√µes removidas");
     }
 
     public async Task<Resultado<ConfiguracoesNotificacaoDTOSaida>> ObterConfiguracoesAsync(Guid usuarioId)
@@ -108,6 +108,6 @@ public class NotificationService : INotificationService
 
     public async Task<Resultado> AtualizarConfiguracoesAsync(Guid usuarioId, ConfiguracoesNotificacaoDTOEntrada entrada)
     {
-        return Resultado.Ok("ConfiguraÁıes atualizadas");
+        return Resultado.Ok("Configura√ß√µes atualizadas");
     }
 }

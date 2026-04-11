@@ -243,7 +243,7 @@ public class FluxoSocialTests
     // ================================================================
     private async Task GarantirUser2NaoSeguindoUser1Async()
     {
-        // Retorna 400 se ja nao segue — isso e ok
+        // Retorna 400 se ja nao segue â€” isso e ok
         await _auth.Client2.DeleteAsync($"/api/v1/Usuario/seguir/{_auth.User1Id}");
         await Task.Delay(400);
     }
