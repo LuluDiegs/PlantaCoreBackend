@@ -5,6 +5,10 @@ on:
     branches:
       - developer
 
+permissions:
+  contents: read
+  pull-requests: write
+
 jobs:
   auto-create-pr:
     runs-on: ubuntu-latest
