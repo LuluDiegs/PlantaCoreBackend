@@ -1,0 +1,40 @@
+name: Auto PR para Main
+
+on:
+  push:
+    branches:
+      - developer
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-create-pr:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Instalar GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
+
+      - name: Criar PR se não existir
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list --base main --head developer --state open --json number --jq '.[0].number')
+
+          if [ "$PR_NUMBER" != "null" ] && [ -n "$PR_NUMBER" ]; then
+            echo "PR já existe: $PR_NUMBER"
+            exit 0
+          fi
+
+          gh pr create \
+            --base main \
+            --head developer \
+            --title "Merge developer → main" \
+            --body "PR automático criado pelo GitHub Actions"

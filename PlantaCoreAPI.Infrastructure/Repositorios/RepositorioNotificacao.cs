@@ -1,5 +1,8 @@
 using PlantaCoreAPI.Infrastructure.Dados;
+
 using Microsoft.EntityFrameworkCore;
+
+using PlantaCoreAPI.Domain.Comuns;
 using PlantaCoreAPI.Domain.Entities;
 using PlantaCoreAPI.Domain.Interfaces;
 
@@ -8,7 +11,6 @@ namespace PlantaCoreAPI.Infrastructure.Repositorios;
 public class RepositorioNotificacao : IRepositorioNotificacao
 {
     private readonly PlantaCoreDbContext _contexto;
-
     public RepositorioNotificacao(PlantaCoreDbContext contexto)
     {
         _contexto = contexto;
@@ -57,6 +59,26 @@ public class RepositorioNotificacao : IRepositorioNotificacao
             .ToListAsync();
     }
 
+    public async Task<PaginaResultado<Notificacao>> ObterPorUsuarioPaginadoAsync(Guid usuarioId, int pagina, int tamanho)
+    {
+        var query = _contexto.Notificacoes
+            .Include(n => n.UsuarioOrigem)
+            .Where(n => n.UsuarioId == usuarioId && !n.DataDelecao.HasValue)
+            .OrderByDescending(n => n.DataCriacao);
+        var total = await query.CountAsync();
+        var itens = await query
+            .Skip((pagina - 1) * tamanho)
+            .Take(tamanho)
+            .ToListAsync();
+        return new PaginaResultado<Notificacao>
+        {
+            Itens = itens,
+            Pagina = pagina,
+            TamanhoPagina = tamanho,
+            Total = total
+        };
+    }
+
     public async Task<IEnumerable<Notificacao>> ObterNaoLidasAsync(Guid usuarioId)
     {
         return await _contexto.Notificacoes
@@ -71,6 +93,18 @@ public class RepositorioNotificacao : IRepositorioNotificacao
         return await _contexto.Notificacoes
             .Where(n => n.UsuarioId == usuarioId && !n.Lida && !n.DataDelecao.HasValue)
             .CountAsync();
+    }
+
+    public async Task<bool> ExisteLembreteHojeAsync(Guid plantaId)
+    {
+        var hoje = DateTime.UtcNow.Date;
+        var amanha = hoje.AddDays(1);
+        return await _contexto.Notificacoes
+            .AnyAsync(n =>
+                n.PlantaId == plantaId &&
+                n.Tipo == Domain.Enums.TipoNotificacao.LembreteCuidado &&
+                n.DataCriacao >= hoje &&
+                n.DataCriacao < amanha);
     }
 
     public async Task MarcarComoLidaAsync(Guid notificacaoId)
@@ -90,7 +124,6 @@ public class RepositorioNotificacao : IRepositorioNotificacao
             .AsTracking()
             .Where(n => n.UsuarioId == usuarioId && !n.Lida && !n.DataDelecao.HasValue)
             .ToListAsync();
-
         foreach (var notificacao in notificacoes)
         {
             notificacao.MarcarComoLida();
@@ -104,7 +137,6 @@ public class RepositorioNotificacao : IRepositorioNotificacao
         var notificacao = await _contexto.Notificacoes
             .AsTracking()
             .FirstOrDefaultAsync(n => n.Id == notificacaoId && n.UsuarioId == usuarioId);
-
         if (notificacao != null)
         {
             notificacao.Deletar();
@@ -119,7 +151,6 @@ public class RepositorioNotificacao : IRepositorioNotificacao
             .AsTracking()
             .Where(n => n.UsuarioId == usuarioId && !n.DataDelecao.HasValue)
             .ToListAsync();
-
         foreach (var notificacao in notificacoes)
         {
             notificacao.Deletar();
@@ -134,7 +165,6 @@ public class RepositorioNotificacao : IRepositorioNotificacao
             .AsTracking()
             .Where(n => n.UsuarioId == usuarioId)
             .ToListAsync();
-
         foreach (var notificacao in notificacoes)
         {
             _contexto.Notificacoes.Remove(notificacao);

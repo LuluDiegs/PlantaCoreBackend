@@ -16,10 +16,18 @@ build/
 .env
 .env.*
 secrets.json
-appsettings.Production.json
+appsettings.Development.json
+appsettings.json
 *.pfx
 *.pem
 *.key
+
+## Logs e outputs tempor�rios
+*.log
+*.txt
+api_log.txt
+api_output.log
+test_results.txt
 
 ## User Secrets
 **/Properties/launchSettings.json

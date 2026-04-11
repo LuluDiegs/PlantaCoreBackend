@@ -1,7 +1,10 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Security.Cryptography;
 using System.Text;
+
 using Microsoft.IdentityModel.Tokens;
+
 using PlantaCoreAPI.Application.Interfaces;
 
 namespace PlantaCoreAPI.Infrastructure.Services.External;
@@ -10,6 +13,7 @@ public class JwtService : IJwtService
 {
     private readonly string _chaveSecreta;
     private readonly int _minutosValidade;
+    private static readonly TimeSpan ClockSkewPadrao = TimeSpan.FromSeconds(30);
 
     public JwtService(string chaveSecreta, int minutosValidade = 15)
     {
@@ -41,7 +45,9 @@ public class JwtService : IJwtService
 
     public string GerarTokenRefresh()
     {
-        return Convert.ToBase64String(Guid.NewGuid().ToByteArray());
+        var bytes = new byte[64];
+        RandomNumberGenerator.Fill(bytes);
+        return Convert.ToBase64String(bytes);
     }
 
     public ClaimsPrincipal? ValidarTokenAcesso(string token)
@@ -59,7 +65,7 @@ public class JwtService : IJwtService
                 ValidateAudience = true,
                 ValidAudience = "PlantaCoreAPI",
                 ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = ClockSkewPadrao
             };
 
             var principal = new JwtSecurityTokenHandler().ValidateToken(token, parametros, out _);

@@ -13,17 +13,14 @@ public class Comentario
     public DateTime? DataExclusao { get; private set; }
     public bool Ativo { get; private set; } = true;
     public int PontuacaoTotal { get; private set; }
-
+    public Guid? ComentarioPaiId { get; private set; }
     private List<Curtida> _curtidas = new();
     public IReadOnlyList<Curtida> Curtidas => _curtidas.AsReadOnly();
-
     private Comentario() { }
-
-    public static Comentario Criar(Guid postId, Guid usuarioId, string conteudo)
+    public static Comentario Criar(Guid postId, Guid usuarioId, string conteudo, Guid? comentarioPaiId = null)
     {
         if (string.IsNullOrWhiteSpace(conteudo))
-            throw new Exceptions.DomainException("Conteúdo não pode estar vazio");
-
+            throw new Exceptions.DomainException("ConteÃºdo nÃ£o pode estar vazio");
         return new Comentario
         {
             Id = Guid.NewGuid(),
@@ -31,15 +28,15 @@ public class Comentario
             UsuarioId = usuarioId,
             Conteudo = conteudo.Trim(),
             DataCriacao = DateTime.UtcNow,
-            Ativo = true
+            Ativo = true,
+            ComentarioPaiId = comentarioPaiId
         };
     }
 
     public void Atualizar(string novoConteudo)
     {
         if (string.IsNullOrWhiteSpace(novoConteudo))
-            throw new Exceptions.DomainException("Conteúdo não pode estar vazio");
-
+            throw new Exceptions.DomainException("ConteÃºdo nÃ£o pode estar vazio");
         Conteudo = novoConteudo.Trim();
         DataAtualizacao = DateTime.UtcNow;
     }
@@ -53,8 +50,7 @@ public class Comentario
     public void AdicionarCurtida(Guid usuarioId)
     {
         if (_curtidas.Any(c => c.UsuarioId == usuarioId))
-            throw new Exceptions.DomainException("Você já curtiu este comentário");
-
+            throw new Exceptions.DomainException("VocÃª jÃ¡ curtiu este comentÃ¡rio");
         _curtidas.Add(Curtida.CriarParaComentario(Id, usuarioId));
         PontuacaoTotal += 1;
     }

@@ -7,13 +7,14 @@ internal static class SwaggerExtensions
     internal static IServiceCollection AddSwaggerConfigurado(this IServiceCollection services)
     {
         services.AddEndpointsApiExplorer();
+
         services.AddSwaggerGen(opcoes =>
         {
             opcoes.SwaggerDoc("v1", new OpenApiInfo
             {
                 Title = "PlantaCoreAPI",
                 Version = "v1",
-                Description = "API de identificação e gerenciamento de plantas com IA"
+                Description = "API de identificaÃ§Ã£o e gerenciamento de plantas com IA"
             });
 
             opcoes.TagActionsBy(api =>
@@ -86,7 +87,11 @@ internal static class SwaggerExtensions
 
                 var ordemMetodo = metodo switch
                 {
-                    "GET" => 1, "POST" => 2, "PUT" => 3, "DELETE" => 4, _ => 5
+                    "GET" => 1,
+                    "POST" => 2,
+                    "PUT" => 3,
+                    "DELETE" => 4,
+                    _ => 5
                 };
 
                 return $"{posicaoController:D2}_{posicaoRota:D2}_{rota}_{ordemMetodo}";

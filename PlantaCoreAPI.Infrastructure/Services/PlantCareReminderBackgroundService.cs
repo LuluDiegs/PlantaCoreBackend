@@ -1,6 +1,7 @@
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+
 using PlantaCoreAPI.Application.Interfaces;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
@@ -9,14 +10,6 @@ public class PlantCareReminderBackgroundService : BackgroundService
 {
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<PlantCareReminderBackgroundService> _logger;
-    private bool _primeiraExecucao = true;
-
-    private static readonly TimeZoneInfo BrasilTimeZone =
-        TimeZoneInfo.FindSystemTimeZoneById(
-            OperatingSystem.IsWindows()
-                ? "E. South America Standard Time"
-                : "America/Sao_Paulo"
-        );
 
     public PlantCareReminderBackgroundService(
         IServiceProvider serviceProvider,
@@ -28,87 +21,62 @@ public class PlantCareReminderBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.LogInformation("PlantCareReminderBackgroundService iniciado");
-
+        _logger.LogInformation("PlantCareReminderBackgroundService iniciado.");
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                var agoraUtc = DateTime.UtcNow;
-                var agoraBrasil = TimeZoneInfo.ConvertTimeFromUtc(agoraUtc, BrasilTimeZone);
-
-                var proximoDisparoBrasil = ObterProximoDisparoBrasil(agoraBrasil);
-                var proximoDisparoUtc = TimeZoneInfo.ConvertTimeToUtc(proximoDisparoBrasil, BrasilTimeZone);
-
-                var espera = proximoDisparoUtc - agoraUtc;
-
-                if (espera < TimeSpan.Zero)
-                    espera = TimeSpan.Zero;
-
-                if (_primeiraExecucao)
-                {
-                    _primeiraExecucao = false;
-                    _logger.LogInformation(
-                        $"Agora (Brasil): {agoraBrasil:yyyy-MM-dd HH:mm:ss} | " +
-                        $"Próximo disparo: {proximoDisparoBrasil:yyyy-MM-dd HH:mm:ss} | " +
-                        $"em {espera.TotalHours:F1} horas"
-                    );
-                    await Task.Delay(espera, stoppingToken);
-                    await GerarLembretes(stoppingToken);
-                    continue;
-                }
-
-                _logger.LogInformation(
-                    $"Agora (Brasil): {agoraBrasil:yyyy-MM-dd HH:mm:ss} | " +
-                    $"Próximo disparo: {proximoDisparoBrasil:yyyy-MM-dd HH:mm:ss} (horário Brasil) | " +
-                    $"em {espera.TotalHours:F1} horas"
-                );
-
-                await Task.Delay(espera, stoppingToken);
-
-                await GerarLembretes(stoppingToken);
+                var now = DateTime.UtcNow;
+                var nextRun = now.Date.AddHours(8);
+                if (now >= nextRun)
+                    nextRun = nextRun.AddDays(1);
+                var delay = nextRun - now;
+                _logger.LogInformation("Próxima execução de lembretes em {Delay:hh\\:mm\\:ss}.", delay);
+                await Task.Delay(delay, stoppingToken);
+                await ExecutarLembretesAsync(stoppingToken);
             }
             catch (OperationCanceledException)
             {
-                _logger.LogInformation("PlantCareReminderBackgroundService cancelado");
                 break;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Erro ao gerar lembretes automaticamente");
-                _logger.LogInformation("Aguardando 5 minutos antes de tentar novamente...");
-
-                try
-                {
-                    await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
-                }
-                catch (OperationCanceledException)
-                {
-                    break;
-                }
+                _logger.LogError(ex, "Erro inesperado no PlantCareReminderBackgroundService. Aguardando 5 minutos.");
+                await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
             }
         }
 
-        _logger.LogInformation("PlantCareReminderBackgroundService parado");
+        _logger.LogInformation("PlantCareReminderBackgroundService encerrado.");
     }
 
-    private async Task GerarLembretes(CancellationToken stoppingToken)
+    private async Task ExecutarLembretesAsync(CancellationToken stoppingToken)
     {
         using var scope = _serviceProvider.CreateScope();
-        var servicoLembrete = scope.ServiceProvider.GetRequiredService<IPlantCareReminderService>();
+        var reminderService = scope.ServiceProvider.GetRequiredService<IPlantCareReminderService>();
+        try
+        {
+            _logger.LogInformation("Gerando lembretes de cuidado para todas as plantas.");
+            var plantas = await reminderService.ObterPlantasComNotificacoesHabilitadasAsync();
+            foreach (var planta in plantas)
+            {
+                if (stoppingToken.IsCancellationRequested) break;
+                try
+                {
+                    var nomePlanta = planta.NomeComum ?? planta.NomeCientifico;
+                    var mensagem = $"Sua planta {nomePlanta} precisa de cuidados hoje!";
+                    await reminderService.EnviarNotificacaoAsync(planta.UsuarioId, planta.Id, mensagem);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Falha ao gerar lembrete para planta {PlantaId}.", planta.Id);
+                }
+            }
 
-        _logger.LogInformation("Gerando lembretes para todas as plantas...");
-        await servicoLembrete.GerarLembretesParaTodosPlantas();
-        _logger.LogInformation("Lembretes gerados com sucesso!");
-    }
-
-    private static DateTime ObterProximoDisparoBrasil(DateTime agoraBrasil)
-    {
-        var proximo = agoraBrasil.Date.AddHours(8); 
-
-        if (agoraBrasil >= proximo)
-            proximo = proximo.AddDays(1);
-
-        return proximo;
+            _logger.LogInformation("Geração de lembretes concluída.");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao executar lembretes de cuidado.");
+        }
     }
 }

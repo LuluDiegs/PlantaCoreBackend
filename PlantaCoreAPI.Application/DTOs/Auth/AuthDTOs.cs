@@ -4,30 +4,30 @@ namespace PlantaCoreAPI.Application.DTOs.Auth;
 
 public class RegistroDTOEntrada
 {
-    [Required(ErrorMessage = "Nome È obrigatÛrio")]
+    [Required(ErrorMessage = "Nome √© obrigat√≥rio")]
     [StringLength(100, MinimumLength = 2, ErrorMessage = "Nome deve ter entre 2 e 100 caracteres")]
     public string Nome { get; set; } = null!;
 
-    [Required(ErrorMessage = "Email È obrigatÛrio")]
-    [EmailAddress(ErrorMessage = "Email inv·lido")]
+    [Required(ErrorMessage = "Email √© obrigat√≥rio")]
+    [EmailAddress(ErrorMessage = "Email inv√°lido")]
     public string Email { get; set; } = null!;
 
-    [Required(ErrorMessage = "Senha È obrigatÛria")]
+    [Required(ErrorMessage = "Senha √© obrigat√≥ria")]
     [StringLength(128, MinimumLength = 8, ErrorMessage = "Senha deve ter entre 8 e 128 caracteres")]
     public string Senha { get; set; } = null!;
 
-    [Required(ErrorMessage = "ConfirmaÁ„o de senha È obrigatÛria")]
-    [Compare("Senha", ErrorMessage = "Senhas n„o coincidem")]
+    [Required(ErrorMessage = "Confirma√ß√£o de senha √© obrigat√≥ria")]
+    [Compare("Senha", ErrorMessage = "Senhas n√£o coincidem")]
     public string ConfirmacaoSenha { get; set; } = null!;
 }
 
 public class LoginDTOEntrada
 {
-    [Required(ErrorMessage = "Email È obrigatÛrio")]
-    [EmailAddress(ErrorMessage = "Email inv·lido")]
+    [Required(ErrorMessage = "Email √© obrigat√≥rio")]
+    [EmailAddress(ErrorMessage = "Email inv√°lido")]
     public string Email { get; set; } = null!;
 
-    [Required(ErrorMessage = "Senha È obrigatÛria")]
+    [Required(ErrorMessage = "Senha √© obrigat√≥ria")]
     public string Senha { get; set; } = null!;
 }
 
@@ -42,53 +42,53 @@ public class LoginDTOSaida
 
 public class RefreshTokenDTOEntrada
 {
-    [Required(ErrorMessage = "Token de refresh È obrigatÛrio")]
+    [Required(ErrorMessage = "Token de refresh √© obrigat√≥rio")]
     public string TokenRefresh { get; set; } = null!;
 }
 
 public class ConfirmarEmailDTOEntrada
 {
-    [Required(ErrorMessage = "ID do usu·rio È obrigatÛrio")]
+    [Required(ErrorMessage = "ID do usu√°rio √© obrigat√≥rio")]
     public Guid UsuarioId { get; set; }
 
-    [Required(ErrorMessage = "Token È obrigatÛrio")]
+    [Required(ErrorMessage = "Token √© obrigat√≥rio")]
     public string Token { get; set; } = null!;
 }
 
 public class ResetarSenhaDTOEntrada
 {
-    [Required(ErrorMessage = "Email È obrigatÛrio")]
-    [EmailAddress(ErrorMessage = "Email inv·lido")]
+    [Required(ErrorMessage = "Email √© obrigat√≥rio")]
+    [EmailAddress(ErrorMessage = "Email inv√°lido")]
     public string Email { get; set; } = null!;
 }
 
 public class NovaSenhaDTOEntrada
 {
-    [Required(ErrorMessage = "ID do usu·rio È obrigatÛrio")]
+    [Required(ErrorMessage = "ID do usu√°rio √© obrigat√≥rio")]
     public Guid UsuarioId { get; set; }
 
-    [Required(ErrorMessage = "Token È obrigatÛrio")]
+    [Required(ErrorMessage = "Token √© obrigat√≥rio")]
     public string Token { get; set; } = null!;
 
-    [Required(ErrorMessage = "Nova senha È obrigatÛria")]
+    [Required(ErrorMessage = "Nova senha √© obrigat√≥ria")]
     [StringLength(128, MinimumLength = 8, ErrorMessage = "Senha deve ter entre 8 e 128 caracteres")]
     public string NovaSenha { get; set; } = null!;
 
-    [Required(ErrorMessage = "ConfirmaÁ„o de senha È obrigatÛria")]
-    [Compare("NovaSenha", ErrorMessage = "Senhas n„o coincidem")]
+    [Required(ErrorMessage = "Confirma√ß√£o de senha √© obrigat√≥ria")]
+    [Compare("NovaSenha", ErrorMessage = "Senhas n√£o coincidem")]
     public string ConfirmacaoSenha { get; set; } = null!;
 }
 
 public class TrocarSenhaDTOEntrada
 {
-    [Required(ErrorMessage = "Senha atual È obrigatÛria")]
+    [Required(ErrorMessage = "Senha atual √© obrigat√≥ria")]
     public string SenhaAtual { get; set; } = null!;
 
-    [Required(ErrorMessage = "Nova senha È obrigatÛria")]
+    [Required(ErrorMessage = "Nova senha √© obrigat√≥ria")]
     [StringLength(128, MinimumLength = 8, ErrorMessage = "Senha deve ter entre 8 e 128 caracteres")]
     public string NovaSenha { get; set; } = null!;
 
-    [Required(ErrorMessage = "ConfirmaÁ„o de senha È obrigatÛria")]
-    [Compare("NovaSenha", ErrorMessage = "Senhas n„o coincidem")]
+    [Required(ErrorMessage = "Confirma√ß√£o de senha √© obrigat√≥ria")]
+    [Compare("NovaSenha", ErrorMessage = "Senhas n√£o coincidem")]
     public string ConfirmacaoSenha { get; set; } = null!;
 }

@@ -23,7 +23,6 @@ public class Planta
     public string? DadosPlantNet { get; private set; }
     public DateTime DataIdentificacao { get; private set; }
     public DateTime DataCriacao { get; private set; }
-
     public List<Post> Posts { get; private set; } = new();
 
     private Planta() { }
@@ -47,9 +46,9 @@ public class Planta
         string? fotoPlanta = null)
     {
         if (string.IsNullOrWhiteSpace(nomeCientifico))
-            throw new Exceptions.DomainException("Nome científico é obrigatório");
+            throw new Exceptions.DomainException("Nome cientÃ­fico Ã© obrigatÃ³rio");
 
-        var planta = new Planta
+        return new Planta
         {
             Id = Guid.NewGuid(),
             UsuarioId = usuarioId,
@@ -71,8 +70,6 @@ public class Planta
             DataIdentificacao = DateTime.UtcNow,
             DataCriacao = DateTime.UtcNow
         };
-
-        return planta;
     }
 
     public void EnriquecerDados(string? nomeComum, string? familia, string? genero,

@@ -1,4 +1,7 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.RegularExpressions;
+
 using PlantaCoreAPI.Application.Interfaces;
 
 namespace PlantaCoreAPI.Infrastructure.Services.External;
@@ -8,6 +11,11 @@ public class TrefleService : ITrefleService
     private readonly HttpClient _httpClient;
     private readonly string _chaveApi;
     private const string BaseUrl = "https://trefle.io/api/v1";
+    private readonly JsonSerializerOptions _jsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+    };
 
     public TrefleService(HttpClient httpClient, string chaveApi)
     {
@@ -19,28 +27,14 @@ public class TrefleService : ITrefleService
     {
         try
         {
-            if (plantaId <= 0)
-                return null;
-
+            if (plantaId <= 0) return null;
             var url = $"{BaseUrl}/plants/{plantaId}?token={_chaveApi}";
             var response = await _httpClient.GetAsync(url);
-
-            if (!response.IsSuccessStatusCode)
-                return null;
-
+            if (!response.IsSuccessStatusCode) return null;
             var json = await response.Content.ReadAsStringAsync();
-            if (string.IsNullOrEmpty(json))
-                return null;
-
-            var options = new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-            };
-
-            var wrapper = System.Text.Json.JsonSerializer.Deserialize<TreflePlantaDetalheRaw>(json, options);
+            if (string.IsNullOrEmpty(json)) return null;
+            var wrapper = JsonSerializer.Deserialize<TreflePlantaDetalheRaw>(json, _jsonOptions);
             var raw = wrapper?.Data;
-
             return raw == null ? null : MapearParaPlantaTrefle(raw);
         }
         catch
@@ -53,35 +47,19 @@ public class TrefleService : ITrefleService
     {
         try
         {
-            if (string.IsNullOrWhiteSpace(termo))
-                return null;
-
-            if (pagina < 0)
-                pagina = 0;
-
+            if (string.IsNullOrWhiteSpace(termo)) return null;
+            if (pagina < 0) pagina = 0;
             var termoEscapado = Uri.EscapeDataString(termo.Trim());
             var url = $"{BaseUrl}/plants/search?q={termoEscapado}&page={pagina}&token={_chaveApi}";
             var response = await _httpClient.GetAsync(url);
-
-            if (!response.IsSuccessStatusCode)
-                return null;
-
+            if (!response.IsSuccessStatusCode) return null;
             var json = await response.Content.ReadAsStringAsync();
-            if (string.IsNullOrEmpty(json))
-                return null;
-
-            var options = new System.Text.Json.JsonSerializerOptions
-            {
-                PropertyNameCaseInsensitive = true,
-                DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-            };
-
-            var raw = System.Text.Json.JsonSerializer.Deserialize<TrefleBuscaRaw>(json, options);
+            if (string.IsNullOrEmpty(json)) return null;
+            var raw = JsonSerializer.Deserialize<TrefleBuscaRaw>(json, _jsonOptions);
             if (raw == null) return null;
-
             var resultado = new ResultadoBuscaTrefle
             {
-                Dados = raw.Data?.Select(p => MapearParaPlantaTrefle(p)).ToList() ?? new(),
+                Dados = raw.Data?.Select(MapearParaPlantaTrefle).ToList() ?? new(),
                 Metadados = raw.Meta == null ? null : new MetadadosTrefle
                 {
                     Total = raw.Meta.Total,
@@ -95,10 +73,9 @@ public class TrefleService : ITrefleService
                     Proximo = raw.Links.Next
                 }
             };
-
             if (!resultado.Dados.Any() && termo.Contains(" "))
             {
-                var primeiroNome = termo.Substring(0, termo.IndexOf(" ")).Trim();
+                var primeiroNome = termo.Split(' ')[0].Trim();
                 if (!string.IsNullOrWhiteSpace(primeiroNome))
                     return await BuscarPlantasAsync(primeiroNome, pagina);
             }
@@ -127,9 +104,7 @@ public class TrefleService : ITrefleService
 
     private static string? TraduzirTexto(string? texto)
     {
-        if (string.IsNullOrWhiteSpace(texto))
-            return texto;
-
+        if (string.IsNullOrWhiteSpace(texto)) return texto;
         var dicionario = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             { "leaf", "folha" }, { "leaves", "folhas" }, { "stem", "caule" },
@@ -146,15 +121,14 @@ public class TrefleService : ITrefleService
             { "epiphyte", "epífita" }, { "parasite", "parasita" }, { "saprophyte", "saprofita" },
             { "nitrogen fixer", "fixadora de nitrogênio" }
         };
-
         var resultado = texto;
         foreach (var kvp in dicionario)
         {
-            resultado = System.Text.RegularExpressions.Regex.Replace(
+            resultado = Regex.Replace(
                 resultado,
                 $@"\b{kvp.Key}\b",
                 kvp.Value,
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                RegexOptions.IgnoreCase);
         }
 
         return resultado;

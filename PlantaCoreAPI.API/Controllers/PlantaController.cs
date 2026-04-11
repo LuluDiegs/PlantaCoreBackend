@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
 using PlantaCoreAPI.Application.DTOs.Planta;
 using PlantaCoreAPI.Application.DTOs.Identificacao;
 using PlantaCoreAPI.Application.Interfaces;
+using PlantaCoreAPI.Application.DTOs.Post;
+
 using System.Security.Claims;
+
+using PlantaCoreAPI.API.Utils;
 
 namespace PlantaCoreAPI.API.Controllers;
 
@@ -14,7 +19,6 @@ public class PlantaController : ControllerBase
 {
     private readonly IPlantService _servicioPlanta;
     private readonly IFileStorageService _fileStorageService;
-
     public PlantaController(IPlantService servicioPlanta, IFileStorageService fileStorageService)
     {
         _servicioPlanta = servicioPlanta;
@@ -27,46 +31,72 @@ public class PlantaController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> IdentificarPlanta(IFormFile foto)
+    public async Task<IActionResult> Identificar([FromForm] IdentificarEPostarDTO entrada, [FromServices] IPostService postService)
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
-        if (foto == null || foto.Length == 0)
+        if (entrada.Foto == null || entrada.Foto.Length == 0)
             return BadRequest(new { sucesso = false, mensagem = "Nenhuma foto enviada" });
-
-        if (!foto.ContentType.StartsWith("image/"))
+        if (!entrada.Foto.ContentType.StartsWith("image/"))
             return BadRequest(new { sucesso = false, mensagem = "Arquivo deve ser uma imagem" });
-
         string? caminhoTemp = null;
         string? urlFoto = null;
-
         try
         {
-            caminhoTemp = Path.Combine(Path.GetTempPath(), $"planta_{Guid.NewGuid()}_{foto.FileName}");
+            caminhoTemp = Path.Combine(Path.GetTempPath(), $"planta_{Guid.NewGuid()}_{entrada.Foto.FileName}");
             using (var fileStream = System.IO.File.Create(caminhoTemp))
-                await foto.CopyToAsync(fileStream);
-
+                await entrada.Foto.CopyToAsync(fileStream);
             try
             {
                 var bytes = await System.IO.File.ReadAllBytesAsync(caminhoTemp);
-                urlFoto = await _fileStorageService.FazerUploadFotoPlantaAsync(bytes, foto.FileName, usuarioId);
+                urlFoto = await _fileStorageService.FazerUploadFotoPlantaAsync(bytes, entrada.Foto.FileName, usuarioId);
             }
-            catch { }
 
-            var resultado = await _servicioPlanta.IdentificarPlantaAsync(usuarioId, new IdentificacaoDTOEntrada
+            catch { /* Log erro de upload se necessário */ }
+            var resultadoIdentificacao = await _servicioPlanta.IdentificarPlantaAsync(usuarioId, new IdentificacaoDTOEntrada
             {
                 CaminhoTemp = caminhoTemp,
                 UrlImagem = urlFoto
             });
+            if (!resultadoIdentificacao.Sucesso)
+                return BadRequest(resultadoIdentificacao);
+            var plantaIdentificada = resultadoIdentificacao.Dados;
+            var comentario = string.IsNullOrWhiteSpace(entrada.Comentario)
+                ? $"Identificação: {plantaIdentificada.NomeCientifico ?? plantaIdentificada.NomeComum ?? "Planta"}{(string.IsNullOrWhiteSpace(plantaIdentificada.NomeComum) ? "" : $" ({plantaIdentificada.NomeComum})")}"
+                : entrada.Comentario;
+            if (entrada.CriarPostagem)
+            {
+                var resultadoPostagem = await postService.CriarPostAsync(usuarioId, new CriarPostDTOEntrada
+                {
+                    PlantaId = plantaIdentificada.Id,
+                    Conteudo = comentario,
+                    ComunidadeId = null
+                });
+                if (!resultadoPostagem.Sucesso)
+                    return BadRequest(resultadoPostagem);
+                return Ok(new
+                {
+                    sucesso = true,
+                    mensagem = "Planta identificada e postagem criada com sucesso",
+                    planta = plantaIdentificada,
+                    postagem = resultadoPostagem.Dados
+                });
+            }
 
-            return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+            return Ok(new
+            {
+                sucesso = true,
+                mensagem = "Planta identificada com sucesso",
+                planta = plantaIdentificada
+            });
         }
+
         catch (Exception ex)
         {
             return BadRequest(new { sucesso = false, mensagem = $"Erro ao processar imagem: {ex.Message}" });
         }
+
         finally
         {
             if (caminhoTemp != null && System.IO.File.Exists(caminhoTemp))
@@ -85,16 +115,11 @@ public class PlantaController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
-        if (entrada.Pagina < 0)
-            entrada.Pagina = 0;
-
+        if (entrada.Pagina < 0) entrada.Pagina = 0;
         var resultado = await _servicioPlanta.BuscarPlantasTrefleAsync(entrada.NomePlanta, entrada.Pagina);
-
         if (!resultado.Sucesso)
-            return NotFound(new { sucesso = false, mensagem = resultado.Mensagem, dados = new { plantas = new List<object>() } });
-
-        return Ok(new { sucesso = true, dados = resultado.Dados });
+            return NotFound(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpPost("buscar/adicionar")]
@@ -107,12 +132,12 @@ public class PlantaController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         if (entrada?.PlantaTrefleId <= 0)
-            return BadRequest(new { sucesso = false, mensagem = "plantaTrefleId obrigat�rio e deve ser maior que 0" });
-
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { "plantaTrefleId obrigatório e deve ser maior que 0" }));
         var resultado = await _servicioPlanta.AdicionarPlantaDoTrefleAsync(usuarioId, entrada.PlantaTrefleId, entrada.NomeCientifico, entrada.UrlImagem);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpGet("minhas-plantas")]
@@ -125,9 +150,42 @@ public class PlantaController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         var resultado = await _servicioPlanta.ListarPlantasUsuarioPaginadoAsync(usuarioId, pagina, tamanho);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        var meta = resultado.Dados != null ? new
+        {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        } : null;
+        var dados = resultado.Dados?.Itens ?? Enumerable.Empty<PlantaDTOSaida>();
+        return Ok(ResponseHelper.Padrao(true, dados, meta));
+    }
+
+    [HttpGet("minhas-plantas/buscar")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> BuscarMinhasPlantas([FromQuery] string termo, [FromQuery] int pagina = 1, [FromQuery] int tamanho = 10)
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+        var resultado = await _servicioPlanta.BuscarPlantasUsuarioAsync(usuarioId, termo, pagina, tamanho);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        var meta = resultado.Dados != null ? new
+        {
+            pagina = resultado.Dados.Pagina,
+            tamanho = resultado.Dados.TamanhoPagina,
+            total = resultado.Dados.Total,
+            totalPaginas = (int)Math.Ceiling((double)resultado.Dados.Total / resultado.Dados.TamanhoPagina)
+        } : null;
+        var dados = resultado.Dados?.Itens ?? Enumerable.Empty<PlantaDTOSaida>();
+        return Ok(ResponseHelper.Padrao(true, dados, meta));
     }
 
     [HttpGet("{plantaId:guid}")]
@@ -137,7 +195,9 @@ public class PlantaController : ControllerBase
     public async Task<IActionResult> ObterPlanta(Guid plantaId)
     {
         var resultado = await _servicioPlanta.ObterPlantaAsync(plantaId);
-        return resultado.Sucesso ? Ok(resultado) : NotFound(resultado);
+        if (!resultado.Sucesso)
+            return NotFound(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpDelete("{plantaId:guid}")]
@@ -150,9 +210,10 @@ public class PlantaController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         var resultado = await _servicioPlanta.ExcluirPlantaAsync(plantaId, usuarioId);
-        return resultado.Sucesso ? Ok(new { sucesso = true, mensagem = "Planta exclu�da com sucesso" }) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = "Planta excluída com sucesso" }));
     }
 
     [HttpPost("{plantaId:guid}/gerar-lembrete-cuidado")]
@@ -164,8 +225,16 @@ public class PlantaController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
-
         await servicoLembrete.GerarLembreteCuidadoAsync(plantaId);
-        return Ok(new { sucesso = true, mensagem = "Lembrete de cuidado gerado com sucesso" });
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = "Lembrete de cuidado gerado com sucesso" }));
+    }
+
+    [HttpGet("{plantaId:guid}/posts")]
+    [AllowAnonymous]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ListarPostsDaPlanta(Guid plantaId)
+    {
+        var resultado = await _servicioPlanta.ListarPostsDaPlantaAsync(plantaId);
+        return Ok(ResponseHelper.Padrao(true, resultado));
     }
 }

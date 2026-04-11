@@ -22,4 +22,5 @@ public class DadosPlantaParaIA
 public interface IGeminiService
 {
     Task<string?> GerarDescricaoPlantaAsync(DadosPlantaParaIA dados);
+    Task<string?> GerarReflexaoPlantaAsync(DadosPlantaParaIA dados, string respostaPrincipal);
 }

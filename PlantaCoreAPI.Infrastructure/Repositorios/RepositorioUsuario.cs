@@ -18,7 +18,6 @@ public class RepositorioUsuario : IRepositorioUsuario
     public async Task<Usuario?> ObterPorIdAsync(Guid id)
     {
         return await _contexto.Usuarios
-            .AsTracking()
             .FirstOrDefaultAsync(u => u.Id == id);
     }
 
@@ -57,6 +56,15 @@ public class RepositorioUsuario : IRepositorioUsuario
             .FirstOrDefaultAsync(u => u.Email == emailNormalizado);
     }
 
+    public async Task<Usuario?> ObterPorEmailIncluindoInativosAsync(string email)
+    {
+        var emailNormalizado = email.ToLower().Trim();
+        return await _contexto.Usuarios
+            .AsTracking()
+            .IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Email == emailNormalizado);
+    }
+
     public async Task<bool> EmailJaExisteAsync(string email)
     {
         var emailNormalizado = email.ToLower().Trim();
@@ -70,6 +78,7 @@ public class RepositorioUsuario : IRepositorioUsuario
             .Include(u => u.Plantas)
             .Include(u => u.Seguidores)
             .Include(u => u.Seguindo)
+            .Include(u => u.Posts)
             .FirstOrDefaultAsync(u => u.Id == usuarioId);
     }
 
@@ -113,5 +122,64 @@ public class RepositorioUsuario : IRepositorioUsuario
             TamanhoPagina = tamanho,
             Total = total
         };
+    }
+
+    public async Task<IEnumerable<Usuario>> BuscarPorNomeAsync(string termo)
+    {
+        return await _contexto.Usuarios
+            .Where(u => EF.Functions.ILike(u.Nome, $"%{termo}%"))
+            .OrderBy(u => u.Nome)
+            .Take(50)
+            .ToListAsync();
+    }
+
+    public async Task<IEnumerable<Usuario>> ObterSugestoesAsync(IEnumerable<Guid> excluirIds, int quantidade)
+    {
+        return await _contexto.Usuarios
+            .Where(u => !excluirIds.Contains(u.Id))
+            .Include(u => u.Seguidores)
+            .OrderByDescending(u => u.Seguidores.Count)
+            .Take(quantidade * 3)
+            .ToListAsync();
+    }
+
+    public async Task<bool> UsuarioSegueAsync(Guid seguidorId, Guid seguidoId)
+    {
+        return await _contexto.Usuarios
+            .Where(u => u.Id == seguidorId)
+            .SelectMany(u => u.Seguindo)
+            .AnyAsync(u => u.Id == seguidoId);
+    }
+
+    public async Task<Usuario?> ObterComSeguindoAsync(Guid usuarioId)
+    {
+        return await _contexto.Usuarios
+            .AsTracking()
+            .Include(u => u.Seguindo)
+            .FirstOrDefaultAsync(u => u.Id == usuarioId);
+    }
+
+    public async Task<Usuario?> ObterComSeguindoESeguidoresAsync(Guid usuarioId)
+    {
+        return await _contexto.Usuarios
+            .AsTracking()
+            .Include(u => u.Seguindo)
+            .Include(u => u.Seguidores)
+            .FirstOrDefaultAsync(u => u.Id == usuarioId);
+    }
+
+    public async Task<IEnumerable<Usuario>> ObterPorIdsAsync(IEnumerable<Guid> ids)
+    {
+        var lista = ids.ToList();
+        return await _contexto.Usuarios
+            .Where(u => lista.Contains(u.Id))
+            .ToListAsync();
+    }
+
+    public async Task<Usuario?> ObterPorIdTrackedAsync(Guid id)
+    {
+        return await _contexto.Usuarios
+            .AsTracking()
+            .FirstOrDefaultAsync(u => u.Id == id);
     }
 }

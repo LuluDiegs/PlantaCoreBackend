@@ -17,10 +17,74 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.0")
+                .HasAnnotation("ProductVersion", "8.0.11")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.ActivityLog", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_criacao")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid?>("EntidadeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("entidade_id");
+
+                    b.Property<string>("EntidadeTipo")
+                        .HasColumnType("text")
+                        .HasColumnName("entidade_tipo");
+
+                    b.Property<string>("MetaDados")
+                        .HasColumnType("text")
+                        .HasColumnName("meta_dados");
+
+                    b.Property<string>("Tipo")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("tipo");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId")
+                        .HasDatabaseName("ix_activitylog_usuario_id");
+
+                    b.ToTable("activity_logs", (string)null);
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Categoria", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("nome");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("categorias", (string)null);
+                });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Comentario", b =>
                 {
@@ -34,27 +98,33 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("ativo");
 
+                    b.Property<Guid?>("ComentarioPaiId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comentario_pai_id");
+
                     b.Property<string>("Conteudo")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("conteudo");
 
                     b.Property<DateTime?>("DataAtualizacao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_atualizacao");
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime?>("DataExclusao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_exclusao");
 
                     b.Property<int>("PontuacaoTotal")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("integer")
+                        .HasDefaultValue(0)
                         .HasColumnName("pontuacao_total");
 
                     b.Property<Guid>("PostId")
@@ -76,6 +146,58 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.ToTable("comentarios", (string)null);
                 });
 
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Comunidade", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Ativa")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("ativa");
+
+                    b.Property<Guid>("CriadorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("criador_id");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_criacao")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<string>("Descricao")
+                        .HasColumnType("text")
+                        .HasColumnName("descricao");
+
+                    b.Property<string>("FotoComunidade")
+                        .HasColumnType("text")
+                        .HasColumnName("foto_comunidade");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("nome");
+
+                    b.Property<bool>("Privada")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("privada");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CriadorId");
+
+                    b.HasIndex("Nome")
+                        .HasDatabaseName("ix_comunidades_nome");
+
+                    b.ToTable("comunidades", (string)null);
+                });
+
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Curtida", b =>
                 {
                     b.Property<Guid>("Id")
@@ -88,7 +210,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
@@ -121,6 +243,126 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.ToTable("curtidas", (string)null);
                 });
 
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Evento", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AnfitriaoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("anfitriao_id");
+
+                    b.Property<DateTime>("DataInicio")
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_inicio");
+
+                    b.Property<string>("Descricao")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("descricao");
+
+                    b.Property<string>("Localizacao")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("localizacao");
+
+                    b.Property<string>("Titulo")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("titulo");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AnfitriaoId");
+
+                    b.ToTable("eventos", (string)null);
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.EventoParticipante", b =>
+                {
+                    b.Property<Guid>("EventoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("evento_id");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("EventoId", "UsuarioId");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("eventos_participantes", (string)null);
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Hashtag", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Nome")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("nome");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("hashtags", (string)null);
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.MembroComunidade", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("ComunidadeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comunidade_id");
+
+                    b.Property<DateTime>("DataEntrada")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_entrada")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("EhAdmin")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("eh_admin");
+
+                    b.Property<bool>("Pendente")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("pendente");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.HasIndex("ComunidadeId", "UsuarioId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_membros_comunidade_unico");
+
+                    b.ToTable("membros_comunidade", (string)null);
+                });
+
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Notificacao", b =>
                 {
                     b.Property<Guid>("Id")
@@ -129,16 +371,16 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime?>("DataDelecao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_delecao");
 
                     b.Property<DateTime?>("DataLeitura")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_leitura");
 
                     b.Property<bool>("Lida")
@@ -190,6 +432,29 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.ToTable("notificacoes", (string)null);
                 });
 
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PalavraChave", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Palavra")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("palavra");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.ToTable("palavras_chave", (string)null);
+                });
+
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Planta", b =>
                 {
                     b.Property<Guid>("Id")
@@ -206,12 +471,12 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime>("DataIdentificacao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_identificacao");
 
                     b.Property<string>("DescricaoToxicidade")
@@ -304,38 +569,41 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasDefaultValue(true)
                         .HasColumnName("ativo");
 
+                    b.Property<Guid?>("ComunidadeId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("comunidade_id");
+
                     b.Property<string>("Conteudo")
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("conteudo");
 
                     b.Property<DateTime?>("DataAtualizacao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_atualizacao");
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime?>("DataExclusao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_exclusao");
 
-                    b.Property<Guid>("PlantaId")
+                    b.Property<Guid?>("PlantaId")
                         .HasColumnType("uuid")
                         .HasColumnName("planta_id");
-
-                    b.Property<int>("PontuacaoTotal")
-                        .HasColumnType("integer")
-                        .HasColumnName("pontuacao_total");
 
                     b.Property<Guid>("UsuarioId")
                         .HasColumnType("uuid")
                         .HasColumnName("usuario_id");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ComunidadeId")
+                        .HasDatabaseName("ix_posts_comunidade_id");
 
                     b.HasIndex("PlantaId")
                         .HasDatabaseName("ix_posts_planta_id");
@@ -346,6 +614,141 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.ToTable("posts", (string)null);
                 });
 
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PostSave", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_criacao")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UsuarioId", "PostId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_postsave_usuario_post");
+
+                    b.ToTable("post_saves", (string)null);
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PostShare", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_criacao")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UsuarioId", "PostId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_postshare_usuario_post");
+
+                    b.ToTable("post_shares", (string)null);
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PostView", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("DataCriacao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_criacao")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<Guid>("PostId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("post_id");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuario_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PostId");
+
+                    b.HasIndex("UsuarioId", "PostId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_postview_usuario_post");
+
+                    b.ToTable("post_views", (string)null);
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.SolicitacaoSeguir", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("Aceita")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("aceita");
+
+                    b.Property<Guid>("AlvoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("alvo_id");
+
+                    b.Property<DateTime>("DataSolicitacao")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("timestamp without time zone")
+                        .HasColumnName("data_solicitacao")
+                        .HasDefaultValueSql("CURRENT_TIMESTAMP");
+
+                    b.Property<bool>("Pendente")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("pendente");
+
+                    b.Property<Guid>("SolicitanteId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("solicitante_id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AlvoId");
+
+                    b.HasIndex("SolicitanteId", "AlvoId")
+                        .HasDatabaseName("ix_solicitacoes_seguir_par");
+
+                    b.ToTable("solicitacoes_seguir", (string)null);
+                });
+
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.TokenRefresh", b =>
                 {
                     b.Property<Guid>("Id")
@@ -354,16 +757,16 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime>("DataExpiracao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_expiracao");
 
                     b.Property<DateTime?>("DataRevogacao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_revogacao");
 
                     b.Property<bool>("Revogado")
@@ -413,16 +816,16 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
                     b.Property<DateTime>("DataCriacao")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_criacao")
                         .HasDefaultValueSql("CURRENT_TIMESTAMP");
 
                     b.Property<DateTime?>("DataExclusao")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_exclusao");
 
                     b.Property<DateTime?>("DataTokenResetarSenha")
-                        .HasColumnType("timestamp with time zone")
+                        .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_token_resetar");
 
                     b.Property<string>("Email")
@@ -445,6 +848,12 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)")
                         .HasColumnName("nome");
+
+                    b.Property<bool>("PerfilPrivado")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(false)
+                        .HasColumnName("perfil_privado");
 
                     b.Property<string>("SenhaHash")
                         .IsRequired()
@@ -479,6 +888,27 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.ToTable("seguidores", (string)null);
                 });
 
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.ActivityLog", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_activitylog_usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Categoria", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", "Post")
+                        .WithMany("Categorias")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Comentario", b =>
                 {
                     b.HasOne("PlantaCoreAPI.Domain.Entities.Post", "Post")
@@ -498,6 +928,18 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Navigation("Post");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Comunidade", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Criador")
+                        .WithMany()
+                        .HasForeignKey("CriadorId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_comunidades_criador");
+
+                    b.Navigation("Criador");
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Curtida", b =>
@@ -523,6 +965,68 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Navigation("Comentario");
 
                     b.Navigation("Post");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Evento", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Anfitriao")
+                        .WithMany("EventosCriados")
+                        .HasForeignKey("AnfitriaoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Anfitriao");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.EventoParticipante", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Evento", "Evento")
+                        .WithMany("Participantes")
+                        .HasForeignKey("EventoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Usuario")
+                        .WithMany("EventosParticipando")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Evento");
+
+                    b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Hashtag", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", "Post")
+                        .WithMany("Hashtags")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.MembroComunidade", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Comunidade", "Comunidade")
+                        .WithMany("Membros")
+                        .HasForeignKey("ComunidadeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_membros_comunidade");
+
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Usuario")
+                        .WithMany("ComunidadesParticipantes")
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_membros_comunidade_usuario");
+
+                    b.Navigation("Comunidade");
 
                     b.Navigation("Usuario");
                 });
@@ -563,6 +1067,17 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Navigation("UsuarioOrigem");
                 });
 
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PalavraChave", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", "Post")
+                        .WithMany("PalavrasChave")
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Post");
+                });
+
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Planta", b =>
                 {
                     b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Usuario")
@@ -577,11 +1092,16 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Post", b =>
                 {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Comunidade", "Comunidade")
+                        .WithMany("Posts")
+                        .HasForeignKey("ComunidadeId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_posts_comunidades");
+
                     b.HasOne("PlantaCoreAPI.Domain.Entities.Planta", "Planta")
                         .WithMany("Posts")
                         .HasForeignKey("PlantaId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
+                        .OnDelete(DeleteBehavior.SetNull)
                         .HasConstraintName("fk_posts_plantas");
 
                     b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Usuario")
@@ -591,9 +1111,83 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .IsRequired()
                         .HasConstraintName("fk_posts_usuarios");
 
+                    b.Navigation("Comunidade");
+
                     b.Navigation("Planta");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PostSave", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", null)
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postsave_post");
+
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postsave_usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PostShare", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", null)
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postshare_post");
+
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postshare_usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PostView", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Post", null)
+                        .WithMany()
+                        .HasForeignKey("PostId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postview_post");
+
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", null)
+                        .WithMany()
+                        .HasForeignKey("UsuarioId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_postview_usuario");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.SolicitacaoSeguir", b =>
+                {
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Alvo")
+                        .WithMany("SolicitacoesSeguirRecebidas")
+                        .HasForeignKey("AlvoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_solicitacoes_seguir_alvo");
+
+                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Solicitante")
+                        .WithMany("SolicitacoesSeguirEnviadas")
+                        .HasForeignKey("SolicitanteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_solicitacoes_seguir_solicitante");
+
+                    b.Navigation("Alvo");
+
+                    b.Navigation("Solicitante");
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.TokenRefresh", b =>
@@ -628,6 +1222,18 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Navigation("Curtidas");
                 });
 
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Comunidade", b =>
+                {
+                    b.Navigation("Membros");
+
+                    b.Navigation("Posts");
+                });
+
+            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Evento", b =>
+                {
+                    b.Navigation("Participantes");
+                });
+
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Planta", b =>
                 {
                     b.Navigation("Posts");
@@ -635,18 +1241,34 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Post", b =>
                 {
+                    b.Navigation("Categorias");
+
                     b.Navigation("Comentarios");
 
                     b.Navigation("Curtidas");
+
+                    b.Navigation("Hashtags");
+
+                    b.Navigation("PalavrasChave");
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Usuario", b =>
                 {
+                    b.Navigation("ComunidadesParticipantes");
+
+                    b.Navigation("EventosCriados");
+
+                    b.Navigation("EventosParticipando");
+
                     b.Navigation("Notificacoes");
 
                     b.Navigation("Plantas");
 
                     b.Navigation("Posts");
+
+                    b.Navigation("SolicitacoesSeguirEnviadas");
+
+                    b.Navigation("SolicitacoesSeguirRecebidas");
                 });
 #pragma warning restore 612, 618
         }

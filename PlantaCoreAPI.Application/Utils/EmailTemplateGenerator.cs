@@ -37,28 +37,28 @@ public static class EmailTemplateGenerator
                         <p>Bem-vindo ao mundo das plantas!</p>
                     </div>
                     <div class=""content"">
-                        <p class=""greeting"">Olá <span class=""highlight"">{nome}</span>,</p>
-                        <p>Estamos muito felizes em ter você no <span class=""highlight"">PlantaCore</span>! Prepare-se para uma jornada incrível explorando o mundo fascinante das plantas.</p>
-                        <p>Para começar, precisamos confirmar sua conta. Clique no botão abaixo para validar seu endereço de e-mail:</p>
+                        <p class=""greeting"">OlÃ¡ <span class=""highlight"">{nome}</span>,</p>
+                        <p>Estamos muito felizes em ter vocÃª no <span class=""highlight"">PlantaCore</span>! Prepare-se para uma jornada incrÃ­vel explorando o mundo fascinante das plantas.</p>
+                        <p>Para comeÃ§ar, precisamos confirmar sua conta. Clique no botÃ£o abaixo para validar seu endereÃ§o de e-mail:</p>
                         <div class=""button-container"">
                             <a href=""{urlConfirmacao}"" class=""button"">Confirmar Minha Conta</a>
                         </div>
                         <div class=""info-box"">
-                            <p><strong>O que você pode fazer:</strong></p>
+                            <p><strong>O que vocÃª pode fazer:</strong></p>
                             <p>Identificar plantas por foto usando IA</p>
-                            <p>Descobrir informações detalhadas sobre toxicidade</p>
+                            <p>Descobrir informaÃ§Ãµes detalhadas sobre toxicidade</p>
                             <p>Receber dicas de cuidados personalizadas</p>
-                            <p>Criar sua coleção de plantas favoritas</p>
+                            <p>Criar sua coleÃ§Ã£o de plantas favoritas</p>
                             <p>Conectar com outros entusiastas</p>
                         </div>
-                        <p style=""color: #999; font-size: 13px; text-align: center;"">Este link expira em 24 horas por razões de segurança.</p>
+                        <p style=""color: #999; font-size: 13px; text-align: center;"">Este link expira em 24 horas por razÃµes de seguranÃ§a.</p>
                         <div class=""divider""></div>
-                        <p style=""font-size: 14px; color: #666;"">Se você não se registrou no PlantaCore, por favor ignore este e-mail.</p>
-                        <p style=""font-size: 14px; color: #666;"">Dúvidas? <a href=""mailto:squadhackathonio@gmail.com"" style=""color: #27ae60; text-decoration: none;"">Entre em contato conosco</a></p>
+                        <p style=""font-size: 14px; color: #666;"">Se vocÃª nÃ£o se registrou no PlantaCore, por favor ignore este e-mail.</p>
+                        <p style=""font-size: 14px; color: #666;"">DÃºvidas? <a href=""mailto:squadhackathonio@gmail.com"" style=""color: #27ae60; text-decoration: none;"">Entre em contato conosco</a></p>
                     </div>
                     <div class=""footer"">
                         <p class=""footer-text""><strong>PlantaCore</strong> &copy; 2026 - Seu app de plantas inteligente</p>
-                        <p class=""footer-text"">Segurança e privacidade em primeiro lugar</p>
+                        <p class=""footer-text"">SeguranÃ§a e privacidade em primeiro lugar</p>
                     </div>
                 </div>
             </body>
@@ -97,28 +97,28 @@ public static class EmailTemplateGenerator
                 <div class=""container"">
                     <div class=""header"">
                         <h1>PlantaCore</h1>
-                        <p>Recuperação de Senha</p>
+                        <p>RecuperaÃ§Ã£o de Senha</p>
                     </div>
                     <div class=""content"">
-                        <p class=""greeting"">Olá <span class=""highlight"">{nome}</span>,</p>
-                        <p>Recebemos uma solicitação para redefinir sua senha. Se não foi você, pode ignorar este email com segurança.</p>
-                        <p>Para redefinir sua senha, clique no botão abaixo:</p>
+                        <p class=""greeting"">OlÃ¡ <span class=""highlight"">{nome}</span>,</p>
+                        <p>Recebemos uma solicitaÃ§Ã£o para redefinir sua senha. Se nÃ£o foi vocÃª, pode ignorar este email com seguranÃ§a.</p>
+                        <p>Para redefinir sua senha, clique no botÃ£o abaixo:</p>
                         <div class=""button-container"">
                             <a href=""{urlReset}"" class=""button"">Redefinir Senha</a>
                         </div>
                         <div class=""info-box"">
-                            <p><strong>Dicas de Segurança:</strong></p>
-                            <p>Nunca compartilhe sua senha com ninguém.</p>
-                            <p>Use senhas fortes e únicas para cada serviço.</p>
+                            <p><strong>Dicas de SeguranÃ§a:</strong></p>
+                            <p>Nunca compartilhe sua senha com ninguÃ©m.</p>
+                            <p>Use senhas fortes e Ãºnicas para cada serviÃ§o.</p>
                         </div>
-                        <p style=""color: #999; font-size: 13px; text-align: center;"">Este link expira em 1 hora por razões de segurança.</p>
+                        <p style=""color: #999; font-size: 13px; text-align: center;"">Este link expira em 1 hora por razÃµes de seguranÃ§a.</p>
                         <div class=""divider""></div>
-                        <p style=""font-size: 14px; color: #666;"">Se você não solicitou essa alteração, por favor ignore este e-mail.</p>
-                        <p style=""font-size: 14px; color: #666;"">Dúvidas? <a href=""mailto:squadhackathonio@gmail.com"" style=""color: #27ae60; text-decoration: none;"">Entre em contato conosco</a></p>
+                        <p style=""font-size: 14px; color: #666;"">Se vocÃª nÃ£o solicitou essa alteraÃ§Ã£o, por favor ignore este e-mail.</p>
+                        <p style=""font-size: 14px; color: #666;"">DÃºvidas? <a href=""mailto:squadhackathonio@gmail.com"" style=""color: #27ae60; text-decoration: none;"">Entre em contato conosco</a></p>
                     </div>
                     <div class=""footer"">
                         <p class=""footer-text""><strong>PlantaCore</strong> &copy; 2026 - Seu app de plantas inteligente</p>
-                        <p class=""footer-text"">Segurança e privacidade em primeiro lugar</p>
+                        <p class=""footer-text"">SeguranÃ§a e privacidade em primeiro lugar</p>
                     </div>
                 </div>
             </body>

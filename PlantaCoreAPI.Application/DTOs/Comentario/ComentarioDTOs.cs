@@ -12,15 +12,29 @@ public class ComentarioDTOSaida
     public bool CurtiuUsuario { get; set; }
     public DateTime DataCriacao { get; set; }
     public DateTime? DataAtualizacao { get; set; }
+    public int TotalRespostas { get; set; }
+    public Guid? ComentarioPaiId { get; set; }
 }
 
 public class CriarComentarioDTOEntrada
 {
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "PostId é obrigatório")]
     public Guid PostId { get; set; }
+
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Conteúdo é obrigatório")]
+    [System.ComponentModel.DataAnnotations.MinLength(1, ErrorMessage = "Conteúdo não pode estar vazio")]
     public string Conteudo { get; set; } = null!;
 }
 
 public class AtualizarComentarioDTOEntrada
 {
+    [System.ComponentModel.DataAnnotations.Required(ErrorMessage = "Conteúdo é obrigatório")]
+    [System.ComponentModel.DataAnnotations.MinLength(1, ErrorMessage = "Conteúdo não pode estar vazio")]
+    public string Conteudo { get; set; } = null!;
+}
+
+public class ResponderComentarioDTOEntrada
+{
+    [System.ComponentModel.DataAnnotations.Required]
     public string Conteudo { get; set; } = null!;
 }

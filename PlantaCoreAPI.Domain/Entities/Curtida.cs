@@ -3,23 +3,23 @@ namespace PlantaCoreAPI.Domain.Entities;
 public class Curtida
 {
     public Guid Id { get; private set; }
+    public Guid UsuarioId { get; private set; }
+    public Usuario Usuario { get; private set; } = null!;
     public Guid? PostId { get; private set; }
     public Post? Post { get; private set; }
     public Guid? ComentarioId { get; private set; }
     public Comentario? Comentario { get; private set; }
-    public Guid UsuarioId { get; private set; }
-    public Usuario? Usuario { get; private set; }
-    public DateTime DataCriacao { get; private set; } = DateTime.UtcNow;
+    public DateTime DataCriacao { get; private set; }
 
     private Curtida() { }
 
-    public static Curtida Criar(Guid postId, Guid usuarioId)
+    public static Curtida CriarParaPost(Guid postId, Guid usuarioId)
     {
         return new Curtida
         {
             Id = Guid.NewGuid(),
-            PostId = postId,
             UsuarioId = usuarioId,
+            PostId = postId,
             DataCriacao = DateTime.UtcNow
         };
     }
@@ -29,8 +29,8 @@ public class Curtida
         return new Curtida
         {
             Id = Guid.NewGuid(),
-            ComentarioId = comentarioId,
             UsuarioId = usuarioId,
+            ComentarioId = comentarioId,
             DataCriacao = DateTime.UtcNow
         };
     }

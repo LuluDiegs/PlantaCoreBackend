@@ -2,10 +2,10 @@ namespace PlantaCoreAPI.Application.Comuns;
 
 public class Resultado<T>
 {
-    public bool Sucesso { get; set; }
-    public T? Dados { get; set; }
-    public string? Mensagem { get; set; }
-    public IEnumerable<string>? Erros { get; set; }
+    public bool Sucesso { get; private set; }
+    public T? Dados { get; private set; }
+    public string? Mensagem { get; private set; }
+    public IEnumerable<string>? Erros { get; private set; }
 
     public static Resultado<T> Ok(T dados, string? mensagem = null)
     {
@@ -30,9 +30,9 @@ public class Resultado<T>
 
 public class Resultado
 {
-    public bool Sucesso { get; set; }
-    public string? Mensagem { get; set; }
-    public IEnumerable<string>? Erros { get; set; }
+    public bool Sucesso { get; private set; }
+    public string? Mensagem { get; private set; }
+    public IEnumerable<string>? Erros { get; private set; }
 
     public static Resultado Ok(string? mensagem = null)
     {
