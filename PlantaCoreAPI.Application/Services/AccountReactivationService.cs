@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+Ôªøusing Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PlantaCoreAPI.Application.Comuns;
 using PlantaCoreAPI.Application.Interfaces;
@@ -36,17 +36,17 @@ public class AccountReactivationService : IAccountReactivationService
         try
         {
             if (string.IsNullOrWhiteSpace(email))
-                return Resultado.Erro("Email n„o pode estar vazio");
+                return Resultado.Erro("Email n√£o pode estar vazio");
 
             email = email.ToLower().Trim();
 
             var usuario = await _repositorioUsuario.ObterPorEmailIncluindoInativosAsync(email);
 
             if (usuario == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
 
             if (usuario.Ativo)
-                return Resultado.Erro("Sua conta j· est· ativa");
+                return Resultado.Erro("Sua conta j√° est√° ativa");
 
             usuario.GerarTokenResetarSenha();
 
@@ -54,7 +54,7 @@ public class AccountReactivationService : IAccountReactivationService
             await _repositorioUsuario.SalvarMudancasAsync();
 
             var urlReativacao = $"{_urlFrontend}/reativar-conta?email={Uri.EscapeDataString(email)}&token={usuario.TokenResetarSenha}";
-            var corpoEmail = GerarEmailReativacao(usuario.Nome, urlReativacao, usuario.TokenResetarSenha);
+            var corpoEmail = GerarEmailReativacao(usuario.Nome, urlReativacao, usuario.TokenResetarSenha ?? string.Empty);
 
             var emailEnviado = await _emailService.EnviarAsync(
                 email,
@@ -62,14 +62,14 @@ public class AccountReactivationService : IAccountReactivationService
                 corpoEmail);
 
             if (!emailEnviado)
-                return Resultado.Erro("Erro ao enviar email de reativaÁ„o. Tente novamente mais tarde.");
+                return Resultado.Erro("Erro ao enviar email de reativa√ß√£o. Tente novamente mais tarde.");
 
-            return Resultado.Ok("Email de reativaÁ„o enviado com sucesso. Verifique sua caixa de entrada.");
+            return Resultado.Ok("Email de reativa√ß√£o enviado com sucesso. Verifique sua caixa de entrada.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Erro ao solicitar reativacao de conta");
-            return Resultado.Erro("Erro ao solicitar reativaÁ„o. Tente novamente.");
+            return Resultado.Erro("Erro ao solicitar reativa√ß√£o. Tente novamente.");
         }
     }
 
@@ -78,26 +78,26 @@ public class AccountReactivationService : IAccountReactivationService
         try
         {
             if (string.IsNullOrWhiteSpace(email))
-                return Resultado.Erro("Email n„o pode estar vazio");
+                return Resultado.Erro("Email n√£o pode estar vazio");
 
             if (string.IsNullOrWhiteSpace(token))
-                return Resultado.Erro("Token n„o pode estar vazio");
+                return Resultado.Erro("Token n√£o pode estar vazio");
 
             if (string.IsNullOrWhiteSpace(novaSenha))
-                return Resultado.Erro("Senha n„o pode estar vazia");
+                return Resultado.Erro("Senha n√£o pode estar vazia");
 
             email = email.ToLower().Trim();
 
             var usuario = await _repositorioUsuario.ObterPorEmailIncluindoInativosAsync(email);
 
             if (usuario == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
 
             if (string.IsNullOrWhiteSpace(usuario.TokenResetarSenha) || !TokensIguais(usuario.TokenResetarSenha, token))
-                return Resultado.Erro("Token de reativaÁ„o inv·lido");
+                return Resultado.Erro("Token de reativa√ß√£o inv√°lido");
 
             if (usuario.DataTokenResetarSenha < DateTime.UtcNow)
-                return Resultado.Erro("Token de reativaÁ„o expirou. Solicite um novo.");
+                return Resultado.Erro("Token de reativa√ß√£o expirou. Solicite um novo.");
 
             if (!PasswordValidator.ValidarComplexidade(novaSenha))
             {
@@ -116,7 +116,7 @@ public class AccountReactivationService : IAccountReactivationService
             var corpoEmail = GerarEmailReativacaoConfirmada(usuario.Nome);
             await _emailService.EnviarAsync(email, "PlantaCore - Conta Reativada com Sucesso", corpoEmail);
 
-            return Resultado.Ok("Conta reativada com sucesso! Sua senha foi atualizada. VocÍ pode fazer login agora.");
+            return Resultado.Ok("Conta reativada com sucesso! Sua senha foi atualizada. Voc√™ pode fazer login agora.");
         }
         catch (Exception ex)
         {
@@ -130,28 +130,28 @@ public class AccountReactivationService : IAccountReactivationService
         try
         {
             if (string.IsNullOrWhiteSpace(email))
-                return Resultado.Erro("Email n„o pode estar vazio");
+                return Resultado.Erro("Email n√£o pode estar vazio");
 
             if (string.IsNullOrWhiteSpace(token))
-                return Resultado.Erro("Token n„o pode estar vazio");
+                return Resultado.Erro("Token n√£o pode estar vazio");
 
             email = email.ToLower().Trim();
 
             var usuario = await _repositorioUsuario.ObterPorEmailIncluindoInativosAsync(email);
 
             if (usuario == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
 
             if (string.IsNullOrWhiteSpace(usuario.TokenResetarSenha) || !TokensIguais(usuario.TokenResetarSenha, token))
-                return Resultado.Erro("Token inv·lido");
+                return Resultado.Erro("Token inv√°lido");
 
             if (usuario.DataTokenResetarSenha < DateTime.UtcNow)
                 return Resultado.Erro("Token expirado");
 
             if (usuario.Ativo)
-                return Resultado.Erro("A conta j· est· ativa");
+                return Resultado.Erro("A conta j√° est√° ativa");
 
-            return Resultado.Ok("Token v·lido");
+            return Resultado.Ok("Token v√°lido");
         }
         catch (Exception ex)
         {
@@ -199,29 +199,29 @@ public class AccountReactivationService : IAccountReactivationService
                 <div class=""container"">
                     <div class=""header"">
                         <h1>PlantaCore</h1>
-                        <p>ReativaÁ„o de Conta</p>
+                        <p>Reativa√ß√£o de Conta</p>
                     </div>
                     <div class=""content"">
-                        <p class=""greeting"">Ol· <span class=""highlight"">{nome}</span>,</p>
-                        <p>Recebemos uma solicitaÁ„o para reativar sua conta no <span class=""highlight"">PlantaCore</span>.</p>
-                        <p>Para reativar sua conta e definir uma nova senha, clique no bot„o abaixo:</p>
+                        <p class=""greeting"">Ol√° <span class=""highlight"">{nome}</span>,</p>
+                        <p>Recebemos uma solicita√ß√£o para reativar sua conta no <span class=""highlight"">PlantaCore</span>.</p>
+                        <p>Para reativar sua conta e definir uma nova senha, clique no bot√£o abaixo:</p>
                         <div class=""button-container"">
                             <a href=""{urlReativacao}"" class=""button"">Reativar Minha Conta</a>
                         </div>
                         <div class=""info-box"">
-                            <p><strong>O que vocÍ pode fazer apÛs reativar:</strong></p>
+                            <p><strong>O que voc√™ pode fazer ap√≥s reativar:</strong></p>
                             <p>? Acessar sua conta com a nova senha</p>
                             <p>? Visualizar todas as suas plantas e posts</p>
                             <p>? Continuar sua jornada no PlantaCore</p>
                         </div>
-                        <p style=""color: #999; font-size: 13px; text-align: center;"">Este link expira em 1 hora por razıes de seguranÁa.</p>
+                        <p style=""color: #999; font-size: 13px; text-align: center;"">Este link expira em 1 hora por raz√µes de seguran√ßa.</p>
                         <div class=""divider""></div>
-                        <p class=""warning"">Se vocÍ n„o solicitou reativar sua conta, por favor ignore este e-mail.</p>
-                        <p style=""font-size: 14px; color: #666;"">D˙vidas? <a href=""mailto:squadhackathonio@gmail.com"" style=""color: #27ae60; text-decoration: none;"">Entre em contato conosco</a></p>
+                        <p class=""warning"">Se voc√™ n√£o solicitou reativar sua conta, por favor ignore este e-mail.</p>
+                        <p style=""font-size: 14px; color: #666;"">D√∫vidas? <a href=""mailto:squadhackathonio@gmail.com"" style=""color: #27ae60; text-decoration: none;"">Entre em contato conosco</a></p>
                     </div>
                     <div class=""footer"">
-                        <p class=""footer-text""><strong>PlantaCore</strong> © 2026 - Seu app de plantas inteligente</p>
-                        <p class=""footer-text"">SeguranÁa e privacidade em primeiro lugar</p>
+                        <p class=""footer-text""><strong>PlantaCore</strong> ¬© 2026 - Seu app de plantas inteligente</p>
+                        <p class=""footer-text"">Seguran√ßa e privacidade em primeiro lugar</p>
                     </div>
                 </div>
             </body>
@@ -260,20 +260,20 @@ public class AccountReactivationService : IAccountReactivationService
                         <p>Conta Reativada com Sucesso! ?</p>
                     </div>
                     <div class=""content"">
-                        <p class=""greeting"">Ol· <span class=""highlight"">{nome}</span>,</p>
+                        <p class=""greeting"">Ol√° <span class=""highlight"">{nome}</span>,</p>
                         <p>Sua conta foi <span class=""highlight"">reativada com sucesso</span>!</p>
-                        <p>Sua senha foi atualizada conforme solicitado. VocÍ pode fazer login agora com sua nova senha.</p>
+                        <p>Sua senha foi atualizada conforme solicitado. Voc√™ pode fazer login agora com sua nova senha.</p>
                         <div class=""success-box"">
-                            <p><strong>? Sua conta est· totalmente ativa!</strong></p>
+                            <p><strong>? Sua conta est√° totalmente ativa!</strong></p>
                             <p>Todos os seus dados, plantas e posts foram restaurados.</p>
                             <p>Bem-vindo de volta ao PlantaCore!</p>
                         </div>
                         <div class=""divider""></div>
-                        <p style=""font-size: 14px; color: #666;"">D˙vidas? <a href=""mailto:squadhackathonio@gmail.com"" style=""color: #27ae60; text-decoration: none;"">Entre em contato conosco</a></p>
+                        <p style=""font-size: 14px; color: #666;"">D√∫vidas? <a href=""mailto:squadhackathonio@gmail.com"" style=""color: #27ae60; text-decoration: none;"">Entre em contato conosco</a></p>
                     </div>
                     <div class=""footer"">
-                        <p class=""footer-text""><strong>PlantaCore</strong> © 2026 - Seu app de plantas inteligente</p>
-                        <p class=""footer-text"">SeguranÁa e privacidade em primeiro lugar</p>
+                        <p class=""footer-text""><strong>PlantaCore</strong> ¬© 2026 - Seu app de plantas inteligente</p>
+                        <p class=""footer-text"">Seguran√ßa e privacidade em primeiro lugar</p>
                     </div>
                 </div>
             </body>

@@ -13,7 +13,7 @@ public sealed partial class PlantService
         try
         {
             if (string.IsNullOrWhiteSpace(nomePlanta))
-                return Resultado<ResultadoBuscaPlantaDTOSaida>.Erro("Nome da planta obrigatÛrio");
+                return Resultado<ResultadoBuscaPlantaDTOSaida>.Erro("Nome da planta obrigat√≥rio");
             if (pagina < 0)
                 pagina = 0;
             var resultadoTrefle = await _servicioTrefle.BuscarPlantasAsync(nomePlanta, pagina);
@@ -56,7 +56,7 @@ public sealed partial class PlantService
         try
         {
             if (string.IsNullOrWhiteSpace(entrada.NomePlanta))
-                return Resultado<PlantaDTOSaida>.Erro("Nome da planta obrigatÛrio");
+                return Resultado<PlantaDTOSaida>.Erro("Nome da planta obrigat√≥rio");
             if (entrada.Pagina < 0)
                 entrada.Pagina = 0;
             var plantaExistente = await _repositorioPlanta.BuscarPorNomeAsync(entrada.NomePlanta);
@@ -69,7 +69,7 @@ public sealed partial class PlantService
             var descricaoGemini = await tarefaGemini;
             if ((resultadoTrefle == null || resultadoTrefle.Dados == null || resultadoTrefle.Dados.Count == 0) &&
                 string.IsNullOrWhiteSpace(descricaoGemini))
-                return Resultado<PlantaDTOSaida>.Erro("Planta n„o encontrada");
+                return Resultado<PlantaDTOSaida>.Erro("Planta n√£o encontrada");
             var plantaTrefle = resultadoTrefle?.Dados?.FirstOrDefault();
             var dadosEnriquecidos = ExtrairDadosDoGemini(descricaoGemini, entrada.NomePlanta, plantaTrefle);
             return Resultado<PlantaDTOSaida>.Ok(new PlantaDTOSaida

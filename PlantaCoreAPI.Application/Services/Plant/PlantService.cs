@@ -62,7 +62,7 @@ public sealed partial class PlantService : IPlantService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao buscar plantas do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao buscar plantas do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PaginaResultado<PlantaDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -71,7 +71,7 @@ public sealed partial class PlantService : IPlantService
     {
         var planta = await _repositorioPlanta.ObterPorIdAsync(plantaId);
         if (planta == null)
-            return Resultado<PostDTOSaida>.Erro("Planta n„o encontrada.");
+            return Resultado<PostDTOSaida>.Erro("Planta n√£o encontrada.");
         var post = Post.Criar(usuarioId, conteudo, plantaId, null);
         await _repositorioPost.AdicionarAsync(post);
         await _repositorioPost.SalvarMudancasAsync();

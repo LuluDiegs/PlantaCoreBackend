@@ -36,7 +36,7 @@ public class AccountDeletionService : IAccountDeletionService
         {
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
-                return Resultado.Erro("Usuário não encontrado");
+                return Resultado.Erro("UsuÃ¡rio nÃ£o encontrado");
 
             await DeletarFotoPerfilAsync(usuario.FotoPerfil, usuarioId);
             await DeletarFotosPlantasAsync(usuarioId);
@@ -56,7 +56,7 @@ public class AccountDeletionService : IAccountDeletionService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao excluir conta do usuário {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao excluir conta do usuÃ¡rio {UsuarioId}", usuarioId);
             return Resultado.Erro("Erro ao excluir conta. Tente novamente.");
         }
     }
@@ -71,7 +71,7 @@ public class AccountDeletionService : IAccountDeletionService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Erro ao deletar foto de perfil do usuário {UsuarioId}", usuarioId);
+            _logger.LogWarning(ex, "Erro ao deletar foto de perfil do usuÃ¡rio {UsuarioId}", usuarioId);
         }
     }
 
@@ -90,7 +90,7 @@ public class AccountDeletionService : IAccountDeletionService
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Erro ao deletar fotos de plantas do usuário {UsuarioId}", usuarioId);
+            _logger.LogWarning(ex, "Erro ao deletar fotos de plantas do usuÃ¡rio {UsuarioId}", usuarioId);
         }
     }
 }

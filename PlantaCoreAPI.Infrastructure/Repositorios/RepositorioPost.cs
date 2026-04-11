@@ -1,4 +1,4 @@
-using PlantaCoreAPI.Infrastructure.Dados;
+﻿using PlantaCoreAPI.Infrastructure.Dados;
 using Microsoft.EntityFrameworkCore;
 using PlantaCoreAPI.Domain.Comuns;
 using PlantaCoreAPI.Domain.Entities;
@@ -48,7 +48,8 @@ public class RepositorioPost : IRepositorioPost
 
     public async Task AtualizarAsync(Post entidade)
     {
-        _contexto.Posts.Update(entidade);
+        if (_contexto.Entry(entidade).State == Microsoft.EntityFrameworkCore.EntityState.Detached)
+            _contexto.Posts.Update(entidade);
         await Task.CompletedTask;
     }
 

@@ -109,7 +109,7 @@ public class BuscaTests
         Assert.True(resp.Status is 200 or 201, $"Esperado 200 ou 201, recebeu {resp.Status}");
 
         var postId = resp.ExtractId();
-        Assert.True(postId.HasValue, "A criaÁ„o do post n„o retornou um id v·lido.");
+        Assert.True(postId.HasValue, "A cria√ß√£o do post n√£o retornou um id v√°lido.");
         return postId.Value;
     }
 

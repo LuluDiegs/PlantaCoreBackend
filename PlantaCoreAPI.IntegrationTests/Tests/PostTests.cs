@@ -1,4 +1,4 @@
-using Xunit;
+Ôªøusing Xunit;
 using Xunit.Abstractions;
 using PlantaCoreAPI.IntegrationTests.Infrastructure;
 using System.Linq;
@@ -369,7 +369,7 @@ public class PostTests
         var termoHashtag = $"MetaQa{Guid.NewGuid():N}";
         var respCriacao = await _auth.Client1.PostAsync("/api/v1/Post", new
         {
-            conteudo = $"Post QA integraÁ„o autom·tico #{termoHashtag}",
+            conteudo = $"Post QA integra√ß√£o autom√°tico #{termoHashtag}",
             hashtags = new[] { termoHashtag },
             plantaId = planta.Id,
             categorias = new[] { "Categoria QA Completa" }
@@ -379,16 +379,16 @@ public class PostTests
         Assert.True(respCriacao.Status is 200 or 201, $"Esperado 200 ou 201, recebeu {respCriacao.Status}");
 
         var postId = respCriacao.ExtractId();
-        Assert.True(postId.HasValue, "A criaÁ„o do post n„o retornou id v·lido.");
+        Assert.True(postId.HasValue, "A cria√ß√£o do post n√£o retornou id v√°lido.");
 
         var resp = await _auth.Client1.GetAsync($"/api/v1/Post/{postId}");
         _out.WriteLine(resp.ToString());
 
         Assert.Equal(200, resp.Status);
 
-        var hashtags = resp.Data?["hashtags"]?.Values<string>().ToList() ?? new List<string>();
-        var categorias = resp.Data?["categorias"]?.Values<string>().ToList() ?? new List<string>();
-        var palavrasChave = resp.Data?["palavrasChave"]?.Values<string>().ToList() ?? new List<string>();
+        var hashtags = resp.Data?["hashtags"]?.Values<string>().ToList() ?? new List<string?>();
+        var categorias = resp.Data?["categorias"]?.Values<string>().ToList() ?? new List<string?>();
+        var palavrasChave = resp.Data?["palavrasChave"]?.Values<string>().ToList() ?? new List<string?>();
 
         Assert.Contains($"#{termoHashtag}", hashtags);
         Assert.Contains(planta.NomeCientifico, categorias);
@@ -397,8 +397,8 @@ public class PostTests
         Assert.DoesNotContain("Categoria QA Completa", categorias);
         Assert.Contains("Post", palavrasChave);
         Assert.Contains("QA", palavrasChave);
-        Assert.Contains("integraÁ„o", palavrasChave);
-        Assert.Contains("autom·tico", palavrasChave);
+        Assert.Contains("integra√ß√£o", palavrasChave);
+        Assert.Contains("autom√°tico", palavrasChave);
     }
 
     private async Task<(Guid Id, string NomeCientifico, string? NomeComum)> ObterPrimeiraPlantaAsync()
