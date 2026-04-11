@@ -12,13 +12,17 @@ permissions:
 jobs:
   auto-create-pr:
     runs-on: ubuntu-latest
-    name: Criar PR Automatico
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Instalar GitHub CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gh
 
       - name: Verificar PR existente
         id: check
@@ -27,7 +31,7 @@ jobs:
         run: |
           PR_NUMBER=$(gh pr list --base main --head developer --state open --json number --jq '.[0].number')
 
-          if [ -n "$PR_NUMBER" ]; then
+          if [ "$PR_NUMBER" != "null" ] && [ -n "$PR_NUMBER" ]; then
             echo "pr_exists=true" >> $GITHUB_OUTPUT
             echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
           else
@@ -42,36 +46,30 @@ jobs:
           gh pr create \
             --base main \
             --head developer \
-            --title "Merge developer ? main" \
-            --body "## Pull Request Automatico
+            --title "Merge developer → main" \
+            --body "## Pull Request Automático
 
-          **Ultimo commit:** ${{ github.event.head_commit.message }}
-          **Autor:** ${{ github.event.head_commit.author.name }}
-          **Data:** $(date)
+Ultimo commit: ${{ github.event.head_commit.message }}
+Autor: ${{ github.event.head_commit.author.name }}
+Data: $(date)
 
-          ### Checklist
+### Checklist
 
-          - [ ] Codigo revisado
-          - [ ] Migrations verificadas
-          - [ ] Testes passando
+- [ ] Codigo revisado
+- [ ] Migrations verificadas
+- [ ] Testes passando
 
-          ### Proximos Passos
+---
 
-          1. Revisar mudancas
-          2. Aprovar PR
-          3. Fazer merge
-          4. Aprovar migrations em PROD (se houver)
-
-          ---
-          *PR criado automaticamente pelo workflow auto-pr.yml*"
+PR criado automaticamente pelo workflow."
 
       - name: Atualizar PR existente
         if: steps.check.outputs.pr_exists == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh pr comment ${{ steps.check.outputs.pr_number }} --body "**Nova atualizacao**
+          gh pr comment ${{ steps.check.outputs.pr_number }} --body "**Nova atualização detectada**
 
-          **Commit:** ${{ github.event.head_commit.message }}
-          **Autor:** ${{ github.event.head_commit.author.name }}
-          **Data:** $(date)"
+Commit: ${{ github.event.head_commit.message }}
+Autor: ${{ github.event.head_commit.author.name }}
+Data: $(date)"
