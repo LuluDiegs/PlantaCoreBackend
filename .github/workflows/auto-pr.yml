@@ -1,0 +1,77 @@
+name: Auto PR para Main
+
+on:
+  push:
+    branches:
+      - developer
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-create-pr:
+    runs-on: ubuntu-latest
+    name: Criar PR Automatico
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verificar PR existente
+        id: check
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR_NUMBER=$(gh pr list --base main --head developer --state open --json number --jq '.[0].number')
+
+          if [ -n "$PR_NUMBER" ]; then
+            echo "pr_exists=true" >> $GITHUB_OUTPUT
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          else
+            echo "pr_exists=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Criar novo PR
+        if: steps.check.outputs.pr_exists == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr create \
+            --base main \
+            --head developer \
+            --title "Merge developer ? main" \
+            --body "## Pull Request Automatico
+
+          **Ultimo commit:** ${{ github.event.head_commit.message }}
+          **Autor:** ${{ github.event.head_commit.author.name }}
+          **Data:** $(date)
+
+          ### Checklist
+
+          - [ ] Codigo revisado
+          - [ ] Migrations verificadas
+          - [ ] Testes passando
+
+          ### Proximos Passos
+
+          1. Revisar mudancas
+          2. Aprovar PR
+          3. Fazer merge
+          4. Aprovar migrations em PROD (se houver)
+
+          ---
+          *PR criado automaticamente pelo workflow auto-pr.yml*"
+
+      - name: Atualizar PR existente
+        if: steps.check.outputs.pr_exists == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment ${{ steps.check.outputs.pr_number }} --body "**Nova atualizacao**
+
+          **Commit:** ${{ github.event.head_commit.message }}
+          **Autor:** ${{ github.event.head_commit.author.name }}
+          **Data:** $(date)"
