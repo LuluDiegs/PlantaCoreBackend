@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace PlantaCoreAPI.Domain.Entities;
 
 public class Usuario
@@ -8,7 +10,7 @@ public class Usuario
     public string SenhaHash { get; private set; } = null!;
     public string? Biografia { get; private set; }
     public string? FotoPerfil { get; private set; }
-    
+    public bool PerfilPrivado { get; private set; }
     public bool EmailConfirmado { get; private set; }
     public string? TokenConfirmacaoEmail { get; private set; }
     public string? TokenResetarSenha { get; private set; }
@@ -16,28 +18,26 @@ public class Usuario
     public DateTime DataCriacao { get; private set; }
     public DateTime? DataExclusao { get; private set; }
     public bool Ativo { get; private set; } = true;
-
     public List<Usuario> Seguindo { get; private set; } = new();
     public List<Usuario> Seguidores { get; private set; } = new();
+    public List<SolicitacaoSeguir> SolicitacoesSeguirRecebidas { get; private set; } = new();
+    public List<SolicitacaoSeguir> SolicitacoesSeguirEnviadas { get; private set; } = new();
     public List<Planta> Plantas { get; private set; } = new();
     public List<Post> Posts { get; private set; } = new();
     public List<Notificacao> Notificacoes { get; private set; } = new();
-
+    public List<MembroComunidade> ComunidadesParticipantes { get; private set; } = new();
+    public List<Evento> EventosCriados { get; private set; } = new();
+    public List<EventoParticipante> EventosParticipando { get; private set; } = new();
     private Usuario() { }
-
     public static Usuario Criar(string nome, string email, string senhaHash)
     {
         if (string.IsNullOrWhiteSpace(nome))
-            throw new Exceptions.DomainException("Nome n„o pode estar vazio");
-        
+            throw new Exceptions.DomainException("Nome n√£o pode estar vazio");
         if (string.IsNullOrWhiteSpace(email))
-            throw new Exceptions.DomainException("Email n„o pode estar vazio");
-        
+            throw new Exceptions.DomainException("Email n√£o pode estar vazio");
         if (string.IsNullOrWhiteSpace(senhaHash))
-            throw new Exceptions.DomainException("Senha n„o pode estar vazia");
-
+            throw new Exceptions.DomainException("Senha n√£o pode estar vazia");
         ValidarEmail(email);
-
         var usuario = new Usuario
         {
             Id = Guid.NewGuid(),
@@ -46,28 +46,26 @@ public class Usuario
             SenhaHash = senhaHash,
             DataCriacao = DateTime.UtcNow,
             EmailConfirmado = false,
-            TokenConfirmacaoEmail = Guid.NewGuid().ToString()
+            TokenConfirmacaoEmail = Guid.NewGuid().ToString(),
+            PerfilPrivado = false
         };
-
         return usuario;
     }
 
+    private static readonly Regex EmailRegex = new(
+        @"^[^@\s]+@[^@\s]+\.[^@\s]+$",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
     private static void ValidarEmail(string email)
     {
-        if (!email.Contains("@") || !email.Contains("."))
-            throw new Exceptions.DomainException("Formato de email inv·lido");
+        if (!EmailRegex.IsMatch(email))
+            throw new Exceptions.DomainException("Formato de email inv√°lido");
     }
 
     public bool VerificarSenha(string senha, Func<string, string, bool> verificador)
     {
-        try
-        {
-            return verificador(senha, SenhaHash);
-        }
-        catch
-        {
-            return false;
-        }
+        try { return verificador(senha, SenhaHash); }
+        catch { return false; }
     }
 
     public void ConfirmarEmail()
@@ -89,9 +87,8 @@ public class Usuario
 
     public void ResetarSenha(string novaSenhaHash)
     {
-        if (DataTokenResetarSenha < DateTime.UtcNow)
-            throw new Exceptions.DomainException("Token de reset expirou");
-
+        if (DataTokenResetarSenha is null || DataTokenResetarSenha < DateTime.UtcNow)
+            throw new Exceptions.DomainException("Token de reset expirou ou √© inv√°lido");
         SenhaHash = novaSenhaHash;
         TokenResetarSenha = null;
         DataTokenResetarSenha = null;
@@ -106,11 +103,10 @@ public class Usuario
     {
         if (!string.IsNullOrWhiteSpace(nome))
             Nome = nome.Trim();
-
         if (biografia != null)
         {
             if (biografia.Length > 500)
-                throw new Exceptions.DomainException("Biografia n„o pode ter mais de 500 caracteres");
+                throw new Exceptions.DomainException("Biografia n√£o pode ter mais de 500 caracteres");
             Biografia = biografia;
         }
 
@@ -121,14 +117,18 @@ public class Usuario
     public void AtualizarNome(string novoNome)
     {
         if (string.IsNullOrWhiteSpace(novoNome))
-            throw new Exceptions.DomainException("Nome n„o pode estar vazio");
-        
+            throw new Exceptions.DomainException("Nome n√£o pode estar vazio");
         Nome = novoNome.Trim();
     }
 
     public void AtualizarFotoPerfil(string? urlFoto)
     {
         FotoPerfil = urlFoto;
+    }
+
+    public void AlterarPrivacidadePerfil(bool privado)
+    {
+        PerfilPrivado = privado;
     }
 
     public void Excluir()
@@ -146,8 +146,7 @@ public class Usuario
     public void Seguir(Usuario usuario)
     {
         if (usuario.Id == Id)
-            throw new Exceptions.DomainException("VocÍ n„o pode seguir a si mesmo");
-
+            throw new Exceptions.DomainException("Voc√™ n√£o pode seguir a si mesmo");
         if (!Seguindo.Contains(usuario))
             Seguindo.Add(usuario);
     }

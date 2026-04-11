@@ -1,5 +1,4 @@
 using PlantaCoreAPI.Application.Interfaces;
-using BCrypt.Net;
 
 namespace PlantaCoreAPI.Infrastructure.Services;
 

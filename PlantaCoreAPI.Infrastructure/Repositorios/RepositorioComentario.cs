@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+
 using PlantaCoreAPI.Domain.Entities;
 using PlantaCoreAPI.Domain.Interfaces;
 using PlantaCoreAPI.Infrastructure.Dados;
@@ -8,7 +9,6 @@ namespace PlantaCoreAPI.Infrastructure.Repositorios;
 public class RepositorioComentario : IRepositorioComentario
 {
     private readonly PlantaCoreDbContext _contexto;
-
     public RepositorioComentario(PlantaCoreDbContext contexto)
     {
         _contexto = contexto;

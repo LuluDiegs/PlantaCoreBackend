@@ -4,14 +4,14 @@ public class PlantaDTOSaida
 {
     public Guid Id { get; set; }
     public string NomeCientifico { get; set; } = null!;
-    public string? NomeComum { get; set; }
+    public string? NomeComum { get; set; } 
     public string? Familia { get; set; }
     public string? Genero { get; set; }
-    public string? Toxica { get; set; }
+    public bool Toxica { get; set; }
     public string? DescricaoToxicidade { get; set; }
-    public string? ToxicaAnimais { get; set; }
+    public bool ToxicaAnimais { get; set; }
     public string? DescricaoToxicidadeAnimais { get; set; }
-    public string? ToxicaCriancas { get; set; }
+    public bool ToxicaCriancas { get; set; }
     public string? DescricaoToxicidadeCriancas { get; set; }
     public string? RequisitosLuz { get; set; }
     public string? RequisitosAgua { get; set; }

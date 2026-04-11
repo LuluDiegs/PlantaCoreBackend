@@ -1,0 +1,127 @@
+# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
+# More GitHub Actions for Azure: https://github.com/Azure/actions
+
+name: Build and deploy ASP.Net Core app to Azure Web App - plantaCoreBack
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-latest
+    permissions:
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Build with dotnet
+        run: dotnet build --configuration Release
+
+      - name: dotnet publish
+        run: dotnet publish -c Release -o "${{env.DOTNET_ROOT}}/myapp"
+
+      - name: Upload artifact for deployment job
+        uses: actions/upload-artifact@v4
+        with:
+          name: .net-app
+          path: ${{env.DOTNET_ROOT}}/myapp
+
+  deploy:
+    runs-on: windows-latest
+    needs: build
+    permissions:
+      id-token: write #This is required for requesting the JWT
+      contents: read #This is required for actions/checkout
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: .net-app
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_8E8D994C70864D7BB3816078FC6933C2 }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_F42577F5742C418AA6FB81084DC41AE3 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_6C1BCE7CE75C4029820A360F4B71DE5A }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: 'plantaCoreBack'
+          slot-name: 'Production'
+          package: .
+
+  apply-migrations-prod:
+    runs-on: windows-latest
+    needs: deploy
+    name: Apply Migrations to PROD Database
+    environment:
+      name: production
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup .NET Core
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+
+      - name: Install EF Core Tools
+        run: dotnet tool install --global dotnet-ef
+
+      - name: Restore dependencies
+        run: dotnet restore
+
+      - name: Backup notification
+        run: |
+          Write-Host "IMPORTANTE: Certifique-se de que o backup do banco PROD foi realizado!"
+          Write-Host "Este pipeline aguardara aprovacao manual antes de aplicar migrations."
+
+      - name: Apply migrations to PROD
+        env:
+          PROD_CONNECTION_STRING: ${{ secrets.PROD_DB_CONNECTION }}
+        run: |
+          Write-Host "Iniciando aplicacao de migrations em PRODUCAO..."
+
+          if ([string]::IsNullOrEmpty($env:PROD_CONNECTION_STRING)) {
+            Write-Error "ERRO CRITICO: PROD_DB_CONNECTION nao configurado nos secrets!"
+            exit 1
+          }
+
+          Write-Host "Banco de destino: Supabase Production"
+          Write-Host "Data/Hora: $(Get-Date)"
+
+          # Aplica migrations de forma idempotente
+          dotnet ef database update `
+            --project PlantaCoreAPI.Infrastructure `
+            --startup-project PlantaCoreAPI.API `
+            --connection "$env:PROD_CONNECTION_STRING" `
+            --verbose
+
+          Write-Host "Migrations aplicadas com sucesso em PRODUCAO!"
+
+      - name: Verify PROD database state
+        env:
+          PROD_CONNECTION_STRING: ${{ secrets.PROD_DB_CONNECTION }}
+        run: |
+          Write-Host "Verificando estado do banco de producao..."
+
+          dotnet ef migrations list `
+            --project PlantaCoreAPI.Infrastructure `
+            --startup-project PlantaCoreAPI.API `
+            --connection "$env:PROD_CONNECTION_STRING"
+
+          Write-Host "Banco PROD sincronizado e validado"

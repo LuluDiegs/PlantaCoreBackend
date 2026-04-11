@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlantaCoreAPI.Application.Interfaces;
+using PlantaCoreAPI.API.Utils;
 using System.Security.Claims;
 
 namespace PlantaCoreAPI.API.Controllers;
@@ -9,6 +10,7 @@ namespace PlantaCoreAPI.API.Controllers;
 [Route("api/v1/[controller]")]
 [Authorize]
 [Produces("application/json")]
+[Tags("Notificacao")]
 public class NotificacaoController : ControllerBase
 {
     private readonly INotificationService _servicioNotificacao;
@@ -22,14 +24,16 @@ public class NotificacaoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
-    public async Task<IActionResult> ObterNotificacoes()
+    public async Task<IActionResult> ObterNotificacoes([FromQuery] int pagina = 1, [FromQuery] int tamanho = 10)
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _servicioNotificacao.ObterNotificacoesAsync(usuarioId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        var resultado = await _servicioNotificacao.ObterNotificacoesPaginadasAsync(usuarioId, pagina, tamanho);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpGet("nao-lidas")]
@@ -43,7 +47,9 @@ public class NotificacaoController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioNotificacao.ObterNaoLidasAsync(usuarioId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpPut("{notificacaoId:guid}/marcar-como-lida")]
@@ -52,8 +58,14 @@ public class NotificacaoController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> MarcarComoLida(Guid notificacaoId)
     {
-        var resultado = await _servicioNotificacao.MarcarComoLidaAsync(notificacaoId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+
+        var resultado = await _servicioNotificacao.MarcarComoLidaAsync(notificacaoId, usuarioId);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpPut("marcar-todas-como-lidas")]
@@ -67,7 +79,9 @@ public class NotificacaoController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioNotificacao.MarcarTodasComoLidasAsync(usuarioId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpDelete("{notificacaoId:guid}")]
@@ -81,7 +95,9 @@ public class NotificacaoController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioNotificacao.DeletarNotificacaoAsync(notificacaoId, usuarioId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpDelete]
@@ -95,6 +111,36 @@ public class NotificacaoController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioNotificacao.DeletarTodasNotificacoesAsync(usuarioId);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
+    }
+
+    [HttpGet("configuracoes")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ObterConfiguracoes()
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+        var resultado = await _servicioNotificacao.ObterConfiguracoesAsync(usuarioId);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
+    }
+
+    [HttpPut("configuracoes")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> AtualizarConfiguracoes([FromBody] PlantaCoreAPI.Application.DTOs.Notificacao.ConfiguracoesNotificacaoDTOEntrada entrada)
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+        var resultado = await _servicioNotificacao.AtualizarConfiguracoesAsync(usuarioId, entrada);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 }

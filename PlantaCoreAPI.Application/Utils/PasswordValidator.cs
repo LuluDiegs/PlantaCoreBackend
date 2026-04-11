@@ -4,44 +4,37 @@ namespace PlantaCoreAPI.Application.Utils;
 
 public static class PasswordValidator
 {
+    private static readonly Regex RegexMinuscula = new("[a-z]", RegexOptions.Compiled);
+    private static readonly Regex RegexMaiuscula = new("[A-Z]", RegexOptions.Compiled);
+    private static readonly Regex RegexNumero = new("[0-9]", RegexOptions.Compiled);
+    private static readonly Regex RegexEspecial = new("[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]", RegexOptions.Compiled);
     public static bool ValidarComplexidade(string senha)
     {
         if (string.IsNullOrWhiteSpace(senha) || senha.Length < 8)
             return false;
-
-        bool temMinuscula = Regex.IsMatch(senha, "[a-z]");
-        bool temMaiuscula = Regex.IsMatch(senha, "[A-Z]");
-        bool temNumero = Regex.IsMatch(senha, "[0-9]");
-        bool temCaractereEspecial = Regex.IsMatch(senha, "[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]");
-
-        return temMinuscula && temMaiuscula && temNumero && temCaractereEspecial;
+        return RegexMinuscula.IsMatch(senha)
+            && RegexMaiuscula.IsMatch(senha)
+            && RegexNumero.IsMatch(senha)
+            && RegexEspecial.IsMatch(senha);
     }
 
     public static string ObterMensagemErro(string senha)
     {
         var erros = new List<string>();
-
         if (string.IsNullOrWhiteSpace(senha))
-            return "Senha n„o pode estar vazia";
-
+            return "Senha n√£o pode estar vazia";
         if (senha.Length < 8)
-            erros.Add("no mÌnimo 8 caracteres");
-
-        if (!Regex.IsMatch(senha, "[a-z]"))
-            erros.Add("letra min˙scula");
-
-        if (!Regex.IsMatch(senha, "[A-Z]"))
-            erros.Add("letra mai˙scula");
-
-        if (!Regex.IsMatch(senha, "[0-9]"))
-            erros.Add("n˙mero");
-
-        if (!Regex.IsMatch(senha, "[!@#$%^&*()_+\\-=\\[\\]{};':\"\\\\|,.<>\\/?]"))
+            erros.Add("no m√≠nimo 8 caracteres");
+        if (!RegexMinuscula.IsMatch(senha))
+            erros.Add("letra min√∫scula");
+        if (!RegexMaiuscula.IsMatch(senha))
+            erros.Add("letra mai√∫scula");
+        if (!RegexNumero.IsMatch(senha))
+            erros.Add("n√∫mero");
+        if (!RegexEspecial.IsMatch(senha))
             erros.Add("caractere especial");
-
         if (erros.Count == 0)
             return string.Empty;
-
         return $"Senha deve conter: {string.Join(", ", erros)}";
     }
 }

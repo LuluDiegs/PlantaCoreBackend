@@ -1,5 +1,7 @@
+using PlantaCoreAPI.Domain.Entities;
+
 namespace PlantaCoreAPI.Domain.Interfaces;
 
-public interface IRepositorioComentario : IRepositorio<Entities.Comentario>
+public interface IRepositorioComentario : IRepositorio<Comentario>
 {
 }

@@ -1,0 +1,201 @@
+name: PR - Migration Validation
+
+on:
+  pull_request:
+    branches: [main, master, prod, production]
+    types: [opened, synchronize, reopened]
+
+env:
+  DOTNET_VERSION: '8.0.x'
+  STARTUP_PROJECT: 'PlantaCoreAPI.API'
+  MIGRATIONS_PROJECT: 'PlantaCoreAPI.Infrastructure'
+
+jobs:
+  validate-pr:
+    runs-on: ubuntu-latest
+    name: Validate Pull Request
+
+    steps:
+    - name: Checkout PR code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: ${{ env.DOTNET_VERSION }}
+
+    - name: Install EF Core Tools
+      run: dotnet tool install --global dotnet-ef
+
+    - name: Restore dependencies
+      run: dotnet restore
+
+    - name: Build solution
+      run: dotnet build --configuration Release --no-restore
+
+    - name: Run tests
+      run: dotnet test --no-build --configuration Release --verbosity normal
+
+    - name: Check for new migrations
+      id: check_migrations
+      run: |
+        echo "?? Verificando se há novas migrations neste PR..."
+
+        # Compara migrations entre base e head
+        git fetch origin ${{ github.base_ref }}
+
+        NEW_MIGRATIONS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "Migrations/" || echo "")
+
+        if [ -n "$NEW_MIGRATIONS" ]; then
+          echo "? Novas migrations detectadas:"
+          echo "$NEW_MIGRATIONS"
+          echo "has_migrations=true" >> $GITHUB_OUTPUT
+        else
+          echo "?? Nenhuma migration nova neste PR"
+          echo "has_migrations=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Validate migration naming
+      if: steps.check_migrations.outputs.has_migrations == 'true'
+      run: |
+        echo "?? Validando nomenclatura das migrations..."
+
+        MIGRATIONS=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep "Migrations/.*\.cs$" || echo "")
+
+        for migration in $MIGRATIONS; do
+          filename=$(basename "$migration")
+
+          # Valida formato: YYYYMMDDHHMMSS_NomeDescritivo.cs
+          if [[ ! "$filename" =~ ^[0-9]{14}_[A-Za-z0-9]+\.cs$ ]]; then
+            echo "?? Migration com nome inválido: $filename"
+            echo "Formato esperado: YYYYMMDDHHMMSS_NomeDescritivo.cs"
+          else
+            echo "? $filename - OK"
+          fi
+        done
+
+    - name: Generate migration SQL preview
+      if: steps.check_migrations.outputs.has_migrations == 'true'
+      run: |
+        echo "?? Gerando preview SQL das migrations..."
+
+        dotnet ef migrations script \
+          --project ${{ env.MIGRATIONS_PROJECT }} \
+          --startup-project ${{ env.STARTUP_PROJECT }} \
+          --idempotent \
+          --output pr-migrations-preview.sql
+
+        echo "????????????????????????????????????"
+        echo "?? PREVIEW DAS MIGRATIONS"
+        echo "????????????????????????????????????"
+        cat pr-migrations-preview.sql
+        echo "????????????????????????????????????"
+
+    - name: Check for breaking changes
+      if: steps.check_migrations.outputs.has_migrations == 'true'
+      run: |
+        echo "?? Analisando possíveis breaking changes..."
+
+        BREAKING_PATTERNS=(
+          "DROP TABLE"
+          "DROP COLUMN"
+          "ALTER COLUMN.*NOT NULL"
+          "DROP CONSTRAINT"
+          "DROP INDEX"
+        )
+
+        FOUND_BREAKING=false
+
+        for pattern in "${BREAKING_PATTERNS[@]}"; do
+          if grep -iqE "$pattern" pr-migrations-preview.sql 2>/dev/null; then
+            echo "?? Possível breaking change detectado: $pattern"
+            FOUND_BREAKING=true
+          fi
+        done
+
+        if [ "$FOUND_BREAKING" = true ]; then
+          echo ""
+          echo "????????????????????????????????????"
+          echo "?? ATENÇÃO: Breaking changes detectados"
+          echo "????????????????????????????????????"
+          echo "Por favor, revise cuidadosamente as migrations."
+          echo "Considere estratégias de migração compatíveis:"
+          echo "  • Adicionar colunas como nullable primeiro"
+          echo "  • Migrar dados antes de remover colunas"
+          echo "  • Usar migrations de dados separadas"
+        else
+          echo "? Nenhum breaking change óbvio detectado"
+        fi
+
+    - name: Upload migration preview
+      if: steps.check_migrations.outputs.has_migrations == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: pr-migration-preview
+        path: pr-migrations-preview.sql
+
+    - name: Comment PR with migration info
+      if: steps.check_migrations.outputs.has_migrations == 'true'
+      uses: actions/github-script@v7
+      with:
+        github-token: ${{secrets.GITHUB_TOKEN}}
+        script: |
+          const fs = require('fs');
+          const sqlContent = fs.readFileSync('pr-migrations-preview.sql', 'utf8');
+
+          const body = `## ?? Migrations Detectadas
+
+          Este PR contém novas migrations do Entity Framework Core.
+
+          ### ? Validações
+          - [x] Build passou
+          - [x] Testes passaram
+          - [x] Migrations foram validadas
+
+          ### ?? Preview SQL
+          <details>
+          <summary>Clique para ver o script SQL</summary>
+
+          \`\`\`sql
+          ${sqlContent.substring(0, 10000)}${sqlContent.length > 10000 ? '\n\n... (truncado)' : ''}
+          \`\`\`
+
+          </details>
+
+          ### ?? Importante
+          - As migrations serão aplicadas automaticamente em **DEV** após merge para \`developer\`
+          - As migrations serão aplicadas em **PROD** após merge para \`main\` (requer aprovação manual)
+          - Certifique-se de testar em DEV antes de aprovar para PROD
+
+          ### ?? Próximos Passos
+          1. Revisar o SQL gerado
+          2. Fazer merge para \`developer\` para testar em DEV
+          3. Após validação em DEV, abrir PR para \`main\`
+          4. Aguardar aprovação e aplicação automática em PROD
+          `;
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: body
+          });
+
+    - name: PR validation summary
+      run: |
+        echo "????????????????????????????????????"
+        echo "?? RESUMO DA VALIDAÇÃO DO PR"
+        echo "????????????????????????????????????"
+        echo "? Build: OK"
+        echo "? Tests: OK"
+
+        if [ "${{ steps.check_migrations.outputs.has_migrations }}" = "true" ]; then
+          echo "? Migrations: Validadas"
+        else
+          echo "?? Migrations: Nenhuma alteração"
+        fi
+
+        echo "????????????????????????????????????"
+        echo "? PR pronto para revisão!"

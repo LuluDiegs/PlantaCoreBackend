@@ -17,9 +17,3 @@ public class VerificarTokenReativacaoDTOEntrada
     public string Email { get; set; } = null!;
     public string Token { get; set; } = null!;
 }
-
-public class ResetarSenhaSemTokenDTOEntrada
-{
-    public string Email { get; set; } = null!;
-    public string NovaSenha { get; set; } = null!;
-}

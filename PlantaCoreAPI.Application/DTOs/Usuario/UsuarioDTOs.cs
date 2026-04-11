@@ -7,6 +7,7 @@ public class UsuarioDTOSaida
     public string Email { get; set; } = null!;
     public string? Biografia { get; set; }
     public string? FotoPerfil { get; set; }
+    public bool PerfilPrivado { get; set; }
     public int TotalSeguidores { get; set; }
     public int TotalSeguindo { get; set; }
     public int TotalPlantas { get; set; }
@@ -32,14 +33,36 @@ public class AtualizarBiografiaDTOEntrada
     public string Biografia { get; set; } = null!;
 }
 
+public class AlterarPrivacidadePerfilDTOEntrada
+{
+    public bool Privado { get; set; }
+}
+
 public class PerfilPublicoDTOSaida
 {
     public Guid Id { get; set; }
     public string Nome { get; set; } = null!;
     public string? Biografia { get; set; }
     public string? FotoPerfil { get; set; }
+    public bool PerfilPrivado { get; set; }
     public int TotalSeguidores { get; set; }
     public int TotalSeguindo { get; set; }
     public int TotalPlantas { get; set; }
+    public int TotalPosts { get; set; }
     public bool UserSegueEste { get; set; }
+    public bool SolicitacaoPendente { get; set; }
+}
+
+public class RelacaoUsuarioDTOSaida
+{
+    public bool Seguindo { get; set; }
+    public bool SegueVoce { get; set; }
+    public bool SolicitacaoPendente { get; set; }
+}
+
+public class UsuarioListaDTOSaida
+{
+    public Guid Id { get; set; }
+    public string Nome { get; set; } = null!;
+    public bool Seguindo { get; set; }
 }

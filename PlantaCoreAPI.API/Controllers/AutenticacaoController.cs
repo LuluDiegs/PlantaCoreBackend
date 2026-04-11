@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlantaCoreAPI.Application.DTOs.Auth;
 using PlantaCoreAPI.Application.Interfaces;
+using PlantaCoreAPI.API.Utils;
+using PlantaCoreAPI.Application.Comuns.RateLimit;
 using System.Security.Claims;
 
 namespace PlantaCoreAPI.API.Controllers;
@@ -12,10 +14,12 @@ namespace PlantaCoreAPI.API.Controllers;
 public class AutenticacaoController : ControllerBase
 {
     private readonly IAuthenticationService _servicioAutenticacao;
+    private readonly IRateLimitService _rateLimitService;
 
-    public AutenticacaoController(IAuthenticationService servicioAutenticacao)
+    public AutenticacaoController(IAuthenticationService servicioAutenticacao, IRateLimitService rateLimitService)
     {
         _servicioAutenticacao = servicioAutenticacao;
+        _rateLimitService = rateLimitService;
     }
 
     [HttpPost("registrar")]
@@ -24,16 +28,25 @@ public class AutenticacaoController : ControllerBase
     public async Task<IActionResult> Registrar([FromBody] RegistroDTOEntrada entrada)
     {
         var resultado = await _servicioAutenticacao.RegistrarAsync(entrada);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpPost("login")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> Login([FromBody] LoginDTOEntrada entrada)
     {
+        var rateKey = $"login:{entrada.Email?.ToLower().Trim()}";
+        if (_rateLimitService.IsLimited(rateKey, 10, TimeSpan.FromMinutes(15)))
+            return StatusCode(429, new { sucesso = false, mensagem = "Muitas tentativas de login. Aguarde 15 minutos." });
+
         var resultado = await _servicioAutenticacao.LoginAsync(entrada);
-        return resultado.Sucesso ? Ok(resultado) : Unauthorized(resultado);
+        if (!resultado.Sucesso)
+            return Unauthorized(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpPost("refresh-token")]
@@ -42,7 +55,9 @@ public class AutenticacaoController : ControllerBase
     public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenDTOEntrada entrada)
     {
         var resultado = await _servicioAutenticacao.RefreshTokenAsync(entrada.TokenRefresh);
-        return resultado.Sucesso ? Ok(resultado) : Unauthorized(resultado);
+        if (!resultado.Sucesso)
+            return Unauthorized(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
     [HttpPost("logout")]
@@ -56,7 +71,9 @@ public class AutenticacaoController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioAutenticacao.LogoutAsync(usuarioId);
-        return Ok(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpPost("confirmar-email")]
@@ -65,15 +82,24 @@ public class AutenticacaoController : ControllerBase
     public async Task<IActionResult> ConfirmarEmail([FromBody] ConfirmarEmailDTOEntrada entrada)
     {
         var resultado = await _servicioAutenticacao.ConfirmarEmailAsync(entrada);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpPost("resetar-senha")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     public async Task<IActionResult> ResetarSenha([FromBody] ResetarSenhaDTOEntrada entrada)
     {
+        var rateKey = $"reset:{entrada.Email?.ToLower().Trim()}";
+        if (_rateLimitService.IsLimited(rateKey, 3, TimeSpan.FromHours(1)))
+            return StatusCode(429, new { sucesso = false, mensagem = "Muitas tentativas de reset. Aguarde 1 hora." });
+
         var resultado = await _servicioAutenticacao.ResetarSenhaAsync(entrada);
-        return Ok(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpPost("nova-senha")]
@@ -82,7 +108,9 @@ public class AutenticacaoController : ControllerBase
     public async Task<IActionResult> NovaSenha([FromBody] NovaSenhaDTOEntrada entrada)
     {
         var resultado = await _servicioAutenticacao.NovaSenhaAsync(entrada);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpPost("trocar-senha")]
@@ -97,7 +125,9 @@ public class AutenticacaoController : ControllerBase
             return Unauthorized();
 
         var resultado = await _servicioAutenticacao.TrocarSenhaAsync(usuarioId, entrada);
-        return resultado.Sucesso ? Ok(resultado) : BadRequest(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
     [HttpPost("reenviar-confirmacao")]
@@ -105,6 +135,8 @@ public class AutenticacaoController : ControllerBase
     public async Task<IActionResult> ReenviarConfirmacaoEmail([FromBody] ResetarSenhaDTOEntrada entrada)
     {
         var resultado = await _servicioAutenticacao.ReenviarConfirmacaoEmailAsync(entrada.Email);
-        return Ok(resultado);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 }
