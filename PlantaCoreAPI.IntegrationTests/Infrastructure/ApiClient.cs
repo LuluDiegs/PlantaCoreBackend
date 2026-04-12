@@ -117,4 +117,20 @@ public class ApiClient
         if (Guid.TryParse(userId, out var uid)) UserId = uid;
         return true;
     }
+
+    public Task<ApiResponse> PostMultipartAsync(string url, MultipartFormDataContent form)
+    {
+        return ExecuteWithRetryAsync(() =>
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = form
+            };
+
+            request.Headers.Accept.Clear();
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+
+            return _http.SendAsync(request);
+        });
+    }
 }
