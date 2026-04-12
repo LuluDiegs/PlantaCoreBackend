@@ -63,12 +63,20 @@ public class GeminiService : IGeminiService
         if (dados.ToxicoPets.HasValue && dados.ToxicoPets.Value)
             dados.Descricao += " Atenção: Esta planta é tóxica para animais de estimação.";
 
-        return await EnviarPromptAsync(ConstruirPromptPrincipal(dados));
+        string prompt = ConstruirPromptPrincipal(dados);
+        return await EnviarPromptAsync(prompt);
     }
 
     public async Task<string?> GerarReflexaoPlantaAsync(DadosPlantaParaIA dados, string respostaPrincipal)
     {
-        return await EnviarPromptAsync(ConstruirPromptReflexao(dados, respostaPrincipal));
+        string prompt = ConstruirPromptReflexao(dados, respostaPrincipal);
+        return await EnviarPromptAsync(prompt);
+    }
+
+    public async Task<string?> GerarRecomendacaoPlantaAsync(DadosRecomendacaoPlantaParaIA dados)
+    {
+        string prompt = ConstruirPromptRecomendacao(dados);
+        return await EnviarPromptAsync(prompt);
     }
 
     private async Task<(bool sucesso, string? texto, HttpStatusCode statusCode)>
@@ -110,11 +118,12 @@ public class GeminiService : IGeminiService
     private async Task<string?> EnviarPromptAsync(string prompt)
     {
         int tentativas = _tokens.Count;
+
         for (int i = 0; i < tentativas; i++)
         {
             var token = GetCurrentToken();
             var (sucesso, texto, statusCode) = await ExecutarPromptGeminiAsync(token, prompt);
-            if (sucesso) return texto;
+
             if (statusCode is HttpStatusCode.TooManyRequests)
             {
                 _logger.LogWarning("[Gemini] Token ...{Sufixo} com limite atingido (429). Alternando.",
@@ -131,8 +140,13 @@ public class GeminiService : IGeminiService
                 continue;
             }
 
-            _logger.LogWarning("[Gemini] Erro inesperado {Status}. Abortando.", (int)statusCode);
-            break;
+            if (!sucesso)
+            {
+                _logger.LogWarning("[Gemini] Erro inesperado {Status}. Abortando.", (int)statusCode);
+                continue;
+            }
+
+            return texto;
         }
 
         _logger.LogError("[Gemini] Todos os {Count} tokens falharam ou estão exauridos.", _tokens.Count);
@@ -197,6 +211,51 @@ public class GeminiService : IGeminiService
             Temperatura ideal: [VALIDADO]
             Observações: [VALIDADO]
             Guia de cuidado completo: [VALIDADO]";
+    }
+
+    private string ConstruirPromptRecomendacao(DadosRecomendacaoPlantaParaIA dados)
+    {
+        return $@"Você é um especialista em botânica e jardinagem doméstica.
+            Sua tarefa é recomendar EXATAMENTE 1 planta ideal com base no perfil do usuário.
+
+            DADOS DO USUÁRIO:
+            Experiência: {dados.Experiencia}
+            Iluminação do ambiente: {dados.Iluminacao}
+            Comportamento de rega: {dados.Regagem}
+            Restrição de segurança: {dados.Seguranca}
+            Propósito da planta: {dados.Proposito}
+
+            REGRAS:
+            1. A planta deve ser REAL e comum no Brasil.
+            2. A recomendação deve ser compatível com TODOS os critérios do usuário.
+            3. Se houver restrição de segurança, NUNCA sugerir plantas tóxicas.
+            4. A planta deve ser fácil de encontrar em floriculturas ou lojas comuns.
+            5. Evite respostas genéricas — escolha a melhor opção possível.
+            6. NUNCA sugerir plantas ilegais no Brasil, incluindo espécies proibidas, controladas ou associadas a substâncias ilícitas.
+            7. Caso uma planta adequada seja ilegal ou tóxica (quando houver restrição), descarte e escolha outra.
+
+            REGRAS DA JUSTIFICATIVA:
+            - Máximo de 250 caracteres
+            - Linguagem simples e direta
+            - Sem termos técnicos complexos
+            - Sem listas, quebras de linha ou emojis
+            - Deve explicar claramente a relação com iluminação, rega e experiência
+
+            FORMATO DE RESPOSTA:
+
+            Retorne APENAS um JSON válido.
+            NÃO use markdown.
+            NÃO use ```json.
+            NÃO adicione explicações, comentários ou qualquer texto fora do JSON.
+
+            O JSON deve começar com {{ e terminar com }}.
+
+            Exemplo válido:
+            {{
+            ""nome_comum"": ""Hortelã"",
+            ""nome_cientifico"": ""Mentha spicata"",
+            ""justificativa"": ""Texto curto aqui.""
+            }}";
     }
 }
 

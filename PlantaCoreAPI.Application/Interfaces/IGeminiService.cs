@@ -19,8 +19,18 @@ public class DadosPlantaParaIA
     public bool? AtraiPolinizadores { get; set; }
 }
 
+public class DadosRecomendacaoPlantaParaIA
+{
+    public string Experiencia { get; set; } = string.Empty;
+    public string Iluminacao { get; set; } = string.Empty;
+    public string Regagem { get; set; } = string.Empty;
+    public string Seguranca { get; set; } = string.Empty;
+    public string Proposito { get; set; } = string.Empty;
+}
+
 public interface IGeminiService
 {
     Task<string?> GerarDescricaoPlantaAsync(DadosPlantaParaIA dados);
     Task<string?> GerarReflexaoPlantaAsync(DadosPlantaParaIA dados, string respostaPrincipal);
+    Task<string?> GerarRecomendacaoPlantaAsync(DadosRecomendacaoPlantaParaIA dados);
 }
