@@ -237,4 +237,15 @@ public class PlantaController : ControllerBase
         var resultado = await _servicioPlanta.ListarPostsDaPlantaAsync(plantaId);
         return Ok(ResponseHelper.Padrao(true, resultado));
     }
+
+    [HttpPost("recomendacao")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Recomendacao([FromForm] DadosRecomendacaoPlantaParaIA entrada)
+    {
+        var resultado = await _servicioPlanta.GerarRecomendacaoPlantaAsync(entrada);
+        return Ok(ResponseHelper.Padrao(true, resultado));
+    }
 }
