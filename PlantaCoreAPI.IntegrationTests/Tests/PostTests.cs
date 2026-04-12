@@ -3,6 +3,7 @@ using Xunit.Abstractions;
 using PlantaCoreAPI.IntegrationTests.Infrastructure;
 using System.Linq;
 using Newtonsoft.Json.Linq;
+using System.Net.Http.Headers;
 
 namespace PlantaCoreAPI.IntegrationTests.Tests;
 
@@ -365,7 +366,7 @@ public class PostTests
     [Fact(DisplayName = "P30 - Obter post retorna categorias derivadas da planta e hashtags com #")]
     public async Task P30_ObterPost_RetornaMetadadosNoFormatoEsperado()
     {
-        var planta = await ObterPrimeiraPlantaAsync();
+        var planta = await ObterOuCriarPrimeiraPlantaAsync();
         var termoHashtag = $"MetaQa{Guid.NewGuid():N}";
         var respCriacao = await _auth.Client1.PostAsync("/api/v1/Post", new
         {
@@ -401,7 +402,36 @@ public class PostTests
         Assert.Contains("automático", palavrasChave);
     }
 
-    private async Task<(Guid Id, string NomeCientifico, string? NomeComum)> ObterPrimeiraPlantaAsync()
+    private async Task<(Guid Id, string NomeCientifico, string NomeComum)> CriarPlantaViaIdentificacaoAsync()
+    {
+        const string imageUrl = "https://bs.plantnet.org/image/o/a2b8cb049d071ed0bae3d324f7516b794399c4c8";
+
+        using var http = new HttpClient();
+        byte[] imageBytes = await http.GetByteArrayAsync(imageUrl);
+
+        var form = new MultipartFormDataContent();
+
+        var fileContent = new ByteArrayContent(imageBytes);
+        fileContent.Headers.ContentType = MediaTypeHeaderValue.Parse("image/jpeg");
+
+        form.Add(fileContent, "Foto", "plant.jpg");
+        form.Add(new StringContent("false"), "CriarPostagem");
+
+        var resp = await _auth.Client1.PostMultipartAsync("/api/v1/Planta/identificar", form);
+        _out.WriteLine(resp.ToString()); 
+        Assert.Equal(200, resp.Status); 
+
+        var planta = resp.Json?["planta"]; 
+        Assert.NotNull(planta); 
+
+        var id = planta["id"]?.ToString(); 
+        var nomeCientifico = planta["nomeCientifico"]?.ToString(); 
+        var nomeComum = planta["nomeComum"]?.ToString(); 
+
+        return (Guid.Parse(id!), nomeCientifico!, nomeComum!);
+    }
+
+    private async Task<(Guid Id, string NomeCientifico, string NomeComum)?> ObterPrimeiraPlantaAsync()
     {
         var resp = await _auth.Client1.GetAsync("/api/v1/Planta/minhas-plantas?pagina=1&tamanho=1");
         _out.WriteLine(resp.ToString());
@@ -409,16 +439,33 @@ public class PostTests
 
         var plantas = resp.Data as JArray;
         Assert.NotNull(plantas);
-        Assert.NotEmpty(plantas!);
 
-        var planta = plantas![0];
-        var id = planta?["id"]?.ToString();
-        var nomeCientifico = planta?["nomeCientifico"]?.ToString();
-        var nomeComum = planta?["nomeComum"]?.ToString();
+        var planta = plantas.FirstOrDefault();
+        if (planta is null) return null;
+
+        var id = planta["id"]?.ToString();
+        var nomeCientifico = planta["nomeCientifico"]?.ToString();
+        var nomeComum = planta["nomeComum"]?.ToString();
 
         Assert.False(string.IsNullOrWhiteSpace(id));
         Assert.False(string.IsNullOrWhiteSpace(nomeCientifico));
+        Assert.False(string.IsNullOrWhiteSpace(nomeComum));
 
-        return (Guid.Parse(id!), nomeCientifico!, nomeComum);
+        return (Guid.Parse(id), nomeCientifico, nomeComum);
+    }
+
+    private async Task<(Guid Id, string NomeCientifico, string NomeComum)> ObterOuCriarPrimeiraPlantaAsync()
+    {
+        var planta = await ObterPrimeiraPlantaAsync();
+
+        if (planta is not null)
+            return planta.Value;
+
+        await CriarPlantaViaIdentificacaoAsync();
+
+        planta = await ObterPrimeiraPlantaAsync();
+        Assert.NotNull(planta);
+
+        return planta.Value;
     }
 }
