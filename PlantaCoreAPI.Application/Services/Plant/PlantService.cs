@@ -22,6 +22,7 @@ public sealed partial class PlantService : IPlantService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IRepositorioPost _repositorioPost;
     private readonly IEventoDispatcher _eventoDispatcher;
+    private readonly IRepositorioRecomendacao _repositorioRecomendacao;
 
     public PlantService(
         IRepositorioPlanta repositorioPlanta,
@@ -33,7 +34,8 @@ public sealed partial class PlantService : IPlantService
         IHttpClientFactory httpClientFactory,
         IRepositorioPost repositorioPost,
         IEventoDispatcher eventoDispatcher,
-        ILogger<PlantService> logger)
+        ILogger<PlantService> logger,
+        IRepositorioRecomendacao repositorioRecomendacao)
     {
         _repositorioPlanta = repositorioPlanta;
         _repositorioNotificacao = repositorioNotificacao;
@@ -45,6 +47,7 @@ public sealed partial class PlantService : IPlantService
         _httpClientFactory = httpClientFactory;
         _repositorioPost = repositorioPost;
         _eventoDispatcher = eventoDispatcher;
+        _repositorioRecomendacao = repositorioRecomendacao;
     }
 
     public async Task<Resultado<PaginaResultado<PlantaDTOSaida>>> BuscarPlantasUsuarioAsync(Guid usuarioId, string termo, int pagina, int tamanho)
@@ -62,19 +65,22 @@ public sealed partial class PlantService : IPlantService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao buscar plantas do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao buscar plantas do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PaginaResultado<PlantaDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
 
-    public async Task<Resultado<PostDTOSaida>> PostarFotoIdentificacaoAsync(Guid usuarioId, Guid plantaId, string conteudo)
+    public async Task<Resultado<PostDTOSaida>> PostarFotoIdentificacaoAsync(Guid usuarioId, Guid plantaId, string conteudo, string? localizacao = null) 
     {
         var planta = await _repositorioPlanta.ObterPorIdAsync(plantaId);
         if (planta == null)
-            return Resultado<PostDTOSaida>.Erro("Planta n„o encontrada.");
-        var post = Post.Criar(usuarioId, conteudo, plantaId, null);
+            return Resultado<PostDTOSaida>.Erro("Planta n√£o encontrada.");
+            
+        var post = Post.Criar(usuarioId, conteudo, plantaId, null, localizacao);
+        
         await _repositorioPost.AdicionarAsync(post);
         await _repositorioPost.SalvarMudancasAsync();
+        
         return Resultado<PostDTOSaida>.Ok(new PostDTOSaida
         {
             Id = post.Id,
@@ -82,6 +88,7 @@ public sealed partial class PlantService : IPlantService
             UsuarioId = post.UsuarioId,
             NomeUsuario = "",
             Conteudo = post.Conteudo,
+            Localizacao = post.Localizacao,
             TotalCurtidas = 0,
             TotalComentarios = 0,
             CurtiuUsuario = false,
@@ -101,7 +108,8 @@ public sealed partial class PlantService : IPlantService
                 Id = p.Id,
                 NomeCientifico = p.NomeCientifico,
                 NomeComum = p.NomeComum,
-                FotoPlanta = p.FotoPlanta
+                FotoPlanta = p.FotoPlanta,
+                Localizacao = p.Localizacao 
             });
     }
 
@@ -112,8 +120,14 @@ public sealed partial class PlantService : IPlantService
         {
             Id = p.Id,
             Conteudo = p.Conteudo,
+            Localizacao = p.Localizacao,
             UsuarioId = p.UsuarioId,
             DataCriacao = p.DataCriacao
         });
+    }
+
+    public Task<Resultado<PostDTOSaida>> PostarFotoIdentificacaoAsync(Guid usuarioId, Guid plantaId, string conteudo)
+    {
+        throw new NotImplementedException();
     }
 }

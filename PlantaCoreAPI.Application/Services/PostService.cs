@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using PlantaCoreAPI.Application.Comuns;
 using PlantaCoreAPI.Application.Comuns.Cache;
 using PlantaCoreAPI.Application.Comuns.Eventos;
@@ -64,26 +64,26 @@ public class PostService : IPostService
         {
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
-                return Resultado<PostDTOSaida>.Erro("Usu�rio n�o encontrado");
+                return Resultado<PostDTOSaida>.Erro("Usuário não encontrado");
 
             Planta? planta = null;
             if (entrada.PlantaId.HasValue)
             {
                 planta = await _repositorioPlanta.ObterPorIdAsync(entrada.PlantaId.Value);
                 if (planta == null)
-                    return Resultado<PostDTOSaida>.Erro("Planta n�o encontrada");
+                    return Resultado<PostDTOSaida>.Erro("Planta não encontrada");
                 if (planta.UsuarioId != usuarioId)
-                    return Resultado<PostDTOSaida>.Erro("Voc� s� pode postar sobre suas pr�prias plantas");
+                    return Resultado<PostDTOSaida>.Erro("Você só pode postar sobre suas próprias plantas");
             }
 
             if (entrada.ComunidadeId.HasValue)
             {
                 var ehMembro = await _repositorioComunidade.UsuarioEhMembroAsync(entrada.ComunidadeId.Value, usuarioId);
                 if (!ehMembro)
-                    return Resultado<PostDTOSaida>.Erro("Voc� precisa ser membro da comunidade para postar nela");
+                    return Resultado<PostDTOSaida>.Erro("Você precisa ser membro da comunidade para postar nela");
             }
 
-            var post = Post.Criar(usuarioId, entrada.Conteudo, entrada.PlantaId, entrada.ComunidadeId);
+            var post = Post.Criar(usuarioId, entrada.Conteudo, entrada.PlantaId, entrada.ComunidadeId, entrada.Localizacao);
             AplicarMetadadosPost(post, entrada.Conteudo, entrada.Hashtags, entrada.Categorias, entrada.PalavrasChave, planta);
 
             await _repositorioPost.AdicionarAsync(post);
@@ -101,7 +101,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao criar post para usu�rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao criar post para usuário {UsuarioId}", usuarioId);
             return Resultado<PostDTOSaida>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -112,13 +112,13 @@ public class PostService : IPostService
         {
             var post = await _repositorioPost.ObterPorIdAsync(postId);
             if (post == null)
-                return Resultado<PostDTOSaida>.Erro("Post n�o encontrado");
+                return Resultado<PostDTOSaida>.Erro("Post não encontrado");
             if (post.UsuarioId != usuarioId)
-                return Resultado<PostDTOSaida>.Erro("Sem permiss�o para atualizar este post");
+                return Resultado<PostDTOSaida>.Erro("Sem permissão para atualizar este post");
 
             Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
 
-            post.Atualizar(entrada.Conteudo);
+            post.Atualizar(entrada.Conteudo, entrada.Localizacao);
             AplicarMetadadosPost(post, entrada.Conteudo, entrada.Hashtags, entrada.Categorias, entrada.PalavrasChave, planta);
             await _repositorioPost.AtualizarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
@@ -137,7 +137,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao atualizar post {PostId} para usu�rio {UsuarioId}", postId, usuarioId);
+            _logger.LogError(ex, "Erro ao atualizar post {PostId} para usuário {UsuarioId}", postId, usuarioId);
             return Resultado<PostDTOSaida>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -148,9 +148,9 @@ public class PostService : IPostService
         {
             var post = await _repositorioPost.ObterPorIdAsync(postId);
             if (post == null)
-                return Resultado.Erro("Post n�o encontrado");
+                return Resultado.Erro("Post não encontrado");
             if (post.UsuarioId != usuarioId)
-                return Resultado.Erro("Sem permiss�o para deletar este post");
+                return Resultado.Erro("Sem permissão para deletar este post");
 
             post.Excluir();
             await _repositorioPost.AtualizarAsync(post);
@@ -160,7 +160,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao excluir post {PostId} para usu�rio {UsuarioId}", postId, usuarioId);
+            _logger.LogError(ex, "Erro ao excluir post {PostId} para usuário {UsuarioId}", postId, usuarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -171,7 +171,7 @@ public class PostService : IPostService
         {
             var post = await _repositorioPost.ObterPorIdAsync(postId);
             if (post == null)
-                return Resultado<PostDTOSaida>.Erro("Post n�o encontrado");
+                return Resultado<PostDTOSaida>.Erro("Post não encontrado");
 
             var usuario = await _repositorioUsuario.ObterPorIdAsync(post.UsuarioId);
             Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
@@ -193,20 +193,17 @@ public class PostService : IPostService
         }
     }
 
-    public async Task<Resultado<IEnumerable<PostDTOSaida>>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10, string? cursor = null)
+    public async Task<Resultado<IEnumerable<PostDTOSaida>>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10, string? ordenarPor = null)
     {
-        var cacheKey = $"feed:{usuarioId}:{pagina}:{tamanho}:{cursor}";
+        var cacheKey = $"feed:{usuarioId}:{pagina}:{tamanho}:{ordenarPor}";
         var cached = _cacheService.Get<IEnumerable<PostDTOSaida>>(cacheKey);
         if (cached != null)
             return Resultado<IEnumerable<PostDTOSaida>>.Ok(cached);
 
         try
         {
-            var posts = await _repositorioPost.ObterFeedAsync(usuarioId, pagina, tamanho);
-            var postsOrdenados = posts
-                .OrderByDescending(p => p.Curtidas.Count + p.Comentarios.Count)
-                .ThenByDescending(p => p.DataCriacao)
-                .ToList();
+            var posts = await _repositorioPost.ObterFeedAsync(usuarioId, pagina, tamanho, ordenarPor);
+            var postsOrdenados = posts.ToList();
 
             var dtos = new List<PostDTOSaida>();
             foreach (var post in postsOrdenados.Where(p => p.Usuario != null))
@@ -234,7 +231,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao obter feed do usu�rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao obter feed do usuário {UsuarioId}", usuarioId);
             return Resultado<IEnumerable<PostDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -243,19 +240,18 @@ public class PostService : IPostService
     {
         try
         {
-            _logger.LogInformation("Usu�rio {UsuarioId} tentando curtir post {PostId}", usuarioId, postId);
+            _logger.LogInformation("Usuário {UsuarioId} tentando curtir post {PostId}", usuarioId, postId);
 
             var post = await _repositorioPost.ObterPorIdAsync(postId);
             if (post == null)
-                return Resultado.Erro("Post n�o encontrado");
+                return Resultado.Erro("Post não encontrado");
             if (post.UsuarioId == usuarioId)
-                return Resultado.Erro("Voc� n�o pode curtir seu pr�prio post");
+                return Resultado.Erro("Você não pode curtir seu próprio post");
             if (await _repositorioCurtida.ExisteAsync(usuarioId, postId))
-                return Resultado.Erro("Voc� j� curtiu este post");
-
+                return Resultado.Erro("Você já curtiu este post");
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
-                return Resultado.Erro("Usu�rio n�o encontrado");
+                return Resultado.Erro("Usuário não encontrado");
 
             var curtida = Curtida.CriarParaPost(postId, usuarioId);
             await _repositorioCurtida.AdicionarAsync(curtida);
@@ -272,7 +268,7 @@ public class PostService : IPostService
             await _repositorioNotificacao.AdicionarAsync(notificacao);
             await _repositorioNotificacao.SalvarMudancasAsync();
 
-            _logger.LogInformation("Usu�rio {UsuarioId} curtiu post {PostId}", usuarioId, postId);
+            _logger.LogInformation("Usuário {UsuarioId} curtiu post {PostId}", usuarioId, postId);
             return Resultado.Ok("Post curtido com sucesso");
         }
         catch (Exception ex)
@@ -289,7 +285,7 @@ public class PostService : IPostService
         {
             var curtida = await _repositorioCurtida.ObterPorUsuarioEPostAsync(usuarioId, postId);
             if (curtida == null)
-                return Resultado.Erro("Curtida n�o encontrada");
+                return Resultado.Erro("Curtida não encontrada");
 
             await _repositorioCurtida.RemoverAsync(curtida);
             await _repositorioCurtida.SalvarMudancasAsync();
@@ -310,7 +306,7 @@ public class PostService : IPostService
             var post = await _repositorioPost.ObterPorIdAsync(entrada.PostId);
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (post == null || usuario == null)
-                return Resultado<ComentarioDTOSaida>.Erro("Post ou usu�rio n�o encontrado");
+                return Resultado<ComentarioDTOSaida>.Erro("Post ou usuário não encontrado");
 
             var comentario = Comentario.Criar(entrada.PostId, usuarioId, entrada.Conteudo);
             post.AdicionarComentario(comentario);
@@ -346,12 +342,11 @@ public class PostService : IPostService
         {
             var post = await _repositorioPost.ObterPorComentarioIdAsync(comentarioId);
             if (post == null)
-                return Resultado<ComentarioDTOSaida>.Erro("Coment�rio n�o encontrado");
+                return Resultado<ComentarioDTOSaida>.Erro("Comentário não encontrado");
 
             var comentario = post.Comentarios.FirstOrDefault(c => c.Id == comentarioId);
             if (comentario == null || comentario.UsuarioId != usuarioId)
-                return Resultado<ComentarioDTOSaida>.Erro("Sem permiss�o para atualizar este coment�rio");
-
+                return Resultado<ComentarioDTOSaida>.Erro("Sem permissão para atualizar este comentário");
             comentario.Atualizar(entrada.Conteudo);
             await _repositorioPost.AtualizarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
@@ -372,16 +367,15 @@ public class PostService : IPostService
         {
             var post = await _repositorioPost.ObterPorComentarioIdAsync(comentarioId);
             if (post == null)
-                return Resultado.Erro("Coment�rio n�o encontrado");
+                return Resultado.Erro("Comentário não encontrado");
 
             var comentario = post.Comentarios.FirstOrDefault(c => c.Id == comentarioId);
             if (comentario == null || comentario.UsuarioId != usuarioId)
-                return Resultado.Erro("Sem permiss�o para deletar este coment�rio");
-
+                return Resultado.Erro("Sem permissão para deletar este comentário");
             comentario.Excluir();
             await _repositorioPost.AtualizarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
-            return Resultado.Ok("Coment�rio deletado com sucesso");
+            return Resultado.Ok("Comentário deletado com sucesso");
         }
         catch (Exception ex)
         {
@@ -396,7 +390,7 @@ public class PostService : IPostService
         {
             var post = await _repositorioPost.ObterPorIdAsync(postId);
             if (post == null)
-                return Resultado<IEnumerable<ComentarioDTOSaida>>.Erro("Post n�o encontrado");
+                return Resultado<IEnumerable<ComentarioDTOSaida>>.Erro("Post não encontrado");
 
             var comentarios = post.Comentarios
                 .Where(c => c.Ativo && c.ComentarioPaiId == null)
@@ -455,7 +449,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao listar posts do usu�rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar posts do usuário {UsuarioId}", usuarioId);
             return Resultado<PaginaResultado<PostDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -494,19 +488,19 @@ public class PostService : IPostService
         {
             var comentario = await _repositorioPost.ObterComentarioPorIdAsync(comentarioId);
             if (comentario == null)
-                return Resultado.Erro("Coment�rio n�o encontrado");
+                return Resultado.Erro("Comentário não encontrado");
             if (comentario.Curtidas.Any(c => c.UsuarioId == usuarioId))
-                return Resultado.Erro("Voc� j� curtiu este coment�rio");
+                return Resultado.Erro("Você já curtiu este comentário");
 
             comentario.AdicionarCurtida(usuarioId);
             await _repositorioPost.AtualizarComentarioAsync(comentario);
             await _repositorioPost.SalvarMudancasAsync();
-            return Resultado.Ok("Coment�rio curtido com sucesso");
+            return Resultado.Ok("Comentário curtido com sucesso");
         }
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao curtir coment�rio {ComentarioId}", comentarioId);
+            _logger.LogError(ex, "Erro ao curtir comentário {ComentarioId}", comentarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -517,9 +511,9 @@ public class PostService : IPostService
         {
             var comentario = await _repositorioPost.ObterComentarioPorIdAsync(comentarioId);
             if (comentario == null)
-                return Resultado.Erro("Coment�rio n�o encontrado");
+                return Resultado.Erro("Comentário não encontrado");
             if (!comentario.Curtidas.Any(c => c.UsuarioId == usuarioId))
-                return Resultado.Erro("Voc� n�o curtiu este coment�rio");
+                return Resultado.Erro("Você não curtiu este comentário");
 
             comentario.RemoverCurtida(usuarioId);
             await _repositorioPost.AtualizarComentarioAsync(comentario);
@@ -529,7 +523,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao remover curtida do coment�rio {ComentarioId}", comentarioId);
+            _logger.LogError(ex, "Erro ao remover curtida do comentário {ComentarioId}", comentarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -540,18 +534,17 @@ public class PostService : IPostService
         {
             var post = await _repositorioPost.ObterPorComentarioIdAsync(comentarioId);
             if (post == null)
-                return Resultado.Erro("Coment�rio n�o encontrado");
+                return Resultado.Erro("Comentário não encontrado");
             if (post.UsuarioId != donoPostId)
-                return Resultado.Erro("Sem permiss�o para excluir este coment�rio");
+                return Resultado.Erro("Sem permissão para excluir este comentário");
 
             var comentario = post.Comentarios.FirstOrDefault(c => c.Id == comentarioId);
             if (comentario == null)
-                return Resultado.Erro("Coment�rio n�o encontrado");
-
+                return Resultado.Erro("Comentário não encontrado");
             comentario.Excluir();
             await _repositorioPost.AtualizarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
-            return Resultado.Ok("Coment�rio exclu�do com sucesso");
+            return Resultado.Ok("Comentário excluído com sucesso");
         }
         catch (Exception ex)
         {
@@ -577,7 +570,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao listar posts curtidos do usu�rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar posts curtidos do usuário {UsuarioId}", usuarioId);
             return Resultado<IEnumerable<PostDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -587,7 +580,7 @@ public class PostService : IPostService
         try
         {
             if (await _repositorioPostSave.ExisteAsync(usuarioId, postId))
-                return Resultado.Ok("Post j� salvo");
+                return Resultado.Ok("Post já salvo");
 
             await _repositorioPostSave.AdicionarAsync(PostSave.Criar(usuarioId, postId));
             await _repositorioPostSave.SalvarMudancasAsync();
@@ -598,7 +591,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao salvar post {PostId} para usu�rio {UsuarioId}", postId, usuarioId);
+            _logger.LogError(ex, "Erro ao salvar post {PostId} para usuário {UsuarioId}", postId, usuarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -614,7 +607,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao remover post salvo {PostId} para usu�rio {UsuarioId}", postId, usuarioId);
+            _logger.LogError(ex, "Erro ao remover post salvo {PostId} para usuário {UsuarioId}", postId, usuarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -633,7 +626,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao listar posts salvos do usu�rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar posts salvos do usuário {UsuarioId}", usuarioId);
             return Resultado<IEnumerable<PostDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -643,7 +636,7 @@ public class PostService : IPostService
         try
         {
             if (await _repositorioPostShare.ExisteAsync(usuarioId, postId))
-                return Resultado.Erro("Voc� j� compartilhou este post");
+                return Resultado.Erro("Você já compartilhou este post");
 
             await _repositorioPostShare.AdicionarAsync(PostShare.Criar(usuarioId, postId));
             await _repositorioPostShare.SalvarMudancasAsync();
@@ -654,7 +647,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao compartilhar post {PostId} para usu�rio {UsuarioId}", postId, usuarioId);
+            _logger.LogError(ex, "Erro ao compartilhar post {PostId} para usuário {UsuarioId}", postId, usuarioId);
             return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -664,13 +657,13 @@ public class PostService : IPostService
         try
         {
             if (await _repositorioPostView.ExisteAsync(usuarioId, postId))
-                return Resultado.Ok("Visualiza��o j� registrada");
+                return Resultado.Ok("Visualização já registrada");
 
             await _repositorioPostView.AdicionarAsync(PostView.Criar(usuarioId, postId));
             await _repositorioPostView.SalvarMudancasAsync();
             await _repositorioActivityLog.AdicionarAsync(ActivityLog.Criar(usuarioId, "POST_VISUALIZADO", postId, "Post"));
             await _repositorioActivityLog.SalvarMudancasAsync();
-            return Resultado.Ok("Visualiza��o registrada");
+            return Resultado.Ok("Visualização registrada");
         }
         catch (Exception ex)
         {
@@ -685,12 +678,11 @@ public class PostService : IPostService
         {
             var comentarioPai = await _repositorioPost.ObterComentarioPorIdAsync(comentarioId);
             if (comentarioPai == null)
-                return Resultado<ComentarioDTOSaida>.Erro("Coment�rio n�o encontrado");
+                return Resultado<ComentarioDTOSaida>.Erro("Comentário não encontrado");
 
             var post = await _repositorioPost.ObterPorIdAsync(comentarioPai.PostId);
             if (post == null)
-                return Resultado<ComentarioDTOSaida>.Erro("Post n�o encontrado");
-
+                return Resultado<ComentarioDTOSaida>.Erro("Post não encontrado");
             var resposta = Comentario.Criar(comentarioPai.PostId, usuarioId, conteudo, comentarioId);
             post.AdicionarComentario(resposta);
             await _repositorioPost.AtualizarAsync(post);
@@ -702,7 +694,7 @@ public class PostService : IPostService
         catch (Exception ex)
         {
             ExcecaoTransienteHelper.RelancaSeFoiTransiente(ex);
-            _logger.LogError(ex, "Erro ao responder coment�rio {ComentarioId} por usu�rio {UsuarioId}", comentarioId, usuarioId);
+            _logger.LogError(ex, "Erro ao responder comentário {ComentarioId} por usuário {UsuarioId}", comentarioId, usuarioId);
             return Resultado<ComentarioDTOSaida>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -796,6 +788,7 @@ public class PostService : IPostService
             NomePlanta = planta != null ? (planta.NomeComum ?? planta.NomeCientifico) : null,
             FotoPlanta = planta?.FotoPlanta,
             Conteudo = post.Conteudo,
+            Localizacao = post.Localizacao,
             Hashtags = post.Hashtags.Select(h => h.Nome).ToList(),
             Categorias = post.Categorias.Select(c => c.Nome).ToList(),
             PalavrasChave = post.PalavrasChave.Select(pc => pc.Palavra).ToList(),
@@ -842,7 +835,7 @@ public class PostService : IPostService
 
         var categorias = planta == null
             ? new List<string>()
-            : NormalizarLista(new[] { planta.NomeCientifico, planta.NomeComum });
+            : NormalizarLista(new[] { planta.NomeCientifico, planta.NomeComum }.Where(s => s != null).Select(s => s!));
 
         var palavrasChave = ExtractPalavrasChave(conteudo)
             .Concat(NormalizarLista(palavrasChaveEntrada))

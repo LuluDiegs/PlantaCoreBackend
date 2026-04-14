@@ -40,7 +40,7 @@ public class EngajamentoTests
     }
 
     // ================================================================
-    // CURTIDAS — post
+    // CURTIDAS â€” post
     // ================================================================
 
     [Fact(DisplayName = "EN01 - Ambos curtem o mesmo post e contagem sobe")]
@@ -58,7 +58,7 @@ public class EngajamentoTests
         _out.WriteLine($"User1 curtiu post de User2: {curtida1.Status}");
         Assert.Equal(200, curtida1.Status);
 
-        // User3 = nao existe, entao User2 nao pode curtir o proprio — criamos outro post de User1
+        // User3 = nao existe, entao User2 nao pode curtir o proprio â€” criamos outro post de User1
         var postId2 = await CriarPostAsync(_auth.Client1);
         await _auth.Client2.DeleteAsync($"/api/v1/Post/{postId2}/curtida");
         var curtida2 = await _auth.Client2.PostAsync($"/api/v1/Post/{postId2}/curtir");
@@ -89,7 +89,7 @@ public class EngajamentoTests
     [Fact(DisplayName = "EN03 - User1 descurte post de User2 e contagem diminui")]
     public async Task EN03_User1_DescurtePost()
     {
-        // Post de User2 — User1 curte e depois descurte
+        // Post de User2 â€” User1 curte e depois descurte
         var postId = await CriarPostAsync(_auth.Client2);
         await _auth.Client1.DeleteAsync($"/api/v1/Post/{postId}/curtida");
         await _auth.Client1.PostAsync($"/api/v1/Post/{postId}/curtir");
@@ -168,7 +168,7 @@ public class EngajamentoTests
     }
 
     // ================================================================
-    // CURTIDAS — comentario
+    // CURTIDAS â€” comentario
     // ================================================================
 
     [Fact(DisplayName = "EN06 - Ambos curtem o mesmo comentario")]
@@ -238,7 +238,7 @@ public class EngajamentoTests
     }
 
     // ================================================================
-    // SALVAR / DESSALVAR — ambos os usuarios, verificacao cruzada
+    // SALVAR / DESSALVAR â€” ambos os usuarios, verificacao cruzada
     // ================================================================
 
     [Fact(DisplayName = "EN10 - Ambos salvam o mesmo post e aparece nos salvos de cada um")]
@@ -420,7 +420,7 @@ public class EngajamentoTests
     }
 
     // ================================================================
-    // EVENTOS — ambos os usuarios, marcar/desmarcar participacao
+    // EVENTOS â€” ambos os usuarios, marcar/desmarcar participacao
     // ================================================================
 
     [Fact(DisplayName = "EN18 - User1 cria evento e ja e participante (anfitriao)")]
@@ -496,7 +496,7 @@ public class EngajamentoTests
             p["usuarioId"]?.ToString() == _auth.User1Id.ToString() ||
             p["id"]?.ToString() == _auth.User1Id.ToString()) ?? false;
         _out.WriteLine($"User1 ainda esta nos participantes apos User2 desmarcar: {user1Esta}");
-        Assert.True(user1Esta, "Anfitriao deve permanecer nos participantes independente de outros saírem");
+        Assert.True(user1Esta, "Anfitriao deve permanecer nos participantes independente de outros saÃ­rem");
 
         // User2 nao deve mais estar nos participantes
         var user2Esta = lista?.Any(p =>

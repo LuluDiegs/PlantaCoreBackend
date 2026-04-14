@@ -90,11 +90,13 @@ public class ApiClient
     public async Task<bool> LoginAsync(string email, string senha)
     {
         ApiResponse? resp = null;
-        for (int i = 0; i < 10; i++)
+        for (int i = 0; i < 3; i++)
         {
             resp = await PostAsync("/api/v1/Autenticacao/login", new { email, senha });
             if (resp.IsSuccess) break;
-            await Task.Delay(TimeSpan.FromSeconds(3 + i));
+            // 401 significa credenciais inválidas — não adianta repetir
+            if (resp.Status == 401) break;
+            await Task.Delay(TimeSpan.FromSeconds(2 + i));
         }
         if (resp is null || !resp.IsSuccess) return false;
 
@@ -116,5 +118,21 @@ public class ApiClient
         RefreshToken = refreshToken;
         if (Guid.TryParse(userId, out var uid)) UserId = uid;
         return true;
+    }
+
+    public Task<ApiResponse> PostMultipartAsync(string url, MultipartFormDataContent form)
+    {
+        return ExecuteWithRetryAsync(() =>
+        {
+            var request = new HttpRequestMessage(HttpMethod.Post, url)
+            {
+                Content = form
+            };
+
+            request.Headers.Accept.Clear();
+            request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("*/*"));
+
+            return _http.SendAsync(request);
+        });
     }
 }

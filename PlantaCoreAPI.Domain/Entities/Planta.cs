@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations.Schema;
 namespace PlantaCoreAPI.Domain.Entities;
 
 public class Planta
@@ -20,6 +21,8 @@ public class Planta
     public string? RequisitosTemperatura { get; private set; }
     public string? Cuidados { get; private set; }
     public string? FotoPlanta { get; private set; }
+    [Column("localizacao")]
+    public string? Localizacao { get; private set; }
     public string? DadosPlantNet { get; private set; }
     public DateTime DataIdentificacao { get; private set; }
     public DateTime DataCriacao { get; private set; }
@@ -43,7 +46,8 @@ public class Planta
         string? requisitosAgua = null,
         string? requisitosTemperatura = null,
         string? cuidados = null,
-        string? fotoPlanta = null)
+        string? fotoPlanta = null,
+        string? localizacao = null)
     {
         if (string.IsNullOrWhiteSpace(nomeCientifico))
             throw new Exceptions.DomainException("Nome científico é obrigatório");
@@ -67,6 +71,7 @@ public class Planta
             RequisitosTemperatura = requisitosTemperatura,
             Cuidados = cuidados,
             FotoPlanta = fotoPlanta,
+            Localizacao = localizacao?.Trim(),
             DataIdentificacao = DateTime.UtcNow,
             DataCriacao = DateTime.UtcNow
         };
@@ -75,7 +80,7 @@ public class Planta
     public void EnriquecerDados(string? nomeComum, string? familia, string? genero,
         bool toxica, string? descricaoToxicidade, bool toxicaAnimais, string? descricaoToxicidadeAnimais,
         bool toxicaCriancas, string? descricaoToxicidadeCriancas, string? requisitosLuz, string? requisitosAgua,
-        string? requisitosTemperatura, string? cuidados, string? fotoPlanta = null)
+        string? requisitosTemperatura, string? cuidados, string? fotoPlanta = null, string? localizacao = null)
     {
         NomeComum = nomeComum ?? NomeComum;
         Familia = familia ?? Familia;
@@ -90,6 +95,7 @@ public class Planta
         RequisitosAgua = requisitosAgua ?? RequisitosAgua;
         RequisitosTemperatura = requisitosTemperatura ?? RequisitosTemperatura;
         Cuidados = cuidados ?? Cuidados;
+        Localizacao = localizacao ?? Localizacao;
 
         if (!string.IsNullOrWhiteSpace(fotoPlanta))
             FotoPlanta = fotoPlanta;

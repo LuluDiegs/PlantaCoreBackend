@@ -18,6 +18,7 @@ public class PlantaDTOSaida
     public string? RequisitosTemperatura { get; set; }
     public string? Cuidados { get; set; }
     public string? FotoPlanta { get; set; }
+    public string? Localizacao { get; set; }
     public DateTime DataIdentificacao { get; set; }
 }
 

@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PlantaCoreAPI.Infrastructure.Dados;
@@ -11,9 +12,11 @@ using PlantaCoreAPI.Infrastructure.Dados;
 namespace PlantaCoreAPI.Infrastructure.Migrations
 {
     [DbContext(typeof(PlantaCoreDbContext))]
-    partial class PlantaCoreDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260418200825_AddRecomendacao")]
+    partial class AddRecomendacao
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -501,10 +504,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("genero");
 
-                    b.Property<string>("Localizacao")
-                        .HasColumnType("text")
-                        .HasColumnName("localizacao");
-
                     b.Property<string>("NomeCientifico")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -592,9 +591,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Property<DateTime?>("DataExclusao")
                         .HasColumnType("timestamp without time zone")
                         .HasColumnName("data_exclusao");
-
-                    b.Property<string>("Localizacao")
-                        .HasColumnType("text");
 
                     b.Property<Guid?>("PlantaId")
                         .HasColumnType("uuid")

@@ -1,14 +1,20 @@
-﻿using Xunit.Abstractions;
+﻿using DotNetEnv;
+using Xunit.Abstractions;
 
 namespace PlantaCoreAPI.IntegrationTests.Infrastructure;
 
 public class TestContext
 {
-    public static string BaseUrl => Environment.GetEnvironmentVariable("TEST_API_URL") ?? "http://localhost:5123";
-    public static string User1Email => Environment.GetEnvironmentVariable("TEST_USER1_EMAIL") ?? "Dados aqui"; //Usar seu usuario - NÃO SUBIR SEUS DADOS ACIDENTALMENTE
-    public static string User1Senha => Environment.GetEnvironmentVariable("TEST_USER1_SENHA") ?? "Dados aqui";
-    public static string User2Email => Environment.GetEnvironmentVariable("TEST_USER2_EMAIL") ?? "Dados aqui"; //Pedir meu usuario de teste
-    public static string User2Senha => Environment.GetEnvironmentVariable("TEST_USER2_SENHA") ?? "Dados aqui";
+    static TestContext()
+    {
+        Env.Load(Path.Combine(AppContext.BaseDirectory, "../../../.env"));
+    }
+
+    public static string BaseUrl => Environment.GetEnvironmentVariable("TEST_API_URL") ?? throw new InvalidOperationException("TEST_API_URL não configurada");
+    public static string User1Email => Environment.GetEnvironmentVariable("TEST_USER1_EMAIL") ?? throw new InvalidOperationException("TEST_USER1_EMAIL não configurada");
+    public static string User1Senha => Environment.GetEnvironmentVariable("TEST_USER1_SENHA") ?? throw new InvalidOperationException("TEST_USER1_SENHA não configurada");
+    public static string User2Email => Environment.GetEnvironmentVariable("TEST_USER2_EMAIL") ?? throw new InvalidOperationException("TEST_USER2_EMAIL não configurada");
+    public static string User2Senha => Environment.GetEnvironmentVariable("TEST_USER2_SENHA") ?? throw new InvalidOperationException("TEST_USER2_SENHA não configurada");
     public ApiClient Client1 { get; } = new(BaseUrl);  
     public ApiClient Client2 { get; } = new(BaseUrl); 
     public ApiClient Anon { get; } = new(BaseUrl);  

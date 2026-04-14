@@ -59,7 +59,7 @@ public sealed partial class PlantService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao identificar planta para usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao identificar planta para usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PlantaDTOSaida>.Erro("Erro ao identificar planta. Tente novamente.");
         }
     }

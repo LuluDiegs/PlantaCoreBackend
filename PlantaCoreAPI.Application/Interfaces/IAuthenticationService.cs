@@ -7,6 +7,7 @@ public interface IAuthenticationService
 {
     Task<Resultado<LoginDTOSaida>> RegistrarAsync(RegistroDTOEntrada entrada);
     Task<Resultado<LoginDTOSaida>> LoginAsync(LoginDTOEntrada entrada);
+    Task<Resultado<LoginDTOSaida>> LoginComGoogleAsync(string tokenDoGoogle);
     Task<Resultado<LoginDTOSaida>> RefreshTokenAsync(string tokenRefresh);
     Task<Resultado> LogoutAsync(Guid usuarioId);
     Task<Resultado> ConfirmarEmailAsync(ConfirmarEmailDTOEntrada entrada);

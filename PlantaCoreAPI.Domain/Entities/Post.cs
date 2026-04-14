@@ -6,6 +6,7 @@ public class Post
     public Guid UsuarioId { get; private set; }
     public Usuario Usuario { get; private set; } = null!;
     public string Conteudo { get; private set; } = null!;
+    public string? Localizacao { get; private set; }
     public DateTime DataCriacao { get; private set; }
     public DateTime? DataAtualizacao { get; private set; }
     public bool Ativo { get; private set; } = true;
@@ -21,7 +22,7 @@ public class Post
     public List<Curtida> Curtidas { get; set; } = new();
     public int PontuacaoTotal => Curtidas.Count;
     private Post() { }
-    public static Post Criar(Guid usuarioId, string conteudo, Guid? plantaId, Guid? comunidadeId)
+    public static Post Criar(Guid usuarioId, string conteudo, Guid? plantaId, Guid? comunidadeId, string? localizacao = null)
     {
         if (string.IsNullOrWhiteSpace(conteudo))
             throw new Exceptions.DomainException("Conteúdo do post não pode estar vazio");
@@ -30,6 +31,7 @@ public class Post
             Id = Guid.NewGuid(),
             UsuarioId = usuarioId,
             Conteudo = conteudo.Trim(),
+            Localizacao = localizacao?.Trim(),
             PlantaId = plantaId,
             ComunidadeId = comunidadeId,
             DataCriacao = DateTime.UtcNow,
@@ -37,11 +39,12 @@ public class Post
         };
     }
 
-    public void Atualizar(string conteudo)
+    public void Atualizar(string conteudo, string? novaLocalizacao = null)
     {
         if (string.IsNullOrWhiteSpace(conteudo))
             throw new Exceptions.DomainException("Conteúdo do post não pode estar vazio");
         Conteudo = conteudo.Trim();
+        if (novaLocalizacao != null) Localizacao = novaLocalizacao.Trim();
         DataAtualizacao = DateTime.UtcNow;
     }
 

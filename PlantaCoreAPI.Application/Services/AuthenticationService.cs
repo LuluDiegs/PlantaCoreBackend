@@ -1,4 +1,4 @@
-using Microsoft.Extensions.Configuration;
+Ôªøusing Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using PlantaCoreAPI.Application.Comuns;
 using PlantaCoreAPI.Application.DTOs.Auth;
@@ -20,6 +20,7 @@ public class AuthenticationService : IAuthenticationService
     private readonly IPasswordHashService _passwordHashService;
     private readonly ILogger<AuthenticationService> _logger;
     private readonly string _urlFrontend;
+    private readonly string _googleClientId;
 
     public AuthenticationService(
         IRepositorioUsuario repositorioUsuario,
@@ -37,6 +38,7 @@ public class AuthenticationService : IAuthenticationService
         _passwordHashService = passwordHashService;
         _logger = logger;
         _urlFrontend = configuration["Frontend:Url"] ?? "http://localhost:5173";
+        _googleClientId = configuration["Google:ClientId"] ?? string.Empty;
     }
 
     public async Task<Resultado<LoginDTOSaida>> RegistrarAsync(RegistroDTOEntrada entrada)
@@ -44,12 +46,12 @@ public class AuthenticationService : IAuthenticationService
         try
         {
             if (string.IsNullOrWhiteSpace(entrada.Nome) || string.IsNullOrWhiteSpace(entrada.Email) || string.IsNullOrWhiteSpace(entrada.Senha))
-                return Resultado<LoginDTOSaida>.Erro("Nome, email e senha s„o obrigatÛrios");
+                return Resultado<LoginDTOSaida>.Erro("Nome, email e senha s√£o obrigat√≥rios");
             if (entrada.Senha != entrada.ConfirmacaoSenha)
-                return Resultado<LoginDTOSaida>.Erro("Senhas n„o coincidem");
+                return Resultado<LoginDTOSaida>.Erro("Senhas n√£o coincidem");
             var emailNormalizado = entrada.Email.ToLower().Trim();
             if (await _repositorioUsuario.EmailJaExisteAsync(emailNormalizado))
-                return Resultado<LoginDTOSaida>.Erro("Email j· registrado");
+                return Resultado<LoginDTOSaida>.Erro("Email j√° registrado");
             if (!PasswordValidator.ValidarComplexidade(entrada.Senha))
             {
                 var mensagem = PasswordValidator.ObterMensagemErro(entrada.Senha);
@@ -61,7 +63,7 @@ public class AuthenticationService : IAuthenticationService
             usuario.GerarTokenConfirmacaoEmail();
             await _repositorioUsuario.AdicionarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
-            var tokenConfirmacao = usuario.TokenConfirmacaoEmail;
+            var tokenConfirmacao = usuario.TokenConfirmacaoEmail ?? string.Empty;
             var urlConfirmacao = $"{_urlFrontend}/confirmar-email?usuarioId={usuario.Id}&token={tokenConfirmacao}";
             var corpoEmail = EmailTemplateGenerator.GerarEmailConfirmacao(usuario.Nome, urlConfirmacao, tokenConfirmacao);
             try
@@ -70,7 +72,7 @@ public class AuthenticationService : IAuthenticationService
             }
             catch (Exception emailEx)
             {
-                _logger.LogWarning(emailEx, "Falha ao enviar email de confirmaÁ„o para {Email}", EmailMascarador.Mascarar(emailNormalizado));
+                _logger.LogWarning(emailEx, "Falha ao enviar email de confirma√ß√£o para {Email}", EmailMascarador.Mascarar(emailNormalizado));
             }
 
             return Resultado<LoginDTOSaida>.Ok(new LoginDTOSaida
@@ -80,11 +82,11 @@ public class AuthenticationService : IAuthenticationService
                 Email = usuario.Email,
                 TokenAcesso = string.Empty,
                 TokenRefresh = string.Empty
-            }, "Usu·rio registrado com sucesso. Verifique seu email");
+            }, "Usu√°rio registrado com sucesso. Verifique seu email");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao registrar usu·rio");
+            _logger.LogError(ex, "Erro ao registrar usu√°rio");
             return Resultado<LoginDTOSaida>.Erro("Erro ao registrar. Tente novamente.");
         }
     }
@@ -94,17 +96,17 @@ public class AuthenticationService : IAuthenticationService
         try
         {
             if (string.IsNullOrWhiteSpace(entrada.Email) || string.IsNullOrWhiteSpace(entrada.Senha))
-                return Resultado<LoginDTOSaida>.Erro("Email e senha s„o obrigatÛrios");
+                return Resultado<LoginDTOSaida>.Erro("Email e senha s√£o obrigat√≥rios");
             var emailNormalizado = entrada.Email.ToLower().Trim();
             var usuario = await _repositorioUsuario.ObterPorEmailIncluindoInativosAsync(emailNormalizado);
             if (usuario == null)
-                return Resultado<LoginDTOSaida>.Erro("Email ou senha inv·lidos");
+                return Resultado<LoginDTOSaida>.Erro("Conta n√£o encontrada. Verifique o email ou crie uma nova conta.");
             if (!usuario.VerificarSenha(entrada.Senha, _passwordHashService.Verify))
-                return Resultado<LoginDTOSaida>.Erro("Email ou senha inv·lidos");
+                return Resultado<LoginDTOSaida>.Erro("Email ou senha inv√°lidos");
             if (!usuario.Ativo)
-                return Resultado<LoginDTOSaida>.Erro("Sua conta est· desativada. Use a opÁ„o 'Reativar conta' para recuperar o acesso.");
+                return Resultado<LoginDTOSaida>.Erro("Sua conta est√° desativada. Use a op√ß√£o 'Reativar conta' para recuperar o acesso.");
             if (!usuario.EmailConfirmado)
-                return Resultado<LoginDTOSaida>.Erro("Email n„o confirmado");
+                return Resultado<LoginDTOSaida>.Erro("Email n√£o confirmado");
             var tokenAcesso = _servicioJwt.GerarTokenAcesso(usuario.Id, usuario.Email, usuario.Nome);
             var tokenRefresh = _servicioJwt.GerarTokenRefresh();
             var tokenRefreshEntidade = TokenRefresh.Criar(usuario.Id, tokenRefresh);
@@ -126,16 +128,64 @@ public class AuthenticationService : IAuthenticationService
         }
     }
 
+    public async Task<Resultado<LoginDTOSaida>> LoginComGoogleAsync(string tokenDoGoogle)
+        {
+            try
+            {
+                var configuracoes = new Google.Apis.Auth.GoogleJsonWebSignature.ValidationSettings()
+                {
+                    Audience = new[] { _googleClientId } 
+                };
+
+                var payload = await Google.Apis.Auth.GoogleJsonWebSignature.ValidateAsync(tokenDoGoogle, configuracoes);
+
+                var emailNormalizado = payload.Email.ToLower().Trim();
+                var usuario = await _repositorioUsuario.ObterPorEmailIncluindoInativosAsync(emailNormalizado);
+
+                if (usuario == null)
+                {
+                    usuario = Usuario.CriarComGoogle(payload.Name, emailNormalizado, payload.Picture);
+                    await _repositorioUsuario.AdicionarAsync(usuario);
+                    await _repositorioUsuario.SalvarMudancasAsync();
+                }
+                else if (!usuario.Ativo)
+                {
+                    return Resultado<LoginDTOSaida>.Erro("Sua conta est√° desativada.");
+                }
+
+                var tokenAcesso = _servicioJwt.GerarTokenAcesso(usuario.Id, usuario.Email, usuario.Nome);
+                var tokenRefresh = _servicioJwt.GerarTokenRefresh();
+                
+                var tokenRefreshEntidade = TokenRefresh.Criar(usuario.Id, tokenRefresh);
+                await _repositorioTokenRefresh.AdicionarAsync(tokenRefreshEntidade);
+                await _repositorioTokenRefresh.SalvarMudancasAsync();
+
+                return Resultado<LoginDTOSaida>.Ok(new LoginDTOSaida
+                {
+                    UsuarioId = usuario.Id,
+                    Nome = usuario.Nome,
+                    Email = usuario.Email,
+                    TokenAcesso = tokenAcesso,
+                    TokenRefresh = tokenRefresh
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao realizar login com o Google");
+                return Resultado<LoginDTOSaida>.Erro("Token do Google inv√°lido ou expirado.");
+            }
+        }
+
     public async Task<Resultado<LoginDTOSaida>> RefreshTokenAsync(string tokenRefresh)
     {
         try
         {
             var tokenRefreshEntidade = await _repositorioTokenRefresh.ObterPorTokenAsync(tokenRefresh);
             if (tokenRefreshEntidade == null || !tokenRefreshEntidade.EstaValido())
-                return Resultado<LoginDTOSaida>.Erro("Token de refresh inv·lido ou expirado");
+                return Resultado<LoginDTOSaida>.Erro("Token de refresh inv√°lido ou expirado");
             var usuario = await _repositorioUsuario.ObterPorIdAsync(tokenRefreshEntidade.UsuarioId);
             if (usuario == null)
-                return Resultado<LoginDTOSaida>.Erro("Usu·rio n„o encontrado");
+                return Resultado<LoginDTOSaida>.Erro("Usu√°rio n√£o encontrado");
             var novoTokenAcesso = _servicioJwt.GerarTokenAcesso(usuario.Id, usuario.Email, usuario.Nome);
             var novoTokenRefresh = _servicioJwt.GerarTokenRefresh();
             tokenRefreshEntidade.Revogar();
@@ -179,9 +229,9 @@ public class AuthenticationService : IAuthenticationService
         {
             var usuario = await _repositorioUsuario.ObterPorIdAsync(entrada.UsuarioId);
             if (usuario == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
             if (!TokensIguais(usuario.TokenConfirmacaoEmail, entrada.Token))
-                return Resultado.Erro("Token inv·lido");
+                return Resultado.Erro("Token inv√°lido");
             usuario.ConfirmarEmail();
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
@@ -201,11 +251,11 @@ public class AuthenticationService : IAuthenticationService
             var emailNormalizado = entrada.Email.ToLower().Trim();
             var usuario = await _repositorioUsuario.ObterPorEmailAsync(emailNormalizado);
             if (usuario == null)
-                return Resultado.Ok("Se o email existir, um link de recuperaÁ„o ser· enviado");
+                return Resultado.Ok("Se o email existir, um link de recupera√ß√£o ser√° enviado");
             usuario.GerarTokenResetarSenha();
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
-            var tokenReset = usuario.TokenResetarSenha;
+            var tokenReset = usuario.TokenResetarSenha ?? string.Empty;
             var urlReset = $"{_urlFrontend}/resetar-senha?usuarioId={usuario.Id}&token={tokenReset}";
             var corpoEmail = EmailTemplateGenerator.GerarEmailResetarSenha(usuario.Nome, urlReset, tokenReset);
             try
@@ -217,7 +267,7 @@ public class AuthenticationService : IAuthenticationService
                 _logger.LogWarning(emailEx, "Falha ao enviar email de reset para {Email}", EmailMascarador.Mascarar(emailNormalizado));
             }
 
-            return Resultado.Ok("Se o email existir, um link de recuperaÁ„o ser· enviado");
+            return Resultado.Ok("Se o email existir, um link de recupera√ß√£o ser√° enviado");
         }
         catch (Exception ex)
         {
@@ -232,13 +282,13 @@ public class AuthenticationService : IAuthenticationService
         {
             var usuario = await _repositorioUsuario.ObterPorIdAsync(entrada.UsuarioId);
             if (usuario == null)
-                return Resultado.Erro("Token inv·lido ou expirado");
+                return Resultado.Erro("Token inv√°lido ou expirado");
             if (string.IsNullOrWhiteSpace(usuario.TokenResetarSenha))
-                return Resultado.Erro("Token inv·lido ou expirado");
+                return Resultado.Erro("Token inv√°lido ou expirado");
             if (!TokensIguais(usuario.TokenResetarSenha, entrada.Token))
-                return Resultado.Erro("Token inv·lido ou expirado");
+                return Resultado.Erro("Token inv√°lido ou expirado");
             if (entrada.NovaSenha != entrada.ConfirmacaoSenha)
-                return Resultado.Erro("Senhas n„o coincidem");
+                return Resultado.Erro("Senhas n√£o coincidem");
             if (!PasswordValidator.ValidarComplexidade(entrada.NovaSenha))
             {
                 var mensagem = PasswordValidator.ObterMensagemErro(entrada.NovaSenha);
@@ -268,11 +318,11 @@ public class AuthenticationService : IAuthenticationService
         {
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
-                return Resultado.Erro("Usu·rio n„o encontrado");
+                return Resultado.Erro("Usu√°rio n√£o encontrado");
             if (!usuario.VerificarSenha(entrada.SenhaAtual, _passwordHashService.Verify))
-                return Resultado.Erro("Senha atual inv·lida");
+                return Resultado.Erro("Senha atual inv√°lida");
             if (entrada.NovaSenha != entrada.ConfirmacaoSenha)
-                return Resultado.Erro("Novas senhas n„o coincidem");
+                return Resultado.Erro("Novas senhas n√£o coincidem");
             if (!PasswordValidator.ValidarComplexidade(entrada.NovaSenha))
             {
                 var mensagem = PasswordValidator.ObterMensagemErro(entrada.NovaSenha);
@@ -280,7 +330,7 @@ public class AuthenticationService : IAuthenticationService
             }
 
             if (usuario.VerificarSenha(entrada.NovaSenha, _passwordHashService.Verify))
-                return Resultado.Erro("Nova senha n„o pode ser igual ‡ senha atual");
+                return Resultado.Erro("Nova senha n√£o pode ser igual √† senha atual");
             var novaSenhaHash = _passwordHashService.Hash(entrada.NovaSenha);
             usuario.TrocarSenha(novaSenhaHash);
             await _repositorioUsuario.AtualizarAsync(usuario);
@@ -299,33 +349,33 @@ public class AuthenticationService : IAuthenticationService
         try
         {
             if (string.IsNullOrWhiteSpace(email))
-                return Resultado.Erro("Email È obrigatÛrio");
+                return Resultado.Erro("Email √© obrigat√≥rio");
             var emailNormalizado = email.ToLower().Trim();
             var usuario = await _repositorioUsuario.ObterPorEmailAsync(emailNormalizado);
             if (usuario == null)
-                return Resultado.Ok("Se o email existir, um novo link ser· enviado");
+                return Resultado.Ok("Se o email existir, um novo link ser√° enviado");
             if (usuario.EmailConfirmado)
-                return Resultado.Erro("Este email j· foi confirmado");
+                return Resultado.Erro("Este email j√° foi confirmado");
             usuario.GerarTokenConfirmacaoEmail();
             await _repositorioUsuario.AtualizarAsync(usuario);
             await _repositorioUsuario.SalvarMudancasAsync();
             var urlConfirmacao = $"{_urlFrontend}/confirmar-email?usuarioId={usuario.Id}&token={usuario.TokenConfirmacaoEmail}";
-            var corpoEmail = EmailTemplateGenerator.GerarEmailConfirmacao(usuario.Nome, urlConfirmacao, usuario.TokenConfirmacaoEmail);
+            var corpoEmail = EmailTemplateGenerator.GerarEmailConfirmacao(usuario.Nome, urlConfirmacao, usuario.TokenConfirmacaoEmail ?? string.Empty);
             try
             {
                 await _servicioEmail.EnviarAsync(emailNormalizado, "PlantaCore - Confirme seu email", corpoEmail);
             }
             catch (Exception emailEx)
             {
-                _logger.LogWarning(emailEx, "Falha ao reenviar email de confirmaÁ„o para {Email}", EmailMascarador.Mascarar(emailNormalizado));
+                _logger.LogWarning(emailEx, "Falha ao reenviar email de confirma√ß√£o para {Email}", EmailMascarador.Mascarar(emailNormalizado));
             }
 
-            return Resultado.Ok("Se o email existir, um novo link ser· enviado");
+            return Resultado.Ok("Se o email existir, um novo link ser√° enviado");
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao reenviar confirmaÁ„o de email");
-            return Resultado.Erro("Erro ao reenviar confirmaÁ„o. Tente novamente.");
+            _logger.LogError(ex, "Erro ao reenviar confirma√ß√£o de email");
+            return Resultado.Erro("Erro ao reenviar confirma√ß√£o. Tente novamente.");
         }
     }
 

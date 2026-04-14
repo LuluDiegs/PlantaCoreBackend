@@ -34,29 +34,29 @@ public sealed partial class PlantService
                 if (string.IsNullOrWhiteSpace(valor)) continue;
                 if (linhaLower.StartsWith("nome comum:") && string.IsNullOrWhiteSpace(resultado.NomeComum))
                     resultado.NomeComum = valor;
-                else if (linhaLower.StartsWith("nome cientÌfico:") || linhaLower.StartsWith("nome cientifico:"))
+                else if (linhaLower.StartsWith("nome cient√≠fico:") || linhaLower.StartsWith("nome cientifico:"))
                 {
                     if (!string.IsNullOrWhiteSpace(valor))
                         resultado.NomeCientifico = valor;
                 }
-                else if (linhaLower.StartsWith("famÌlia:") || linhaLower.StartsWith("familia:"))
+                else if (linhaLower.StartsWith("fam√≠lia:") || linhaLower.StartsWith("familia:"))
                     resultado.Familia = valor;
-                else if ((linhaLower.StartsWith("gÍnero:") || linhaLower.StartsWith("genero:")) && string.IsNullOrWhiteSpace(resultado.Genero))
+                else if ((linhaLower.StartsWith("g√™nero:") || linhaLower.StartsWith("genero:")) && string.IsNullOrWhiteSpace(resultado.Genero))
                     resultado.Genero = valor;
                 else if (linhaLower.StartsWith("toxicidade para humanos:"))
                 {
                     resultado.DescricaoToxicidade = valor;
                     resultado.Toxica = ClassificarToxicidade(valor);
                 }
-                else if (linhaLower.StartsWith("toxicidade para animais domÈsticos:") ||
+                else if (linhaLower.StartsWith("toxicidade para animais dom√©sticos:") ||
                          linhaLower.StartsWith("toxicidade para animais:") ||
                          linhaLower.StartsWith("toxicidade animais:"))
                 {
                     resultado.DescricaoToxicidadeAnimais = valor;
                     resultado.ToxicaAnimais = ClassificarToxicidade(valor);
                 }
-                else if (linhaLower.StartsWith("toxicidade para crianÁas:") ||
-                         linhaLower.StartsWith("toxicidade em crianÁas:") ||
+                else if (linhaLower.StartsWith("toxicidade para crian√ßas:") ||
+                         linhaLower.StartsWith("toxicidade em crian√ßas:") ||
                          linhaLower.StartsWith("toxicidade criancas:") ||
                          linhaLower.StartsWith("toxicidade para criancas:"))
                 {
@@ -65,11 +65,11 @@ public sealed partial class PlantService
                 }
                 else if (linhaLower.StartsWith("luz:") && string.IsNullOrWhiteSpace(resultado.RequisitosLuz))
                     resultado.RequisitosLuz = valor;
-                else if ((linhaLower.StartsWith("·gua:") || linhaLower.StartsWith("agua:")) && string.IsNullOrWhiteSpace(resultado.RequisitosAgua))
+                else if ((linhaLower.StartsWith("√°gua:") || linhaLower.StartsWith("agua:")) && string.IsNullOrWhiteSpace(resultado.RequisitosAgua))
                     resultado.RequisitosAgua = valor;
                 else if (linhaLower.StartsWith("temperatura ideal:") && string.IsNullOrWhiteSpace(resultado.RequisitosTemperatura))
                     resultado.RequisitosTemperatura = valor;
-                else if ((linhaLower.StartsWith("observaÁıes:") || linhaLower.StartsWith("observacoes:")) && string.IsNullOrWhiteSpace(resultado.Cuidados))
+                else if ((linhaLower.StartsWith("observa√ß√µes:") || linhaLower.StartsWith("observacoes:")) && string.IsNullOrWhiteSpace(resultado.Cuidados))
                     resultado.Cuidados = valor;
                 else if (linhaLower.StartsWith("guia de cuidado") && string.IsNullOrWhiteSpace(resultado.Cuidados))
                     resultado.Cuidados = valor;
@@ -98,40 +98,40 @@ public sealed partial class PlantService
 
     private static string ClassificarToxicidade(string? valor)
     {
-        if (string.IsNullOrWhiteSpace(valor)) return "N„o";
+        if (string.IsNullOrWhiteSpace(valor)) return "N√£o";
         var v = valor.ToLowerInvariant();
-        if (v.StartsWith("n„o") || v.StartsWith("nao") ||
-            v.Contains("n„o È tÛxica") || v.Contains("nao e toxica") ||
-            v.Contains("n„o tÛxica") || v.Contains("nao toxica") ||
-            v.Contains("n„o È considerada tÛxica") ||
+        if (v.StartsWith("n√£o") || v.StartsWith("nao") ||
+            v.Contains("n√£o √© t√≥xica") || v.Contains("nao e toxica") ||
+            v.Contains("n√£o t√≥xica") || v.Contains("nao toxica") ||
+            v.Contains("n√£o √© considerada t√≥xica") ||
             v.Contains("segura para consumo") || v.Contains("seguro para consumo") ||
-            v.Contains("n„o apresenta toxicidade") || v.Contains("sem toxicidade conhecida"))
-            return "N„o";
-        if (v.Contains("tÛxica") || v.Contains("toxica") ||
+            v.Contains("n√£o apresenta toxicidade") || v.Contains("sem toxicidade conhecida"))
+            return "N√£o";
+        if (v.Contains("t√≥xica") || v.Contains("toxica") ||
             v.Contains("veneno") || v.Contains("venenosa") ||
-            v.Contains("intoxicaÁ„o") || v.Contains("intoxicacao") ||
+            v.Contains("intoxica√ß√£o") || v.Contains("intoxicacao") ||
             v.Contains("envenenamento") ||
-            v.Contains("subst‚ncia tÛxica") || v.Contains("composto tÛxico") ||
-            v.Contains("alcaloide") || v.Contains("glicosÌdeo") || v.Contains("oxalato") ||
+            v.Contains("subst√¢ncia t√≥xica") || v.Contains("composto t√≥xico") ||
+            v.Contains("alcaloide") || v.Contains("glicos√≠deo") || v.Contains("oxalato") ||
             v.Contains("saponina") || v.Contains("tanino") ||
-            v.Contains("irritaÁ„o quÌmica") || v.Contains("irritacao quimica") ||
-            v.Contains("ingest„o perigosa") ||
-            v.Contains("reaÁ„o alÈrgica grave") ||
+            v.Contains("irrita√ß√£o qu√≠mica") || v.Contains("irritacao quimica") ||
+            v.Contains("ingest√£o perigosa") ||
+            v.Contains("rea√ß√£o al√©rgica grave") ||
             v.Contains("fatal se ingerido") || v.Contains("fatal se ingerida"))
             return "Sim";
-        return "N„o";
+        return "N√£o";
     }
 
     private static void AplicarRegrasConsistenciaToxicidade(DadosPlantaEnriquecidos dados)
     {
         if (dados.Toxica == "Sim")
         {
-            if (dados.DescricaoToxicidade?.ToLowerInvariant().StartsWith("n„o") ?? false)
+            if (dados.DescricaoToxicidade?.ToLowerInvariant().StartsWith("n√£o") ?? false)
                 dados.DescricaoToxicidade = "Sim. " + dados.DescricaoToxicidade;
-            if ((dados.DescricaoToxicidadeAnimais?.ToLowerInvariant().Contains("tÛxica") ?? false) ||
+            if ((dados.DescricaoToxicidadeAnimais?.ToLowerInvariant().Contains("t√≥xica") ?? false) ||
                 (dados.DescricaoToxicidadeAnimais?.ToLowerInvariant().Contains("toxica") ?? false) ||
                 (dados.DescricaoToxicidadeAnimais?.ToLowerInvariant().Contains("veneno") ?? false) ||
-                (dados.DescricaoToxicidadeAnimais?.ToLowerInvariant().Contains("intoxicaÁ„o") ?? false) ||
+                (dados.DescricaoToxicidadeAnimais?.ToLowerInvariant().Contains("intoxica√ß√£o") ?? false) ||
                 (dados.DescricaoToxicidadeAnimais?.ToLowerInvariant().Contains("fatal") ?? false))
                 dados.ToxicaAnimais = "Sim";
             dados.ToxicaCriancas = "Sim";
@@ -140,9 +140,9 @@ public sealed partial class PlantService
                 dados.DescricaoToxicidadeAnimais = "Sim. " + dados.DescricaoToxicidadeAnimais;
         }
 
-        if (dados.ToxicaAnimais == "Sim" && (dados.DescricaoToxicidadeAnimais?.ToLowerInvariant().StartsWith("n„o") ?? false))
+        if (dados.ToxicaAnimais == "Sim" && (dados.DescricaoToxicidadeAnimais?.ToLowerInvariant().StartsWith("n√£o") ?? false))
             dados.DescricaoToxicidadeAnimais = "Sim. " + dados.DescricaoToxicidadeAnimais;
-        if (dados.ToxicaCriancas == "Sim" && (dados.DescricaoToxicidadeCriancas?.ToLowerInvariant().StartsWith("n„o") ?? false))
+        if (dados.ToxicaCriancas == "Sim" && (dados.DescricaoToxicidadeCriancas?.ToLowerInvariant().StartsWith("n√£o") ?? false))
             dados.DescricaoToxicidadeCriancas = "Sim. " + dados.DescricaoToxicidadeCriancas;
     }
 

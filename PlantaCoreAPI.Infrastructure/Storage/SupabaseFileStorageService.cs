@@ -1,4 +1,4 @@
-namespace PlantaCoreAPI.Infrastructure.Storage;
+﻿namespace PlantaCoreAPI.Infrastructure.Storage;
 using Microsoft.Extensions.Logging;
 
 using PlantaCoreAPI.Application.Interfaces;
@@ -122,7 +122,7 @@ public class SupabaseFileStorageService : IFileStorageService
 
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao fazer upload de foto de perfil do usu�rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao fazer upload de foto de perfil do usuário {UsuarioId}", usuarioId);
             return string.Empty;
         }
     }
@@ -142,13 +142,13 @@ public class SupabaseFileStorageService : IFileStorageService
             var response = await _httpClient.SendAsync(request);
             if (response.IsSuccessStatusCode)
                 return $"{_supabaseUrl}/storage/v1/object/public/{BucketFotos}/{nomeUnico}";
-            _logger.LogWarning("Upload foto planta falhou com status {StatusCode} para usu�rio {UsuarioId}", response.StatusCode, usuarioId);
+            _logger.LogWarning("Upload foto planta falhou com status {StatusCode} para usuário {UsuarioId}", response.StatusCode, usuarioId);
             return string.Empty;
         }
 
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao fazer upload de foto de planta do usu�rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao fazer upload de foto de planta do usuário {UsuarioId}", usuarioId);
             return string.Empty;
         }
     }
@@ -190,7 +190,7 @@ public class SupabaseFileStorageService : IFileStorageService
 
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao deletar foto de perfil do usu�rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao deletar foto de perfil do usuário {UsuarioId}", usuarioId);
             return false;
         }
     }
@@ -207,7 +207,7 @@ public class SupabaseFileStorageService : IFileStorageService
 
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao deletar foto de planta do usu�rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao deletar foto de planta do usuário {UsuarioId}", usuarioId);
             return false;
         }
     }
