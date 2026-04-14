@@ -23,37 +23,37 @@ internal sealed class DadosPlantaEnriquecidos
         if (!string.IsNullOrWhiteSpace(DescricaoToxicidade))
         {
             var desc = DescricaoToxicidade.Trim().ToLowerInvariant();
-            if (desc.StartsWith("sim") || desc.Contains("tÛxic") || desc.Contains("toxina") || desc.Contains("veneno") || desc.Contains("grayanotoxina") || desc.Contains("alcaloide") || desc.Contains("glicosÌdeo") || desc.Contains("diterpeno"))
+            if (desc.StartsWith("sim") || desc.Contains("t√≥xic") || desc.Contains("toxina") || desc.Contains("veneno") || desc.Contains("grayanotoxina") || desc.Contains("alcaloide") || desc.Contains("glicos√≠deo") || desc.Contains("diterpeno"))
                 Toxica = "Sim";
-            else if (desc.StartsWith("n„o") || desc.StartsWith("nao"))
-                Toxica = "N„o";
+            else if (desc.StartsWith("n√£o") || desc.StartsWith("nao"))
+                Toxica = "N√£o";
         }
 
-        if (Toxica != "Sim" && Toxica != "N„o")
-            Toxica = "N„o";
+        if (Toxica != "Sim" && Toxica != "N√£o")
+            Toxica = "N√£o";
 
         if (!string.IsNullOrWhiteSpace(DescricaoToxicidadeAnimais))
         {
             var desc = DescricaoToxicidadeAnimais.Trim().ToLowerInvariant();
-            if (desc.StartsWith("sim") || desc.Contains("tÛxic") || desc.Contains("toxina") || desc.Contains("veneno") || desc.Contains("grayanotoxina") || desc.Contains("alcaloide") || desc.Contains("glicosÌdeo") || desc.Contains("diterpeno"))
+            if (desc.StartsWith("sim") || desc.Contains("t√≥xic") || desc.Contains("toxina") || desc.Contains("veneno") || desc.Contains("grayanotoxina") || desc.Contains("alcaloide") || desc.Contains("glicos√≠deo") || desc.Contains("diterpeno"))
                 ToxicaAnimais = "Sim";
-            else if (desc.StartsWith("n„o") || desc.StartsWith("nao"))
-                ToxicaAnimais = "N„o";
+            else if (desc.StartsWith("n√£o") || desc.StartsWith("nao"))
+                ToxicaAnimais = "N√£o";
         }
 
-        if (ToxicaAnimais != "Sim" && ToxicaAnimais != "N„o")
-            ToxicaAnimais = "N„o";
+        if (ToxicaAnimais != "Sim" && ToxicaAnimais != "N√£o")
+            ToxicaAnimais = "N√£o";
 
         if (!string.IsNullOrWhiteSpace(DescricaoToxicidadeCriancas))
         {
             var desc = DescricaoToxicidadeCriancas.Trim().ToLowerInvariant();
-            if (desc.StartsWith("sim") || desc.Contains("tÛxic") || desc.Contains("toxina") || desc.Contains("veneno") || desc.Contains("grayanotoxina") || desc.Contains("alcaloide") || desc.Contains("glicosÌdeo") || desc.Contains("diterpeno"))
+            if (desc.StartsWith("sim") || desc.Contains("t√≥xic") || desc.Contains("toxina") || desc.Contains("veneno") || desc.Contains("grayanotoxina") || desc.Contains("alcaloide") || desc.Contains("glicos√≠deo") || desc.Contains("diterpeno"))
                 ToxicaCriancas = "Sim";
-            else if (desc.StartsWith("n„o") || desc.StartsWith("nao"))
-                ToxicaCriancas = "N„o";
+            else if (desc.StartsWith("n√£o") || desc.StartsWith("nao"))
+                ToxicaCriancas = "N√£o";
         }
 
-        if (ToxicaCriancas != "Sim" && ToxicaCriancas != "N„o")
-            ToxicaCriancas = "N„o";
+        if (ToxicaCriancas != "Sim" && ToxicaCriancas != "N√£o")
+            ToxicaCriancas = "N√£o";
     }
 }

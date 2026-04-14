@@ -36,7 +36,7 @@ public class ComunidadeService : IComunidadeService
         {
             var usuario = await _repositorioUsuario.ObterPorIdAsync(usuarioId);
             if (usuario == null)
-                return Resultado<ComunidadeDTOSaida>.Erro("Usu·rio n„o encontrado");
+                return Resultado<ComunidadeDTOSaida>.Erro("Usu√°rio n√£o encontrado");
             var comunidade = Comunidade.Criar(usuarioId, entrada.Nome, entrada.Descricao, entrada.Privada);
             await _repositorioComunidade.AdicionarAsync(comunidade);
             var membro = MembroComunidade.Criar(comunidade.Id, usuarioId, ehAdmin: true);
@@ -71,10 +71,10 @@ public class ComunidadeService : IComunidadeService
         {
             var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
             if (comunidade == null)
-                return Resultado<ComunidadeDTOSaida>.Erro("Comunidade n„o encontrada");
+                return Resultado<ComunidadeDTOSaida>.Erro("Comunidade n√£o encontrada");
             var membro = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == usuarioId);
             if (membro == null || !membro.EhAdmin)
-                return Resultado<ComunidadeDTOSaida>.Erro("Sem permiss„o para atualizar esta comunidade");
+                return Resultado<ComunidadeDTOSaida>.Erro("Sem permiss√£o para atualizar esta comunidade");
             comunidade.Atualizar(entrada.Nome, entrada.Descricao, null, entrada.Privada);
             await _repositorioComunidade.AtualizarAsync(comunidade);
             await _repositorioComunidade.SalvarMudancasAsync();
@@ -94,13 +94,13 @@ public class ComunidadeService : IComunidadeService
         {
             var comunidade = await _repositorioComunidade.ObterPorIdAsync(comunidadeId);
             if (comunidade == null)
-                return Resultado.Erro("Comunidade n„o encontrada");
+                return Resultado.Erro("Comunidade n√£o encontrada");
             if (await _repositorioComunidade.UsuarioEhMembroAsync(comunidadeId, usuarioId))
-                return Resultado.Erro("VocÍ j· È membro desta comunidade");
+                return Resultado.Erro("Voc√™ j√° √© membro desta comunidade");
             var membro = MembroComunidade.Criar(comunidadeId, usuarioId);
             await _repositorioComunidade.AdicionarMembroAsync(membro);
             await _repositorioComunidade.SalvarMudancasAsync();
-            return Resultado.Ok("VocÍ entrou na comunidade com sucesso");
+            return Resultado.Ok("Voc√™ entrou na comunidade com sucesso");
         }
         catch (Exception ex)
         {
@@ -116,15 +116,15 @@ public class ComunidadeService : IComunidadeService
         {
             var comunidade = await _repositorioComunidade.ObterPorIdAsync(comunidadeId);
             if (comunidade == null)
-                return Resultado.Erro("Comunidade n„o encontrada");
+                return Resultado.Erro("Comunidade n√£o encontrada");
             if (comunidade.CriadorId == usuarioId)
-                return Resultado.Erro("O criador n„o pode sair da comunidade. Transfira a administraÁ„o antes de sair.");
+                return Resultado.Erro("O criador n√£o pode sair da comunidade. Transfira a administra√ß√£o antes de sair.");
             var membro = await _repositorioComunidade.ObterMembroAsync(comunidadeId, usuarioId);
             if (membro == null)
-                return Resultado.Erro("VocÍ n„o È membro desta comunidade");
+                return Resultado.Erro("Voc√™ n√£o √© membro desta comunidade");
             await _repositorioComunidade.RemoverMembroAsync(membro);
             await _repositorioComunidade.SalvarMudancasAsync();
-            return Resultado.Ok("VocÍ saiu da comunidade com sucesso");
+            return Resultado.Ok("Voc√™ saiu da comunidade com sucesso");
         }
         catch (Exception ex)
         {
@@ -140,7 +140,7 @@ public class ComunidadeService : IComunidadeService
         {
             var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
             if (comunidade == null)
-                return Resultado<ComunidadeDTOSaida>.Erro("Comunidade n„o encontrada");
+                return Resultado<ComunidadeDTOSaida>.Erro("Comunidade n√£o encontrada");
             return Resultado<ComunidadeDTOSaida>.Ok(MapearComunidade(comunidade, usuarioId));
         }
         catch (Exception ex)
@@ -177,7 +177,7 @@ public class ComunidadeService : IComunidadeService
         try
         {
             if (string.IsNullOrWhiteSpace(termo))
-                return Resultado<IEnumerable<ComunidadeDTOSaida>>.Erro("Termo de busca n„o pode estar vazio");
+                return Resultado<IEnumerable<ComunidadeDTOSaida>>.Erro("Termo de busca n√£o pode estar vazio");
             var comunidades = await _repositorioComunidade.BuscarPorNomeAsync(termo);
             return Resultado<IEnumerable<ComunidadeDTOSaida>>.Ok(comunidades.Select(c => MapearComunidade(c, usuarioId)));
         }
@@ -216,10 +216,10 @@ public class ComunidadeService : IComunidadeService
         {
             var comunidade = await _repositorioComunidade.ObterPorIdAsync(comunidadeId);
             if (comunidade == null)
-                return Resultado<PaginaResultado<PostDTOSaida>>.Erro("Comunidade n„o encontrada");
+                return Resultado<PaginaResultado<PostDTOSaida>>.Erro("Comunidade n√£o encontrada");
             var ehMembro = await _repositorioComunidade.UsuarioEhMembroAsync(comunidadeId, usuarioId);
             if (!ehMembro)
-                return Resultado<PaginaResultado<PostDTOSaida>>.Erro("VocÍ precisa ser membro da comunidade para ver os posts");
+                return Resultado<PaginaResultado<PostDTOSaida>>.Erro("Voc√™ precisa ser membro da comunidade para ver os posts");
             var paginaPosts = await _repositorioPost.ObterPorComunidadeAsync(comunidadeId, pagina, tamanho, null);
             var itens = paginaPosts.Itens
                 .Where(p => p.Usuario != null)
@@ -247,18 +247,18 @@ public class ComunidadeService : IComunidadeService
         {
             var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
             if (comunidade == null)
-                return Resultado.Erro("Comunidade n„o encontrada");
+                return Resultado.Erro("Comunidade n√£o encontrada");
             var admin = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == adminId);
             if (admin == null || !admin.EhAdmin)
-                return Resultado.Erro("VocÍ n„o tem permiss„o para expulsar membros desta comunidade");
+                return Resultado.Erro("Voc√™ n√£o tem permiss√£o para expulsar membros desta comunidade");
             var membro = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == usuarioId);
             if (membro == null)
-                return Resultado.Erro("Usu·rio n„o È membro desta comunidade");
+                return Resultado.Erro("Usu√°rio n√£o √© membro desta comunidade");
             if (membro.EhAdmin)
-                return Resultado.Erro("N„o È possÌvel expulsar outro administrador");
+                return Resultado.Erro("N√£o √© poss√≠vel expulsar outro administrador");
             await _repositorioComunidade.RemoverMembroAsync(membro);
             await _repositorioComunidade.SalvarMudancasAsync();
-            return Resultado.Ok("Usu·rio expulso com sucesso");
+            return Resultado.Ok("Usu√°rio expulso com sucesso");
         }
         catch (Exception ex)
         {
@@ -274,12 +274,12 @@ public class ComunidadeService : IComunidadeService
         {
             var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
             if (comunidade == null)
-                return Resultado.Erro("Comunidade n„o encontrada");
+                return Resultado.Erro("Comunidade n√£o encontrada");
             if (comunidade.CriadorId != adminId)
-                return Resultado.Erro("Apenas o criador da comunidade pode excluÌ-la");
+                return Resultado.Erro("Apenas o criador da comunidade pode exclu√≠-la");
             await _repositorioComunidade.RemoverAsync(comunidade);
             await _repositorioComunidade.SalvarMudancasAsync();
-            return Resultado.Ok("Comunidade excluÌda com sucesso");
+            return Resultado.Ok("Comunidade exclu√≠da com sucesso");
         }
         catch (Exception ex)
         {
@@ -317,17 +317,17 @@ public class ComunidadeService : IComunidadeService
     {
         var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
         if (comunidade == null)
-            return Resultado.Erro("Comunidade n„o encontrada");
+            return Resultado.Erro("Comunidade n√£o encontrada");
         if (!comunidade.Privada)
-            return Resultado.Erro("Comunidade n„o È privada. Use o endpoint de entrar na comunidade.");
+            return Resultado.Erro("Comunidade n√£o √© privada. Use o endpoint de entrar na comunidade.");
         if (comunidade.Membros.Any(m => m.UsuarioId == usuarioId && !m.Pendente))
-            return Resultado.Erro("VocÍ j· È membro desta comunidade");
+            return Resultado.Erro("Voc√™ j√° √© membro desta comunidade");
         if (comunidade.Membros.Any(m => m.UsuarioId == usuarioId && m.Pendente))
-            return Resultado.Erro("SolicitaÁ„o j· enviada");
+            return Resultado.Erro("Solicita√ß√£o j√° enviada");
         var solicitacao = MembroComunidade.CriarSolicitacao(comunidadeId, usuarioId);
         await _repositorioComunidade.AdicionarMembroAsync(solicitacao);
         await _repositorioComunidade.SalvarMudancasAsync();
-        return Resultado.Ok("SolicitaÁ„o enviada com sucesso");
+        return Resultado.Ok("Solicita√ß√£o enviada com sucesso");
     }
 
     public async Task<IEnumerable<UsuarioListaDTOSaida>> ListarSolicitacoesAsync(Guid comunidadeId)
@@ -351,28 +351,28 @@ public class ComunidadeService : IComunidadeService
     {
         var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
         if (comunidade == null)
-            return Resultado.Erro("Comunidade n„o encontrada");
+            return Resultado.Erro("Comunidade n√£o encontrada");
         var admin = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == adminId && !m.Pendente);
         if (admin == null || !admin.EhAdmin)
-            return Resultado.Erro("Apenas administradores podem aprovar solicitaÁıes");
+            return Resultado.Erro("Apenas administradores podem aprovar solicita√ß√µes");
         var solicitacao = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == usuarioId && m.Pendente);
         if (solicitacao == null)
-            return Resultado.Erro("SolicitaÁ„o n„o encontrada");
+            return Resultado.Erro("Solicita√ß√£o n√£o encontrada");
         solicitacao.Aprovar();
         await _repositorioComunidade.SalvarMudancasAsync();
-        return Resultado.Ok("SolicitaÁ„o aprovada e usu·rio adicionado ‡ comunidade");
+        return Resultado.Ok("Solicita√ß√£o aprovada e usu√°rio adicionado √† comunidade");
     }
 
     public async Task<Resultado> TransferirAdminAsync(Guid adminId, Guid comunidadeId, Guid novoAdminId)
     {
         var comunidade = await _repositorioComunidade.ObterComMembrosAsync(comunidadeId);
         if (comunidade == null)
-            return Resultado.Erro("Comunidade n„o encontrada");
+            return Resultado.Erro("Comunidade n√£o encontrada");
         if (comunidade.CriadorId != adminId)
-            return Resultado.Erro("Apenas o admin atual pode transferir a administraÁ„o");
+            return Resultado.Erro("Apenas o admin atual pode transferir a administra√ß√£o");
         var novoAdmin = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == novoAdminId);
         if (novoAdmin == null)
-            return Resultado.Erro("Novo admin n„o È membro da comunidade");
+            return Resultado.Erro("Novo admin n√£o √© membro da comunidade");
         var adminAtual = comunidade.Membros.FirstOrDefault(m => m.UsuarioId == adminId);
         adminAtual?.RemoverAdmin();
         comunidade.TransferirAdmin(novoAdminId);

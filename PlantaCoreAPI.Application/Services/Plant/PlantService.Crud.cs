@@ -18,7 +18,7 @@ public sealed partial class PlantService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao listar plantas do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar plantas do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<IEnumerable<PlantaDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -29,7 +29,7 @@ public sealed partial class PlantService
         {
             var planta = await _repositorioPlanta.ObterPorIdAsync(plantaId);
             if (planta == null)
-                return Resultado<PlantaDTOSaida>.Erro("Planta n„o encontrada");
+                return Resultado<PlantaDTOSaida>.Erro("Planta n√£o encontrada");
             return Resultado<PlantaDTOSaida>.Ok(MapearPlantaPara(planta));
         }
         catch (Exception ex)
@@ -45,9 +45,9 @@ public sealed partial class PlantService
         {
             var planta = await _repositorioPlanta.ObterPorIdAsync(plantaId);
             if (planta == null)
-                return Resultado<bool>.Erro("Planta n„o encontrada");
+                return Resultado<bool>.Erro("Planta n√£o encontrada");
             if (planta.UsuarioId != usuarioId)
-                return Resultado<bool>.Erro("VocÍ n„o tem permiss„o para excluir esta planta");
+                return Resultado<bool>.Erro("Voc√™ n√£o tem permiss√£o para excluir esta planta");
             await _repositorioPlanta.RemoverAsync(planta);
             await _repositorioPlanta.SalvarMudancasAsync();
             return Resultado<bool>.Ok(true);
@@ -59,14 +59,14 @@ public sealed partial class PlantService
         }
     }
 
-    public async Task<Resultado<PlantaDTOSaida>> AdicionarPlantaDoTrefleAsync(Guid usuarioId, int plantaTrefleId, string? nomeCientifico, string? urlImagem)
+    public async Task<Resultado<PlantaDTOSaida>> AdicionarPlantaDoTrefleAsync(Guid usuarioId, int plantaTrefleId, string? nomeCientifico, string? urlImagem, string? localizacao = null)
     {
         try
         {
             if (string.IsNullOrWhiteSpace(urlImagem))
-                return Resultado<PlantaDTOSaida>.Erro("urlImagem È obrigatÛrio");
+                return Resultado<PlantaDTOSaida>.Erro("urlImagem √© obrigat√≥rio");
             if (string.IsNullOrWhiteSpace(nomeCientifico) && plantaTrefleId <= 0)
-                return Resultado<PlantaDTOSaida>.Erro("nomeCientifico ou plantaTrefleId s„o obrigatÛrios");
+                return Resultado<PlantaDTOSaida>.Erro("nomeCientifico ou plantaTrefleId s√£o obrigat√≥rios");
             var plantaTrefle = plantaTrefleId > 0
                 ? await _servicioTrefle.ObterPlantaPorIdAsync(plantaTrefleId)
                 : null;
@@ -79,14 +79,16 @@ public sealed partial class PlantService
             var descricaoGemini = await _servicioGemini.GerarDescricaoPlantaAsync(new DadosPlantaParaIA { NomeCientifico = nomeCientificoCorreto });
             var dadosEnriquecidos = ExtrairDadosDoGemini(descricaoGemini, nomeCientificoCorreto, plantaTrefle);
             var fotoFinal = await BaixarESalvarFotoAsync(urlImagem, usuarioId);
-            var novaPlanta = CriarPlantaDeEnriquecidos(usuarioId, dadosEnriquecidos, fotoFinal);
+            
+            var novaPlanta = CriarPlantaDeEnriquecidos(usuarioId, dadosEnriquecidos, localizacao, fotoFinal);
+            
             await _repositorioPlanta.AdicionarAsync(novaPlanta);
             await _repositorioPlanta.SalvarMudancasAsync();
             return Resultado<PlantaDTOSaida>.Ok(MapearPlantaPara(novaPlanta));
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao adicionar planta do Trefle para usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao adicionar planta do Trefle para usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PlantaDTOSaida>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }
@@ -106,7 +108,7 @@ public sealed partial class PlantService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Erro ao listar plantas paginadas do usu·rio {UsuarioId}", usuarioId);
+            _logger.LogError(ex, "Erro ao listar plantas paginadas do usu√°rio {UsuarioId}", usuarioId);
             return Resultado<PaginaResultado<PlantaDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
         }
     }

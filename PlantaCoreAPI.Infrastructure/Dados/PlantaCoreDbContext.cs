@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 
 using PlantaCoreAPI.Domain.Entities;
 
@@ -312,7 +312,7 @@ public class PlantaCoreDbContext : DbContext
         {
             entity.ToTable("categorias");
             entity.HasKey(c => c.Id);
-            entity.Property(c => c.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            entity.Property(c => c.Id).HasColumnName("id").ValueGeneratedNever();
             entity.Property(c => c.Nome).HasColumnName("nome").IsRequired();
             entity.Property(c => c.PostId).HasColumnName("post_id");
             entity.HasOne(c => c.Post)
@@ -325,7 +325,7 @@ public class PlantaCoreDbContext : DbContext
         {
             entity.ToTable("hashtags");
             entity.HasKey(h => h.Id);
-            entity.Property(h => h.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            entity.Property(h => h.Id).HasColumnName("id").ValueGeneratedNever();
             entity.Property(h => h.Nome).HasColumnName("nome").IsRequired();
             entity.Property(h => h.PostId).HasColumnName("post_id");
             entity.HasOne(h => h.Post)
@@ -338,7 +338,7 @@ public class PlantaCoreDbContext : DbContext
         {
             entity.ToTable("palavras_chave");
             entity.HasKey(pc => pc.Id);
-            entity.Property(pc => pc.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            entity.Property(pc => pc.Id).HasColumnName("id").ValueGeneratedNever();
             entity.Property(pc => pc.Palavra).HasColumnName("palavra").IsRequired();
             entity.Property(pc => pc.PostId).HasColumnName("post_id");
             entity.HasOne(pc => pc.Post)

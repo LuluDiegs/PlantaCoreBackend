@@ -5,10 +5,10 @@ namespace PlantaCoreAPI.IntegrationTests.Infrastructure;
 public class TestContext
 {
     public static string BaseUrl => Environment.GetEnvironmentVariable("TEST_API_URL") ?? "http://localhost:5123";
-    public static string User1Email => Environment.GetEnvironmentVariable("TEST_USER1_EMAIL") ?? "Dados aqui"; //Usar seu usuario - NÃO SUBIR SEUS DADOS ACIDENTALMENTE
-    public static string User1Senha => Environment.GetEnvironmentVariable("TEST_USER1_SENHA") ?? "Dados aqui";
-    public static string User2Email => Environment.GetEnvironmentVariable("TEST_USER2_EMAIL") ?? "Dados aqui"; //Pedir meu usuario de teste
-    public static string User2Senha => Environment.GetEnvironmentVariable("TEST_USER2_SENHA") ?? "Dados aqui";
+    public static string User1Email => Environment.GetEnvironmentVariable("TEST_USER1_EMAIL") ?? string.Empty; //Usar seu usuario - NÃO SUBIR SEUS DADOS ACIDENTALMENTE
+    public static string User1Senha => Environment.GetEnvironmentVariable("TEST_USER1_SENHA") ?? string.Empty;
+    public static string User2Email => Environment.GetEnvironmentVariable("TEST_USER2_EMAIL") ?? string.Empty; //Pedir meu usuario de teste
+    public static string User2Senha => Environment.GetEnvironmentVariable("TEST_USER2_SENHA") ?? string.Empty;
     public ApiClient Client1 { get; } = new(BaseUrl);  
     public ApiClient Client2 { get; } = new(BaseUrl); 
     public ApiClient Anon { get; } = new(BaseUrl);  

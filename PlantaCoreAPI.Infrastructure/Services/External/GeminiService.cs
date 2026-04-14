@@ -28,14 +28,14 @@ public class GeminiService : IGeminiService
         _logger = logger;
         var geminiConfig = configuration.GetSection("Gemini");
         var raw = geminiConfig["ChavesApi"]
-            ?? throw new InvalidOperationException("Gemini ChavesApi n„o configurada");
+            ?? throw new InvalidOperationException("Gemini ChavesApi n√£o configurada");
         _tokens = raw.Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
                     .Where(t => t.Length > 0)
                     .ToList()
                     .AsReadOnly();
         if (_tokens.Count == 0)
-            throw new InvalidOperationException("Nenhum token Gemini v·lido configurado");
+            throw new InvalidOperationException("Nenhum token Gemini v√°lido configurado");
         _modelo = geminiConfig["Modelo"] ?? "gemini-2.5-flash";
         _baseUrl = geminiConfig["BaseUrl"] ?? "https://generativelanguage.googleapis.com";
     }
@@ -55,20 +55,28 @@ public class GeminiService : IGeminiService
     public async Task<string?> GerarDescricaoPlantaAsync(DadosPlantaParaIA dados)
     {
         if (string.IsNullOrWhiteSpace(dados.Toxicidade))
-            dados.Toxicidade = "InformaÁ„o n„o disponÌvel";
+            dados.Toxicidade = "Informa√ß√£o n√£o dispon√≠vel";
 
         if (string.IsNullOrWhiteSpace(dados.Descricao))
-            dados.Descricao = "DescriÁ„o n„o fornecida.";
+            dados.Descricao = "Descri√ß√£o n√£o fornecida.";
 
         if (dados.ToxicoPets.HasValue && dados.ToxicoPets.Value)
-            dados.Descricao += " AtenÁ„o: Esta planta È tÛxica para animais de estimaÁ„o.";
+            dados.Descricao += " Aten√ß√£o: Esta planta √© t√≥xica para animais de estima√ß√£o.";
 
-        return await EnviarPromptAsync(ConstruirPromptPrincipal(dados));
+        string prompt = ConstruirPromptPrincipal(dados);
+        return await EnviarPromptAsync(prompt);
     }
 
     public async Task<string?> GerarReflexaoPlantaAsync(DadosPlantaParaIA dados, string respostaPrincipal)
     {
-        return await EnviarPromptAsync(ConstruirPromptReflexao(dados, respostaPrincipal));
+        string prompt = ConstruirPromptReflexao(dados, respostaPrincipal);
+        return await EnviarPromptAsync(prompt);
+    }
+
+    public async Task<string?> GerarRecomendacaoPlantaAsync(DadosRecomendacaoPlantaParaIA dados)
+    {
+        string prompt = ConstruirPromptRecomendacao(dados);
+        return await EnviarPromptAsync(prompt);
     }
 
     private async Task<(bool sucesso, string? texto, HttpStatusCode statusCode)>
@@ -110,11 +118,12 @@ public class GeminiService : IGeminiService
     private async Task<string?> EnviarPromptAsync(string prompt)
     {
         int tentativas = _tokens.Count;
+
         for (int i = 0; i < tentativas; i++)
         {
             var token = GetCurrentToken();
             var (sucesso, texto, statusCode) = await ExecutarPromptGeminiAsync(token, prompt);
-            if (sucesso) return texto;
+
             if (statusCode is HttpStatusCode.TooManyRequests)
             {
                 _logger.LogWarning("[Gemini] Token ...{Sufixo} com limite atingido (429). Alternando.",
@@ -125,78 +134,128 @@ public class GeminiService : IGeminiService
 
             if (statusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
             {
-                _logger.LogWarning("[Gemini] Token ...{Sufixo} inv·lido ou expirado ({Status}). Alternando.",
+                _logger.LogWarning("[Gemini] Token ...{Sufixo} inv√°lido ou expirado ({Status}). Alternando.",
                     token.Length > 4 ? token[^4..] : "****", (int)statusCode);
                 MoveNextToken();
                 continue;
             }
 
-            _logger.LogWarning("[Gemini] Erro inesperado {Status}. Abortando.", (int)statusCode);
-            break;
+            if (!sucesso)
+            {
+                _logger.LogWarning("[Gemini] Erro inesperado {Status}. Abortando.", (int)statusCode);
+                continue;
+            }
+
+            return texto;
         }
 
-        _logger.LogError("[Gemini] Todos os {Count} tokens falharam ou est„o exauridos.", _tokens.Count);
+        _logger.LogError("[Gemini] Todos os {Count} tokens falharam ou est√£o exauridos.", _tokens.Count);
         return null;
     }
 
     private string ConstruirPromptPrincipal(DadosPlantaParaIA dados)
     {
-        return $@"VocÍ È um especialista em jardinagem, bot‚nica, toxicologia de plantas e biÛlogo com 20 anos de experiÍncia.
+        return $@"Voc√™ √© um especialista em jardinagem, bot√¢nica, toxicologia de plantas e bi√≥logo com 20 anos de experi√™ncia.
             Planta a pesquisar: {dados.NomeCientifico}
-            DEFINI«√O CRÕTICA DE TOXICIDADE (LEIA COM ATEN«√O):
-            Toxicidade = presenÁa de compostos quÌmicos ou biolÛgicos nocivos: alcaloides, glicosÌdeos, oxalatos, saponinas, resinas tÛxicas, etc.
-            N√O … toxicidade: risco de engasgamento, alergia leve, irritaÁ„o de pele por contato fÌsico, gordura em excesso.
-            Se a planta N√O contÈm compostos quÌmicos tÛxicos = responda ""N„o"" em toxicidade.
-            Se a planta CONT…M compostos tÛxicos = responda ""Sim"" com descriÁ„o precisa do composto e efeito.
-            REGRAS DE CONSIST NCIA:
-            - ""Sim"" em humanos ? descreva o composto tÛxico e o efeito (ex: oxalato de c·lcio causa irritaÁ„o severa)
-            - ""N„o"" em humanos ? confirme que È segura quimicamente
-            - Se tÛxica para humanos, avalie separadamente para animais e crianÁas com a mesma rigorosidade
-            - NUNCA marque ""Sim"" apenas por risco mec‚nico (espinho, engasgo, etc.)
+            DEFINI√á√ÉO CR√çTICA DE TOXICIDADE (LEIA COM ATEN√á√ÉO):
+            Toxicidade = presen√ßa de compostos qu√≠micos ou biol√≥gicos nocivos: alcaloides, glicos√≠deos, oxalatos, saponinas, resinas t√≥xicas, etc.
+            N√ÉO √â toxicidade: risco de engasgamento, alergia leve, irrita√ß√£o de pele por contato f√≠sico, gordura em excesso.
+            Se a planta N√ÉO cont√©m compostos qu√≠micos t√≥xicos = responda ""N√£o"" em toxicidade.
+            Se a planta CONT√âM compostos t√≥xicos = responda ""Sim"" com descri√ß√£o precisa do composto e efeito.
+            REGRAS DE CONSIST√äNCIA:
+            - ""Sim"" em humanos ? descreva o composto t√≥xico e o efeito (ex: oxalato de c√°lcio causa irrita√ß√£o severa)
+            - ""N√£o"" em humanos ? confirme que √© segura quimicamente
+            - Se t√≥xica para humanos, avalie separadamente para animais e crian√ßas com a mesma rigorosidade
+            - NUNCA marque ""Sim"" apenas por risco mec√¢nico (espinho, engasgo, etc.)
             - NUNCA marque ""Sim"" apenas por ser indigesta em excesso
             Responda EXATAMENTE neste formato sem markdown, sem negrito, sem asteriscos:
-            Nome cientÌfico: [nome cientÌfico correto]
-            Nome comum: [nome comum em portuguÍs]
-            FamÌlia: [famÌlia bot‚nica]
-            GÍnero: [gÍnero]
-            Toxicidade para humanos: [Sim ou N„o - descriÁ„o do composto tÛxico ou confirmaÁ„o de seguranÁa]
-            Toxicidade para animais domÈsticos: [Sim ou N„o - descriÁ„o especÌfica para c„es e gatos]
-            Toxicidade para crianÁas: [Sim ou N„o - descriÁ„o especÌfica]
-            Luz: [requisitos pr·ticos - ex: Sol pleno, Meia sombra]
-            ¡gua: [frequÍncia e quantidade pr·tica]
-            Temperatura ideal: [faixa em ∞C - ex: 18-28∞C]
-            ObservaÁıes: [curiosidades e caracterÌsticas relevantes]
-            Guia de cuidado completo: [mÌnimo 5 passos pr·ticos]";
+            Nome cient√≠fico: [nome cient√≠fico correto]
+            Nome comum: [nome comum em portugu√™s]
+            Fam√≠lia: [fam√≠lia bot√¢nica]
+            G√™nero: [g√™nero]
+            Toxicidade para humanos: [Sim ou N√£o - descri√ß√£o do composto t√≥xico ou confirma√ß√£o de seguran√ßa]
+            Toxicidade para animais dom√©sticos: [Sim ou N√£o - descri√ß√£o espec√≠fica para c√£es e gatos]
+            Toxicidade para crian√ßas: [Sim ou N√£o - descri√ß√£o espec√≠fica]
+            Luz: [requisitos pr√°ticos - ex: Sol pleno, Meia sombra]
+            √Ågua: [frequ√™ncia e quantidade pr√°tica]
+            Temperatura ideal: [faixa em ¬∞C - ex: 18-28¬∞C]
+            Observa√ß√µes: [curiosidades e caracter√≠sticas relevantes]
+            Guia de cuidado completo: [m√≠nimo 5 passos pr√°ticos]";
     }
 
     private string ConstruirPromptReflexao(DadosPlantaParaIA dados, string respostaPrincipal)
     {
-        return $@"VocÍ È um especialista em toxicologia de plantas e bot‚nica com 20 anos de experiÍncia.
+        return $@"Voc√™ √© um especialista em toxicologia de plantas e bot√¢nica com 20 anos de experi√™ncia.
             Planta: {dados.NomeCientifico}
             Resposta anterior:
             {respostaPrincipal}
-            VALIDA«√O OBRIGAT”RIA:
-            1. TOXICIDADE: verifique se cada campo ""Sim"" È justificado por composto quÌmico/biolÛgico tÛxico real.
-               - Risco de engasgamento N√O È toxicidade ? corrija para ""N„o""
-               - Gordura em excesso N√O È toxicidade ? corrija para ""N„o""
-               - Alergia de contato fÌsico N√O È toxicidade quÌmica ? corrija para ""N„o""
-               - Alcaloide, glicosÌdeo, oxalato, saponina, veneno = toxicidade real ? mantenha ""Sim""
-            2. CONSIST NCIA: ""Sim"" deve ter descriÁ„o do composto tÛxico. ""N„o"" deve confirmar seguranÁa.
+            VALIDA√á√ÉO OBRIGAT√ìRIA:
+            1. TOXICIDADE: verifique se cada campo ""Sim"" √© justificado por composto qu√≠mico/biol√≥gico t√≥xico real.
+               - Risco de engasgamento N√ÉO √© toxicidade ? corrija para ""N√£o""
+               - Gordura em excesso N√ÉO √© toxicidade ? corrija para ""N√£o""
+               - Alergia de contato f√≠sico N√ÉO √© toxicidade qu√≠mica ? corrija para ""N√£o""
+               - Alcaloide, glicos√≠deo, oxalato, saponina, veneno = toxicidade real ? mantenha ""Sim""
+            2. CONSIST√äNCIA: ""Sim"" deve ter descri√ß√£o do composto t√≥xico. ""N√£o"" deve confirmar seguran√ßa.
             3. FORMATO: sem markdown, sem asteriscos, sem negrito. Texto puro apenas.
             4. Todos os campos devem estar preenchidos.
             Retorne a resposta COMPLETA corrigida no mesmo formato:
-            Nome cientÌfico: [VALIDADO]
+            Nome cient√≠fico: [VALIDADO]
             Nome comum: [VALIDADO]
-            FamÌlia: [VALIDADO]
-            GÍnero: [VALIDADO]
-            Toxicidade para humanos: [Sim ou N„o - APENAS toxicidade quÌmica/biolÛgica real]
-            Toxicidade para animais domÈsticos: [Sim ou N„o - APENAS toxicidade quÌmica/biolÛgica real]
-            Toxicidade para crianÁas: [Sim ou N„o - APENAS toxicidade quÌmica/biolÛgica real]
+            Fam√≠lia: [VALIDADO]
+            G√™nero: [VALIDADO]
+            Toxicidade para humanos: [Sim ou N√£o - APENAS toxicidade qu√≠mica/biol√≥gica real]
+            Toxicidade para animais dom√©sticos: [Sim ou N√£o - APENAS toxicidade qu√≠mica/biol√≥gica real]
+            Toxicidade para crian√ßas: [Sim ou N√£o - APENAS toxicidade qu√≠mica/biol√≥gica real]
             Luz: [VALIDADO]
-            ¡gua: [VALIDADO]
+            √Ågua: [VALIDADO]
             Temperatura ideal: [VALIDADO]
-            ObservaÁıes: [VALIDADO]
+            Observa√ß√µes: [VALIDADO]
             Guia de cuidado completo: [VALIDADO]";
+    }
+
+    private string ConstruirPromptRecomendacao(DadosRecomendacaoPlantaParaIA dados)
+    {
+        return $@"Voc√™ √© um especialista em bot√¢nica e jardinagem dom√©stica.
+            Sua tarefa √© recomendar EXATAMENTE 1 planta ideal com base no perfil do usu√°rio.
+
+            DADOS DO USU√ÅRIO:
+            Experi√™ncia: {dados.Experiencia}
+            Ilumina√ß√£o do ambiente: {dados.Iluminacao}
+            Comportamento de rega: {dados.Regagem}
+            Restri√ß√£o de seguran√ßa: {dados.Seguranca}
+            Prop√≥sito da planta: {dados.Proposito}
+
+            REGRAS:
+            1. A planta deve ser REAL e comum no Brasil.
+            2. A recomenda√ß√£o deve ser compat√≠vel com TODOS os crit√©rios do usu√°rio.
+            3. Se houver restri√ß√£o de seguran√ßa, NUNCA sugerir plantas t√≥xicas.
+            4. A planta deve ser f√°cil de encontrar em floriculturas ou lojas comuns.
+            5. Evite respostas gen√©ricas ‚Äî escolha a melhor op√ß√£o poss√≠vel.
+            6. NUNCA sugerir plantas ilegais no Brasil, incluindo esp√©cies proibidas, controladas ou associadas a subst√¢ncias il√≠citas.
+            7. Caso uma planta adequada seja ilegal ou t√≥xica (quando houver restri√ß√£o), descarte e escolha outra.
+
+            REGRAS DA JUSTIFICATIVA:
+            - M√°ximo de 250 caracteres
+            - Linguagem simples e direta
+            - Sem termos t√©cnicos complexos
+            - Sem listas, quebras de linha ou emojis
+            - Deve explicar claramente a rela√ß√£o com ilumina√ß√£o, rega e experi√™ncia
+
+            FORMATO DE RESPOSTA:
+
+            Retorne APENAS um JSON v√°lido.
+            N√ÉO use markdown.
+            N√ÉO use ```json.
+            N√ÉO adicione explica√ß√µes, coment√°rios ou qualquer texto fora do JSON.
+
+            O JSON deve come√ßar com {{ e terminar com }}.
+
+            Exemplo v√°lido:
+            {{
+            ""nome_comum"": ""Hortel√£"",
+            ""nome_cientifico"": ""Mentha spicata"",
+            ""justificativa"": ""Texto curto aqui.""
+            }}";
     }
 }
 
