@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using PlantaCoreAPI.Application.DTOs.Post;
 using PlantaCoreAPI.Application.DTOs.Comentario;
@@ -89,7 +89,7 @@ public class PostController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
 
-        var resultado = await _postService.ObterFeedAsync(usuarioId, pagina, tamanho);
+        var resultado = await _postService.ObterFeedAsync(usuarioId, pagina, tamanho, ordenarPor);
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
 

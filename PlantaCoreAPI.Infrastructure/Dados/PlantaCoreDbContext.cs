@@ -77,8 +77,8 @@ public class PlantaCoreDbContext : DbContext
                 .WithMany(u => u.Seguindo)
                 .UsingEntity(
                     "seguidores",
-                    l => l.HasOne(typeof(Usuario)).WithMany().HasForeignKey("seguidor_id").OnDelete(DeleteBehavior.Cascade),
-                    r => r.HasOne(typeof(Usuario)).WithMany().HasForeignKey("seguido_id").OnDelete(DeleteBehavior.Cascade),
+                    l => l.HasOne(typeof(Usuario)).WithMany().HasForeignKey("seguido_id").OnDelete(DeleteBehavior.Cascade),
+                    r => r.HasOne(typeof(Usuario)).WithMany().HasForeignKey("seguidor_id").OnDelete(DeleteBehavior.Cascade),
                     j =>
                     {
                         j.HasKey("seguidor_id", "seguido_id");

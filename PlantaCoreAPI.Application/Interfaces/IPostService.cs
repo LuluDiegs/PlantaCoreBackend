@@ -1,4 +1,4 @@
-using PlantaCoreAPI.Application.Comuns;
+﻿using PlantaCoreAPI.Application.Comuns;
 using PlantaCoreAPI.Application.DTOs.Comentario;
 using PlantaCoreAPI.Application.DTOs.Post;
 using PlantaCoreAPI.Domain.Comuns;
@@ -11,7 +11,7 @@ public interface IPostService
     Task<Resultado<PostDTOSaida>> AtualizarPostAsync(Guid usuarioId, Guid postId, AtualizarPostDTOEntrada entrada);
     Task<Resultado> ExcluirPostAsync(Guid usuarioId, Guid postId);
     Task<Resultado<PostDTOSaida>> ObterPostAsync(Guid postId, Guid usuarioId);
-    Task<Resultado<IEnumerable<PostDTOSaida>>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10, string? cursor = null);
+    Task<Resultado<IEnumerable<PostDTOSaida>>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10, string? ordenarPor = null);
     Task<Resultado<PaginaResultado<PostDTOSaida>>> ListarPostsUsuarioAsync(Guid usuarioId, Guid usuarioAutenticadoId, int pagina, int tamanho, string? ordenarPor);
     Task<Resultado<PaginaResultado<PostDTOSaida>>> ObterExploradorAsync(Guid usuarioAutenticadoId, int pagina, int tamanho, string? ordenarPor);
     Task<Resultado<IEnumerable<PostDTOSaida>>> ListarPostsCurtidosAsync(Guid usuarioId, Guid usuarioAutenticadoId);

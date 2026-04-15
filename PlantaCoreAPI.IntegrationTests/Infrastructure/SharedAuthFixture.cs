@@ -1,4 +1,4 @@
-namespace PlantaCoreAPI.IntegrationTests.Infrastructure;
+﻿namespace PlantaCoreAPI.IntegrationTests.Infrastructure;
 
 public class SharedAuthFixture : IAsyncLifetime
 {
@@ -14,11 +14,12 @@ public class SharedAuthFixture : IAsyncLifetime
         if (!ok1) throw new InvalidOperationException(
             $"Falha no login de User1 ({TestContext.User1Email}). API rodando em {TestContext.BaseUrl}?");
 
-        await Task.Delay(800);
+        await Task.Delay(2000);
 
         var ok2 = await Client2.LoginAsync(TestContext.User2Email, TestContext.User2Senha);
         if (!ok2) throw new InvalidOperationException(
-            $"Falha no login de User2 ({TestContext.User2Email}).");
+            $"Falha no login de User2 ({TestContext.User2Email}). " +
+            $"Verifique credenciais e rate limit (10 tentativas/15 min). API: {TestContext.BaseUrl}");
 
         await Client1.PutAsync("/api/v1/Usuario/privacidade", new { privado = true });
 

@@ -8,8 +8,11 @@
 
   <ItemGroup>
     <Compile Remove="Adapters\**" />
+    <Compile Remove="Utils\**" />
     <EmbeddedResource Remove="Adapters\**" />
+    <EmbeddedResource Remove="Utils\**" />
     <None Remove="Adapters\**" />
+    <None Remove="Utils\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -32,10 +35,6 @@
   <ItemGroup>
     <ProjectReference Include="..\PlantaCoreAPI.Domain\PlantaCoreAPI.Domain.csproj" />
     <ProjectReference Include="..\PlantaCoreAPI.Application\PlantaCoreAPI.Application.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Utils\" />
   </ItemGroup>
 
 </Project>

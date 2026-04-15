@@ -1,4 +1,4 @@
-using PlantaCoreAPI.Domain.Comuns;
+﻿using PlantaCoreAPI.Domain.Comuns;
 using PlantaCoreAPI.Domain.Entities;
 
 namespace PlantaCoreAPI.Domain.Interfaces;
@@ -8,7 +8,7 @@ public interface IRepositorioPost : IRepositorio<Entities.Post>
     Task<IEnumerable<Entities.Post>> ObterPorUsuarioAsync(Guid usuarioId);
     Task<int> ContarPorUsuarioAsync(Guid usuarioId);
     Task<PaginaResultado<Entities.Post>> ObterPorUsuarioPaginadoAsync(Guid usuarioId, int pagina, int tamanho, string? ordenarPor);
-    Task<IEnumerable<Entities.Post>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10);
+    Task<IEnumerable<Entities.Post>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10, string? ordenarPor = null);
     Task<PaginaResultado<Entities.Post>> ObterExploradorAsync(int pagina, int tamanho, string? ordenarPor);
     Task<IEnumerable<Entities.Post>> ObterPorPlantaAsync(Guid plantaId);
     Task<PaginaResultado<Entities.Post>> ObterPorComunidadeAsync(Guid comunidadeId, int pagina, int tamanho, string? ordenarPor);

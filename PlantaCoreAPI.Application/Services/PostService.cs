@@ -193,20 +193,17 @@ public class PostService : IPostService
         }
     }
 
-    public async Task<Resultado<IEnumerable<PostDTOSaida>>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10, string? cursor = null)
+    public async Task<Resultado<IEnumerable<PostDTOSaida>>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10, string? ordenarPor = null)
     {
-        var cacheKey = $"feed:{usuarioId}:{pagina}:{tamanho}:{cursor}";
+        var cacheKey = $"feed:{usuarioId}:{pagina}:{tamanho}:{ordenarPor}";
         var cached = _cacheService.Get<IEnumerable<PostDTOSaida>>(cacheKey);
         if (cached != null)
             return Resultado<IEnumerable<PostDTOSaida>>.Ok(cached);
 
         try
         {
-            var posts = await _repositorioPost.ObterFeedAsync(usuarioId, pagina, tamanho);
-            var postsOrdenados = posts
-                .OrderByDescending(p => p.Curtidas.Count + p.Comentarios.Count)
-                .ThenByDescending(p => p.DataCriacao)
-                .ToList();
+            var posts = await _repositorioPost.ObterFeedAsync(usuarioId, pagina, tamanho, ordenarPor);
+            var postsOrdenados = posts.ToList();
 
             var dtos = new List<PostDTOSaida>();
             foreach (var post in postsOrdenados.Where(p => p.Usuario != null))

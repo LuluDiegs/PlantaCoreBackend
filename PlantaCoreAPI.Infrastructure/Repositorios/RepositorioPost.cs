@@ -84,27 +84,26 @@ public class RepositorioPost : IRepositorioPost
             .CountAsync(p => p.UsuarioId == usuarioId && p.Ativo);
     }
 
-    public async Task<IEnumerable<Post>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10)
+    public async Task<IEnumerable<Post>> ObterFeedAsync(Guid usuarioId, int pagina = 1, int tamanho = 10, string? ordenarPor = null)
     {
-        var usuario = await _contexto.Usuarios
-            .Include(u => u.Seguindo)
-            .FirstOrDefaultAsync(u => u.Id == usuarioId);
+        var idsUsuariosSeguindo = await _contexto.Usuarios
+            .Where(u => u.Id == usuarioId)
+            .SelectMany(u => u.Seguindo)
+            .Select(u => u.Id)
+            .ToListAsync();
 
-        if (usuario == null)
-            return Enumerable.Empty<Post>();
-
-        var idsUsuariosSeguindo = usuario.Seguindo.Select(u => u.Id).ToList();
         idsUsuariosSeguindo.Add(usuarioId);
 
-        return await _contexto.Posts
+        var query = _contexto.Posts
             .Where(p => idsUsuariosSeguindo.Contains(p.UsuarioId) && p.Ativo)
             .Include(p => p.Usuario)
             .Include(p => p.Curtidas)
             .Include(p => p.Comentarios)
             .Include(p => p.Hashtags)
             .Include(p => p.Categorias)
-            .Include(p => p.PalavrasChave)
-            .OrderByDescending(p => p.DataCriacao)
+            .Include(p => p.PalavrasChave);
+
+        return await OrdenarPosts(query, ordenarPor)
             .Skip((pagina - 1) * tamanho)
             .Take(tamanho)
             .ToListAsync();
@@ -249,7 +248,7 @@ public class RepositorioPost : IRepositorioPost
     public async Task<PaginaResultado<Post>> ObterExploradorAsync(int pagina, int tamanho, string? ordenarPor)
     {
         var query = _contexto.Posts
-            .Where(p => p.Ativo)
+            .Where(p => p.Ativo && p.Usuario != null && !p.Usuario.PerfilPrivado)
             .Include(p => p.Usuario)
             .Include(p => p.Curtidas)
             .Include(p => p.Comentarios)
@@ -285,7 +284,7 @@ public class RepositorioPost : IRepositorioPost
     public async Task<PaginaResultado<Post>> BuscarPostsAsync(string? q, int pagina, int tamanho)
     {
         var query = _contexto.Posts
-            .Where(p => p.Ativo)
+            .Where(p => p.Ativo && p.Usuario != null && !p.Usuario.PerfilPrivado)
             .Include(p => p.Usuario)
             .Include(p => p.Curtidas)
             .Include(p => p.Comentarios)
@@ -319,7 +318,7 @@ public class RepositorioPost : IRepositorioPost
     public async Task<PaginaResultado<Post>> BuscarPostsPorPlantaAsync(string nomePlanta, int pagina, int tamanho)
     {
         var query = _contexto.Posts
-            .Where(p => p.Ativo && p.Planta != null &&
+            .Where(p => p.Ativo && p.Usuario != null && !p.Usuario.PerfilPrivado && p.Planta != null &&
                 (EF.Functions.ILike(p.Planta.NomeCientifico, $"%{nomePlanta}%") ||
                  (p.Planta.NomeComum != null && EF.Functions.ILike(p.Planta.NomeComum, $"%{nomePlanta}%"))))
             .Include(p => p.Usuario)
@@ -361,10 +360,10 @@ public class RepositorioPost : IRepositorioPost
     {
         return ordenarPor switch
         {
-            "mais_antigo" => query.OrderBy(p => p.DataCriacao),
-            "mais_curtido" => query.OrderByDescending(p => p.Curtidas.Count).ThenByDescending(p => p.DataCriacao),
-            "mais_comentado" => query.OrderByDescending(p => p.Comentarios.Count).ThenByDescending(p => p.DataCriacao),
-            _ => query.OrderByDescending(p => p.DataCriacao),
+            "mais_antigo"   => query.OrderBy(p => p.DataCriacao),
+            "mais_curtido"  => query.OrderByDescending(p => p.Curtidas.Count()).ThenByDescending(p => p.DataCriacao),
+            "mais_comentado"=> query.OrderByDescending(p => p.Comentarios.Count()).ThenByDescending(p => p.DataCriacao),
+            "mais_recente" or _  => query.OrderByDescending(p => p.DataCriacao),
         };
     }
 }

@@ -1,4 +1,4 @@
-using Xunit;
+﻿using Xunit;
 using Xunit.Abstractions;
 using PlantaCoreAPI.IntegrationTests.Infrastructure;
 using Newtonsoft.Json.Linq;
@@ -54,7 +54,7 @@ public class BuscaTests
     public async Task B05_BuscaGlobal_PorHashtag()
     {
         var termo = $"hashtagqa{Guid.NewGuid():N}";
-        var postId = await CriarPostComMetadadosAsync(new
+        var postId = await CriarPostComMetadadosAsync(_auth.Client2, new
         {
             conteudo = $"Post de busca por hashtag #{termo}",
             hashtags = new[] { termo }
@@ -70,11 +70,11 @@ public class BuscaTests
     [Fact(DisplayName = "B06 - Busca global retorna post por categoria")]
     public async Task B06_BuscaGlobal_PorCategoria()
     {
-        var planta = await ObterOuCriarPrimeiraPlantaAsync();
+        var planta = await ObterOuCriarPrimeiraPlantaAsync(_auth.Client2);
 
         var termo = planta.NomeComum ?? planta.NomeCientifico;
 
-        var postId = await CriarPostComMetadadosAsync(new
+        var postId = await CriarPostComMetadadosAsync(_auth.Client2, new
         {
             conteudo = "Post de busca por categoria",
             plantaId = planta.Id
@@ -91,7 +91,7 @@ public class BuscaTests
     public async Task B07_BuscaGlobal_PorPalavraChave()
     {
         var termo = $"palavra-qa-{Guid.NewGuid():N}";
-        var postId = await CriarPostComMetadadosAsync(new
+        var postId = await CriarPostComMetadadosAsync(_auth.Client2, new
         {
             conteudo = "Post de busca por palavra-chave",
             palavrasChave = new[] { termo }
@@ -104,9 +104,9 @@ public class BuscaTests
         AssertPostEncontrado(resp.Json?["posts"], postId);
     }
 
-    private async Task<Guid> CriarPostComMetadadosAsync(object body)
+    private async Task<Guid> CriarPostComMetadadosAsync(ApiClient client, object body)
     {
-        var resp = await _auth.Client1.PostAsync("/api/v1/Post", body);
+        var resp = await client.PostAsync("/api/v1/Post", body);
         _out.WriteLine(resp.ToString());
         Assert.True(resp.Status is 200 or 201, $"Esperado 200 ou 201, recebeu {resp.Status}");
 
@@ -122,7 +122,7 @@ public class BuscaTests
         Assert.Contains(posts!, p => string.Equals(p?["id"]?.ToString(), postId.ToString(), StringComparison.OrdinalIgnoreCase));
     }
 
-    private async Task<(Guid Id, string NomeCientifico, string NomeComum)> CriarPlantaViaIdentificacaoAsync()
+    private async Task<(Guid Id, string NomeCientifico, string NomeComum)> CriarPlantaViaIdentificacaoAsync(ApiClient client)
     {
         const string imageUrl = "https://bs.plantnet.org/image/o/a2b8cb049d071ed0bae3d324f7516b794399c4c8";
 
@@ -137,7 +137,7 @@ public class BuscaTests
         form.Add(fileContent, "Foto", "plant.jpg");
         form.Add(new StringContent("false"), "CriarPostagem");
 
-        var resp = await _auth.Client1.PostMultipartAsync("/api/v1/Planta/identificar", form);
+        var resp = await client.PostMultipartAsync("/api/v1/Planta/identificar", form);
         _out.WriteLine(resp.ToString()); 
         Assert.Equal(200, resp.Status); 
 
@@ -151,9 +151,9 @@ public class BuscaTests
         return (Guid.Parse(id!), nomeCientifico!, nomeComum!);
     }
 
-    private async Task<(Guid Id, string NomeCientifico, string NomeComum)?> ObterPrimeiraPlantaAsync()
+    private async Task<(Guid Id, string NomeCientifico, string NomeComum)?> ObterPrimeiraPlantaAsync(ApiClient client)
     {
-        var resp = await _auth.Client1.GetAsync("/api/v1/Planta/minhas-plantas?pagina=1&tamanho=1");
+        var resp = await client.GetAsync("/api/v1/Planta/minhas-plantas?pagina=1&tamanho=1");
         _out.WriteLine(resp.ToString());
         Assert.Equal(200, resp.Status);
 
@@ -174,16 +174,16 @@ public class BuscaTests
         return (Guid.Parse(id), nomeCientifico, nomeComum);
     }
 
-    private async Task<(Guid Id, string NomeCientifico, string NomeComum)> ObterOuCriarPrimeiraPlantaAsync()
+    private async Task<(Guid Id, string NomeCientifico, string NomeComum)> ObterOuCriarPrimeiraPlantaAsync(ApiClient client)
     {
-        var planta = await ObterPrimeiraPlantaAsync();
+        var planta = await ObterPrimeiraPlantaAsync(client);
 
         if (planta is not null)
             return planta.Value;
 
-        await CriarPlantaViaIdentificacaoAsync();
+        await CriarPlantaViaIdentificacaoAsync(client);
 
-        planta = await ObterPrimeiraPlantaAsync();
+        planta = await ObterPrimeiraPlantaAsync(client);
         Assert.NotNull(planta);
 
         return planta.Value;
