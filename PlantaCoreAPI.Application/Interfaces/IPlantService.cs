@@ -21,4 +21,5 @@ public interface IPlantService
     Task<IEnumerable<PlantaDTOSaida>> BuscarPlantasPorNomeAsync(string termo);
     Task<IEnumerable<PostDTOSaida>> ListarPostsDaPlantaAsync(Guid plantaId);
     Task<Resultado<RecomendacaoPlantaComImagemDTO>> GerarRecomendacaoPlantaAsync(DadosRecomendacaoPlantaParaIA dados);
+    Task<Resultado<RecomendacaoPlantaComImagemDTO>> GerarSalvarRecomendacaoPlantaAsync(DadosRecomendacaoPlantaParaIA dados, Guid usuarioId);
 }
