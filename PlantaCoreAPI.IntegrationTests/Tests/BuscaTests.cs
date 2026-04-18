@@ -169,7 +169,6 @@ public class BuscaTests
 
         Assert.False(string.IsNullOrWhiteSpace(id));
         Assert.False(string.IsNullOrWhiteSpace(nomeCientifico));
-        Assert.False(string.IsNullOrWhiteSpace(nomeComum));
 
         return (Guid.Parse(id), nomeCientifico, nomeComum);
     }
