@@ -34,6 +34,7 @@ internal static class ServicesExtensions
         services.AddScoped<IRepositorioPostView, RepositorioPostView>();
         services.AddScoped<IRepositorioActivityLog, RepositorioActivityLog>();
         services.AddScoped<IRepositorioExclusaoConta, RepositorioExclusaoConta>();
+        services.AddScoped<IRepositorioRecomendacao, RepositorioRecomendacao>();
         return services;
     }
 

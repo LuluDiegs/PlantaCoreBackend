@@ -245,7 +245,10 @@ public class PlantaController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Recomendacao([FromForm] DadosRecomendacaoPlantaParaIA entrada)
     {
-        var resultado = await _servicioPlanta.GerarRecomendacaoPlantaAsync(entrada);
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId)) return Unauthorized();
+
+        var resultado = await _servicioPlanta.GerarSalvarRecomendacaoPlantaAsync(entrada, usuarioId);
         return Ok(ResponseHelper.Padrao(true, resultado));
     }
 }
