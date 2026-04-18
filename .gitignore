@@ -14,7 +14,7 @@ build/
 
 ## Secrets - NUNCA COMMITE SECRETS!
 .env
-.env.*
+./PlantaCoreAPI.API/.env
 secrets.json
 appsettings.Development.json
 appsettings.json

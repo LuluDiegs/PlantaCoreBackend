@@ -4,17 +4,15 @@ using PlantaCoreAPI.API.Filters;
 using PlantaCoreAPI.API.Options;
 using PlantaCoreAPI.Infrastructure.Services;
 using PlantaCoreAPI.API.Swagger;
+using DotNetEnv;
 
 var builder = WebApplication.CreateBuilder(args);
+
+Env.Load(".env");
 
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
     .AddEnvironmentVariables();
-
-if (builder.Environment.IsDevelopment())
-{
-    builder.Configuration.AddUserSecrets<Program>();
-}
 
 builder.Logging.ClearProviders();
 builder.Logging.AddConsole();
