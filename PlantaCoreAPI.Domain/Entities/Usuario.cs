@@ -28,7 +28,10 @@ public class Usuario
     public List<MembroComunidade> ComunidadesParticipantes { get; private set; } = new();
     public List<Evento> EventosCriados { get; private set; } = new();
     public List<EventoParticipante> EventosParticipando { get; private set; } = new();
+    public List<Recomendacao> Recomendacoes { get; set; } = new();
+
     private Usuario() { }
+
     public static Usuario Criar(string nome, string email, string senhaHash)
     {
         if (string.IsNullOrWhiteSpace(nome))
