@@ -22,6 +22,7 @@ public sealed partial class PlantService : IPlantService
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly IRepositorioPost _repositorioPost;
     private readonly IEventoDispatcher _eventoDispatcher;
+    private readonly IRepositorioRecomendacao _repositorioRecomendacao;
 
     public PlantService(
         IRepositorioPlanta repositorioPlanta,
@@ -33,7 +34,8 @@ public sealed partial class PlantService : IPlantService
         IHttpClientFactory httpClientFactory,
         IRepositorioPost repositorioPost,
         IEventoDispatcher eventoDispatcher,
-        ILogger<PlantService> logger)
+        ILogger<PlantService> logger,
+        IRepositorioRecomendacao repositorioRecomendacao)
     {
         _repositorioPlanta = repositorioPlanta;
         _repositorioNotificacao = repositorioNotificacao;
@@ -45,6 +47,7 @@ public sealed partial class PlantService : IPlantService
         _httpClientFactory = httpClientFactory;
         _repositorioPost = repositorioPost;
         _eventoDispatcher = eventoDispatcher;
+        _repositorioRecomendacao = repositorioRecomendacao;
     }
 
     public async Task<Resultado<PaginaResultado<PlantaDTOSaida>>> BuscarPlantasUsuarioAsync(Guid usuarioId, string termo, int pagina, int tamanho)
