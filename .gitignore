@@ -15,6 +15,7 @@ build/
 ## Secrets - NUNCA COMMITE SECRETS!
 .env
 ./PlantaCoreAPI.API/.env
+./PlantaCoreAPI.IntegrationTests/.env
 secrets.json
 appsettings.Development.json
 appsettings.json
