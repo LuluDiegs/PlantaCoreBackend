@@ -75,13 +75,9 @@ public sealed partial class PlantService : IPlantService
         var planta = await _repositorioPlanta.ObterPorIdAsync(plantaId);
         if (planta == null)
             return Resultado<PostDTOSaida>.Erro("Planta não encontrada.");
-<<<<<<< developer
             
         var post = Post.Criar(usuarioId, conteudo, plantaId, null, localizacao);
         
-=======
-        var post = Post.Criar(usuarioId, conteudo, plantaId, null);
->>>>>>> main
         await _repositorioPost.AdicionarAsync(post);
         await _repositorioPost.SalvarMudancasAsync();
         
