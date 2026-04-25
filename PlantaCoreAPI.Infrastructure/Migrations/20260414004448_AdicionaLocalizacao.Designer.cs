@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PlantaCoreAPI.Infrastructure.Dados;
@@ -11,9 +12,11 @@ using PlantaCoreAPI.Infrastructure.Dados;
 namespace PlantaCoreAPI.Infrastructure.Migrations
 {
     [DbContext(typeof(PlantaCoreDbContext))]
-    partial class PlantaCoreDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260414004448_AdicionaLocalizacao")]
+    partial class AdicionaLocalizacao
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -66,6 +69,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Categoria", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -299,6 +303,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Hashtag", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -433,6 +438,7 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.PalavraChave", b =>
                 {
                     b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
@@ -709,62 +715,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasDatabaseName("ix_postview_usuario_post");
 
                     b.ToTable("post_views", (string)null);
-                });
-
-            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Recomendacao", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Experiencia")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("experiencia");
-
-                    b.Property<string>("Iluminacao")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("iluminacao");
-
-                    b.Property<string>("Justificativa")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("justificativa");
-
-                    b.Property<string>("NomeComum")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("nome_comum");
-
-                    b.Property<string>("Proposito")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("proposito");
-
-                    b.Property<string>("Regagem")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("regagem");
-
-                    b.Property<string>("Seguranca")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("seguranca");
-
-                    b.Property<string>("UrlImagem")
-                        .IsRequired()
-                        .HasColumnType("text")
-                        .HasColumnName("url_imagem");
-
-                    b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UsuarioId");
-
-                    b.ToTable("recomendacoes", (string)null);
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.SolicitacaoSeguir", b =>
@@ -1229,18 +1179,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                         .HasConstraintName("fk_postview_usuario");
                 });
 
-            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Recomendacao", b =>
-                {
-                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Usuario")
-                        .WithMany("Recomendacoes")
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_recomendacao_usuario");
-
-                    b.Navigation("Usuario");
-                });
-
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.SolicitacaoSeguir", b =>
                 {
                     b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Alvo")
@@ -1337,8 +1275,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Navigation("Plantas");
 
                     b.Navigation("Posts");
-
-                    b.Navigation("Recomendacoes");
 
                     b.Navigation("SolicitacoesSeguirEnviadas");
 

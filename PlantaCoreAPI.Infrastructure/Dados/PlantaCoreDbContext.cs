@@ -26,6 +26,8 @@ public class PlantaCoreDbContext : DbContext
     public DbSet<PostShare> PostShares { get; set; } = null!;
     public DbSet<PostView> PostViews { get; set; } = null!;
     public DbSet<ActivityLog> ActivityLogs { get; set; } = null!;
+    public DbSet<Recomendacao> Recomendacoes { get; set; } = null!;
+
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
         base.OnConfiguring(optionsBuilder);
@@ -435,6 +437,25 @@ public class PlantaCoreDbContext : DbContext
             entity.Property(al => al.DataCriacao).HasColumnName("data_criacao").ValueGeneratedOnAdd().HasDefaultValueSql("CURRENT_TIMESTAMP");
             entity.HasIndex(al => al.UsuarioId).HasDatabaseName("ix_activitylog_usuario_id");
             entity.HasOne<Usuario>().WithMany().HasForeignKey(al => al.UsuarioId).OnDelete(DeleteBehavior.Cascade).HasConstraintName("fk_activitylog_usuario");
+        });
+        modelBuilder.Entity<Recomendacao>(entity =>
+        {
+            entity.ToTable("recomendacoes");
+            entity.HasKey(r => r.Id);
+            entity.Property(r => r.Id).HasColumnName("id").ValueGeneratedNever();
+            entity.Property(r => r.NomeComum).HasColumnName("nome_comum");
+            entity.Property(r => r.UrlImagem).HasColumnName("url_imagem");
+            entity.Property(r => r.Justificativa).HasColumnName("justificativa");
+            entity.Property(r => r.Experiencia).HasColumnName("experiencia");
+            entity.Property(r => r.Iluminacao).HasColumnName("iluminacao");
+            entity.Property(r => r.Regagem).HasColumnName("regagem");
+            entity.Property(r => r.Seguranca).HasColumnName("seguranca");
+            entity.Property(r => r.Proposito).HasColumnName("proposito");
+            entity.HasOne(r => r.Usuario)
+                .WithMany(u => u.Recomendacoes)
+                .HasForeignKey(r => r.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_recomendacao_usuario");
         });
     }
 }

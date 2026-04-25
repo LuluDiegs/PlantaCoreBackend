@@ -68,11 +68,12 @@ public class PlantaController : ControllerBase
             if (entrada.CriarPostagem)
             {
                 var resultadoPostagem = await postService.CriarPostAsync(usuarioId, new CriarPostDTOEntrada
-                {
-                    PlantaId = plantaIdentificada.Id,
-                    Conteudo = comentario,
-                    ComunidadeId = null
-                });
+            {
+                PlantaId = plantaIdentificada.Id,
+                Conteudo = comentario,
+                ComunidadeId = null,
+                Localizacao = entrada.Localizacao
+            });
                 if (!resultadoPostagem.Sucesso)
                     return BadRequest(resultadoPostagem);
                 return Ok(new
@@ -134,7 +135,7 @@ public class PlantaController : ControllerBase
             return Unauthorized();
         if (entrada?.PlantaTrefleId <= 0)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { "plantaTrefleId obrigatório e deve ser maior que 0" }));
-        var resultado = await _servicioPlanta.AdicionarPlantaDoTrefleAsync(usuarioId, entrada.PlantaTrefleId, entrada.NomeCientifico, entrada.UrlImagem);
+       var resultado = await _servicioPlanta.AdicionarPlantaDoTrefleAsync(usuarioId, entrada.PlantaTrefleId, entrada.NomeCientifico, entrada.UrlImagem, entrada.Localizacao); 
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
         return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
@@ -245,7 +246,14 @@ public class PlantaController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Recomendacao([FromForm] DadosRecomendacaoPlantaParaIA entrada)
     {
+<<<<<<< developer
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId)) return Unauthorized();
+
+        var resultado = await _servicioPlanta.GerarSalvarRecomendacaoPlantaAsync(entrada, usuarioId);
+=======
         var resultado = await _servicioPlanta.GerarRecomendacaoPlantaAsync(entrada);
+>>>>>>> main
         return Ok(ResponseHelper.Padrao(true, resultado));
     }
 }

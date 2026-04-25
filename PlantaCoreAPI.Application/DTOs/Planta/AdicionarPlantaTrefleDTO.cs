@@ -12,4 +12,5 @@ public class AdicionarPlantaTrefleDTO
 
     [Required(ErrorMessage = "urlImagem é obrigatório")]
     public string UrlImagem { get; set; } = "";
+    public string? Localizacao { get; set; }
 }

@@ -83,7 +83,7 @@ public class PostService : IPostService
                     return Resultado<PostDTOSaida>.Erro("Você precisa ser membro da comunidade para postar nela");
             }
 
-            var post = Post.Criar(usuarioId, entrada.Conteudo, entrada.PlantaId, entrada.ComunidadeId);
+            var post = Post.Criar(usuarioId, entrada.Conteudo, entrada.PlantaId, entrada.ComunidadeId, entrada.Localizacao);
             AplicarMetadadosPost(post, entrada.Conteudo, entrada.Hashtags, entrada.Categorias, entrada.PalavrasChave, planta);
 
             await _repositorioPost.AdicionarAsync(post);
@@ -118,7 +118,7 @@ public class PostService : IPostService
 
             Planta? planta = post.PlantaId.HasValue ? await _repositorioPlanta.ObterPorIdAsync(post.PlantaId.Value) : null;
 
-            post.Atualizar(entrada.Conteudo);
+            post.Atualizar(entrada.Conteudo, entrada.Localizacao);
             AplicarMetadadosPost(post, entrada.Conteudo, entrada.Hashtags, entrada.Categorias, entrada.PalavrasChave, planta);
             await _repositorioPost.AtualizarAsync(post);
             await _repositorioPost.SalvarMudancasAsync();
@@ -788,6 +788,7 @@ public class PostService : IPostService
             NomePlanta = planta != null ? (planta.NomeComum ?? planta.NomeCientifico) : null,
             FotoPlanta = planta?.FotoPlanta,
             Conteudo = post.Conteudo,
+            Localizacao = post.Localizacao,
             Hashtags = post.Hashtags.Select(h => h.Nome).ToList(),
             Categorias = post.Categorias.Select(c => c.Nome).ToList(),
             PalavrasChave = post.PalavrasChave.Select(pc => pc.Palavra).ToList(),

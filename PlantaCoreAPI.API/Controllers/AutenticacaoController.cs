@@ -49,6 +49,19 @@ public class AutenticacaoController : ControllerBase
         return Ok(ResponseHelper.Padrao(true, resultado.Dados));
     }
 
+    [HttpPost("google")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> LoginComGoogle([FromBody] LoginGoogleDTOEntrada entrada)
+    {
+        var resultado = await _servicioAutenticacao.LoginComGoogleAsync(entrada.TokenGoogle);
+        
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+        
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
+    }
+
     [HttpPost("refresh-token")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]

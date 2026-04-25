@@ -28,7 +28,10 @@ public class Usuario
     public List<MembroComunidade> ComunidadesParticipantes { get; private set; } = new();
     public List<Evento> EventosCriados { get; private set; } = new();
     public List<EventoParticipante> EventosParticipando { get; private set; } = new();
+    public List<Recomendacao> Recomendacoes { get; set; } = new();
+
     private Usuario() { }
+
     public static Usuario Criar(string nome, string email, string senhaHash)
     {
         if (string.IsNullOrWhiteSpace(nome))
@@ -50,6 +53,26 @@ public class Usuario
             PerfilPrivado = false
         };
         return usuario;
+    }
+    public static Usuario CriarComGoogle(string nome, string email, string? fotoPerfil)
+    {
+        if (string.IsNullOrWhiteSpace(nome))
+            throw new Exceptions.DomainException("Nome não pode estar vazio");
+
+        ValidarEmail(email);
+        
+        return new Usuario
+        {
+            Id = Guid.NewGuid(),
+            Nome = nome.Trim(),
+            Email = email.ToLower().Trim(),
+            SenhaHash = Guid.NewGuid().ToString() + Guid.NewGuid().ToString(), 
+            DataCriacao = DateTime.UtcNow,
+            EmailConfirmado = true,
+            FotoPerfil = fotoPerfil,
+            PerfilPrivado = false
+
+        };
     }
 
     private static readonly Regex EmailRegex = new(

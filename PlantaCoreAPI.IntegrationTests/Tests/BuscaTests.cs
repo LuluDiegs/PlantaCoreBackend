@@ -151,7 +151,11 @@ public class BuscaTests
         return (Guid.Parse(id!), nomeCientifico!, nomeComum!);
     }
 
+<<<<<<< developer
+    private async Task<(Guid Id, string NomeCientifico, string? NomeComum)?> ObterPrimeiraPlantaAsync(ApiClient client)
+=======
     private async Task<(Guid Id, string NomeCientifico, string NomeComum)?> ObterPrimeiraPlantaAsync(ApiClient client)
+>>>>>>> main
     {
         var resp = await client.GetAsync("/api/v1/Planta/minhas-plantas?pagina=1&tamanho=1");
         _out.WriteLine(resp.ToString());
@@ -186,6 +190,24 @@ public class BuscaTests
         planta = await ObterPrimeiraPlantaAsync(client);
         Assert.NotNull(planta);
 
+<<<<<<< developer
+        return (Guid.Parse(id), nomeCientifico, nomeComum);
+    }
+
+    private async Task<(Guid Id, string NomeCientifico, string? NomeComum)> ObterOuCriarPrimeiraPlantaAsync(ApiClient client)
+    {
+        var planta = await ObterPrimeiraPlantaAsync(client);
+
+        if (planta is not null)
+            return planta.Value;
+
+        await CriarPlantaViaIdentificacaoAsync(client);
+
+        planta = await ObterPrimeiraPlantaAsync(client);
+        Assert.NotNull(planta);
+
+=======
+>>>>>>> main
         return planta.Value;
     }
 }

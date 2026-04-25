@@ -11,7 +11,7 @@ public interface IPlantService
     Task<Resultado<PlantaDTOSaida>> IdentificarPlantaAsync(Guid usuarioId, IdentificacaoDTOEntrada entrada);
     Task<Resultado<PlantaDTOSaida>> BuscarPlantaAsync(Guid usuarioId, BuscaPlantaDTOEntrada entrada);
     Task<Resultado<ResultadoBuscaPlantaDTOSaida>> BuscarPlantasTrefleAsync(string nomePlanta, int pagina);
-    Task<Resultado<PlantaDTOSaida>> AdicionarPlantaDoTrefleAsync(Guid usuarioId, int plantaTrefleId, string? nomeCientifico, string? urlImagem);
+    Task<Resultado<PlantaDTOSaida>> AdicionarPlantaDoTrefleAsync(Guid usuarioId, int plantaTrefleId, string? nomeCientifico, string? urlImagem, string? localizacao = null);
     Task<Resultado<IEnumerable<PlantaDTOSaida>>> ListarPlantasUsuarioAsync(Guid usuarioId);
     Task<Resultado<PaginaResultado<PlantaDTOSaida>>> ListarPlantasUsuarioPaginadoAsync(Guid usuarioId, int pagina, int tamanho);
     Task<Resultado<PlantaDTOSaida>> ObterPlantaAsync(Guid plantaId);
@@ -21,4 +21,5 @@ public interface IPlantService
     Task<IEnumerable<PlantaDTOSaida>> BuscarPlantasPorNomeAsync(string termo);
     Task<IEnumerable<PostDTOSaida>> ListarPostsDaPlantaAsync(Guid plantaId);
     Task<Resultado<RecomendacaoPlantaComImagemDTO>> GerarRecomendacaoPlantaAsync(DadosRecomendacaoPlantaParaIA dados);
+    Task<Resultado<RecomendacaoPlantaComImagemDTO>> GerarSalvarRecomendacaoPlantaAsync(DadosRecomendacaoPlantaParaIA dados, Guid usuarioId);
 }

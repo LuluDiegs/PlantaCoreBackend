@@ -3,6 +3,7 @@ using PlantaCoreAPI.Application.DTOs.Planta;
 using PlantaCoreAPI.Application.Comuns;
 using Microsoft.Extensions.Logging;
 using System.Text.Json;
+using PlantaCoreAPI.Domain.Entities;
 
 namespace PlantaCoreAPI.Application.Services;
 
@@ -57,13 +58,45 @@ public sealed partial class PlantService
             return Resultado<RecomendacaoPlantaComImagemDTO>.Erro(
                 "A planta encontrada no Trefle não possui imagem disponível.");
 
-        var recomendacao = new RecomendacaoPlantaComImagemDTO
+        var recomendacaoImagemDto = new RecomendacaoPlantaComImagemDTO
         {
             NomeComum = recomendacaoDto.NomeComum,
             UrlImagem = plantaTrefle.UrlImagem,
             Justificativa = recomendacaoDto.Justificativa,
         };
 
-        return Resultado<RecomendacaoPlantaComImagemDTO>.Ok(recomendacao);
+        return Resultado<RecomendacaoPlantaComImagemDTO>.Ok(recomendacaoImagemDto);
+    }
+
+    public async Task<Resultado<RecomendacaoPlantaComImagemDTO>> GerarSalvarRecomendacaoPlantaAsync(DadosRecomendacaoPlantaParaIA dados, Guid usuarioId)
+    {
+        var resultado = await GerarRecomendacaoPlantaAsync(dados);
+
+        if (!resultado.Sucesso)
+            return Resultado<RecomendacaoPlantaComImagemDTO>.Erro(
+                "Falha ao gerar recomendação.");
+
+        if (resultado.Dados is null)
+            return Resultado<RecomendacaoPlantaComImagemDTO>.Erro(
+                "Resultado da recomendação retornou uma resposta vazia.");
+
+        var recomendacao = new Recomendacao
+        {
+            Id = Guid.NewGuid(),
+            NomeComum = resultado.Dados.NomeComum,
+            UrlImagem = resultado.Dados.UrlImagem,
+            Justificativa = resultado.Dados.Justificativa,
+            Experiencia = dados.Experiencia,
+            Iluminacao = dados.Iluminacao,
+            Regagem = dados.Regagem,
+            Seguranca = dados.Seguranca,
+            Proposito = dados.Proposito,
+            UsuarioId = usuarioId,
+        };
+
+        await _repositorioRecomendacao.AdicionarAsync(recomendacao);
+        await _repositorioNotificacao.SalvarMudancasAsync();
+
+        return resultado;
     }
 }

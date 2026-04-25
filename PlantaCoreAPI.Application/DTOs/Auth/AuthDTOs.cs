@@ -92,3 +92,8 @@ public class TrocarSenhaDTOEntrada
     [Compare("NovaSenha", ErrorMessage = "Senhas não coincidem")]
     public string ConfirmacaoSenha { get; set; } = null!;
 }
+public class LoginGoogleDTOEntrada
+{
+    [Required(ErrorMessage = "O token do Google é obrigatório")]
+    public string TokenGoogle { get; set; } = null!;
+}

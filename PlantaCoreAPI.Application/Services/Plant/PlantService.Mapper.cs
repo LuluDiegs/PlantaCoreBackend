@@ -24,10 +24,11 @@ public sealed partial class PlantService
         RequisitosTemperatura = planta.RequisitosTemperatura,
         Cuidados = planta.Cuidados,
         FotoPlanta = planta.FotoPlanta,
+        Localizacao = planta.Localizacao, // ADICIONADO AQUI
         DataIdentificacao = planta.DataIdentificacao
     };
 
-    private static Planta CriarPlantaDeEnriquecidos(Guid usuarioId, DadosPlantaEnriquecidos d, string? fotoOverride = null) =>
+    private static Planta CriarPlantaDeEnriquecidos(Guid usuarioId, DadosPlantaEnriquecidos d, string? localizacao = null, string? fotoOverride = null) =>
         Planta.Criar(
             usuarioId,
             d.NomeCientifico,
@@ -44,7 +45,8 @@ public sealed partial class PlantService
             d.RequisitosAgua,
             d.RequisitosTemperatura,
             d.Cuidados,
-            fotoOverride ?? d.FotoPlanta);
+            fotoOverride ?? d.FotoPlanta,
+            localizacao); 
 
     private async Task<string?> BaixarESalvarFotoAsync(string urlFoto, Guid usuarioId)
     {

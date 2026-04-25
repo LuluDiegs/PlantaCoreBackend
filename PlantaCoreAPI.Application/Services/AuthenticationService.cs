@@ -20,6 +20,7 @@ public class AuthenticationService : IAuthenticationService
     private readonly IPasswordHashService _passwordHashService;
     private readonly ILogger<AuthenticationService> _logger;
     private readonly string _urlFrontend;
+    private readonly string _googleClientId;
 
     public AuthenticationService(
         IRepositorioUsuario repositorioUsuario,
@@ -37,6 +38,7 @@ public class AuthenticationService : IAuthenticationService
         _passwordHashService = passwordHashService;
         _logger = logger;
         _urlFrontend = configuration["Frontend:Url"] ?? "http://localhost:5173";
+        _googleClientId = configuration["Google:ClientId"] ?? string.Empty;
     }
 
     public async Task<Resultado<LoginDTOSaida>> RegistrarAsync(RegistroDTOEntrada entrada)
@@ -125,6 +127,54 @@ public class AuthenticationService : IAuthenticationService
             return Resultado<LoginDTOSaida>.Erro("Erro ao realizar login. Tente novamente.");
         }
     }
+
+    public async Task<Resultado<LoginDTOSaida>> LoginComGoogleAsync(string tokenDoGoogle)
+        {
+            try
+            {
+                var configuracoes = new Google.Apis.Auth.GoogleJsonWebSignature.ValidationSettings()
+                {
+                    Audience = new[] { _googleClientId } 
+                };
+
+                var payload = await Google.Apis.Auth.GoogleJsonWebSignature.ValidateAsync(tokenDoGoogle, configuracoes);
+
+                var emailNormalizado = payload.Email.ToLower().Trim();
+                var usuario = await _repositorioUsuario.ObterPorEmailIncluindoInativosAsync(emailNormalizado);
+
+                if (usuario == null)
+                {
+                    usuario = Usuario.CriarComGoogle(payload.Name, emailNormalizado, payload.Picture);
+                    await _repositorioUsuario.AdicionarAsync(usuario);
+                    await _repositorioUsuario.SalvarMudancasAsync();
+                }
+                else if (!usuario.Ativo)
+                {
+                    return Resultado<LoginDTOSaida>.Erro("Sua conta está desativada.");
+                }
+
+                var tokenAcesso = _servicioJwt.GerarTokenAcesso(usuario.Id, usuario.Email, usuario.Nome);
+                var tokenRefresh = _servicioJwt.GerarTokenRefresh();
+                
+                var tokenRefreshEntidade = TokenRefresh.Criar(usuario.Id, tokenRefresh);
+                await _repositorioTokenRefresh.AdicionarAsync(tokenRefreshEntidade);
+                await _repositorioTokenRefresh.SalvarMudancasAsync();
+
+                return Resultado<LoginDTOSaida>.Ok(new LoginDTOSaida
+                {
+                    UsuarioId = usuario.Id,
+                    Nome = usuario.Nome,
+                    Email = usuario.Email,
+                    TokenAcesso = tokenAcesso,
+                    TokenRefresh = tokenRefresh
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Erro ao realizar login com o Google");
+                return Resultado<LoginDTOSaida>.Erro("Token do Google inválido ou expirado.");
+            }
+        }
 
     public async Task<Resultado<LoginDTOSaida>> RefreshTokenAsync(string tokenRefresh)
     {
