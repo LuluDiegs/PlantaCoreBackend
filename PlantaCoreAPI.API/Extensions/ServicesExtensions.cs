@@ -35,6 +35,7 @@ internal static class ServicesExtensions
         services.AddScoped<IRepositorioActivityLog, RepositorioActivityLog>();
         services.AddScoped<IRepositorioExclusaoConta, RepositorioExclusaoConta>();
         services.AddScoped<IRepositorioRecomendacao, RepositorioRecomendacao>();
+        services.AddScoped<IRepositorioLoja, RepositorioLoja>();
         return services;
     }
 
@@ -51,6 +52,7 @@ internal static class ServicesExtensions
         services.AddScoped<IAccountDeletionService, AccountDeletionService>();
         services.AddScoped<IAccountReactivationService, AccountReactivationService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<ILojaService, LojaService>();
         services.AddSingleton<ICacheService, MemoryCacheService>();
         services.AddSingleton<IRateLimitService, MemoryRateLimitService>();
         return services;

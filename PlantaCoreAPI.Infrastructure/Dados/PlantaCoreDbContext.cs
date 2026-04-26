@@ -27,6 +27,7 @@ public class PlantaCoreDbContext : DbContext
     public DbSet<PostView> PostViews { get; set; } = null!;
     public DbSet<ActivityLog> ActivityLogs { get; set; } = null!;
     public DbSet<Recomendacao> Recomendacoes { get; set; } = null!;
+    public DbSet<Loja> Lojas { get; set; } = null!;
 
     protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
     {
@@ -456,6 +457,60 @@ public class PlantaCoreDbContext : DbContext
                 .HasForeignKey(r => r.UsuarioId)
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_recomendacao_usuario");
+        });
+        modelBuilder.Entity<Loja>(entity =>
+        {
+            entity.ToTable("lojas");
+
+            entity.HasKey(l => l.Id);
+
+            entity.Property(l => l.Id)
+                .HasColumnName("id")
+                .ValueGeneratedNever();
+
+            entity.Property(l => l.Nome)
+                .HasColumnName("nome")
+                .HasMaxLength(150)
+                .IsRequired();
+
+            entity.Property(l => l.Descricao)
+                .HasColumnName("descricao");
+
+            entity.Property(l => l.Email)
+                .HasColumnName("email");
+
+            entity.Property(l => l.Telefone)
+                .HasColumnName("telefone");
+
+            entity.Property(l => l.ImagemUrl)
+                .HasColumnName("imagem_url");
+
+            entity.Property(l => l.SomenteOnline)
+                .HasColumnName("somente_online")
+                .HasDefaultValue(false);
+
+            entity.Property(l => l.Cidade)
+                .HasColumnName("cidade")
+                .HasMaxLength(100);
+
+            entity.Property(l => l.Estado)
+                .HasColumnName("estado")
+                .HasMaxLength(100);
+
+            entity.Property(l => l.Endereco)
+                .HasColumnName("endereco");
+
+            entity.Property(l => l.UsuarioId)
+                .HasColumnName("usuario_id");
+
+            entity.HasIndex(l => l.UsuarioId)
+                .HasDatabaseName("ix_lojas_usuario_id");
+
+            entity.HasOne(l => l.Usuario)
+                .WithMany(u => u.Lojas)
+                .HasForeignKey(l => l.UsuarioId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("fk_lojas_usuario");
         });
     }
 }
