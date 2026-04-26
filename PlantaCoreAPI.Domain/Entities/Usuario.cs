@@ -29,6 +29,7 @@ public class Usuario
     public List<Evento> EventosCriados { get; private set; } = new();
     public List<EventoParticipante> EventosParticipando { get; private set; } = new();
     public List<Recomendacao> Recomendacoes { get; set; } = new();
+    public List<Loja> Lojas { get; set; } = new();
 
     private Usuario() { }
 
