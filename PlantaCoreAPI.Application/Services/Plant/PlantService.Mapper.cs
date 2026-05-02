@@ -26,12 +26,12 @@ public sealed partial class PlantService
             RequisitosTemperatura = planta.RequisitosTemperatura,
             Cuidados = planta.Cuidados,
             FotoPlanta = planta.FotoPlanta,
-            DataIdentificacao = planta.DataIdentificacao   
+            CompartilharLocalizacao = planta.CompartilharLocalizacao,
+            DataIdentificacao = planta.DataIdentificacao
         };
 
         if (planta.CompartilharLocalizacao)
         {
-            dto.CompartilharLocalizacao = planta.CompartilharLocalizacao;
             dto.Latitude = planta.Latitude;
             dto.Longitude = planta.Longitude;
         }
