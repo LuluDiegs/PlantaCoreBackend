@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PlantaCoreAPI.Infrastructure.Dados;
@@ -11,9 +12,11 @@ using PlantaCoreAPI.Infrastructure.Dados;
 namespace PlantaCoreAPI.Infrastructure.Migrations
 {
     [DbContext(typeof(PlantaCoreDbContext))]
-    partial class PlantaCoreDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260502195509_AtualizaLocalizacao")]
+    partial class AtualizaLocalizacao
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

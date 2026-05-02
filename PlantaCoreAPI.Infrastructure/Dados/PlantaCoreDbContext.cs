@@ -124,6 +124,9 @@ public class PlantaCoreDbContext : DbContext
             entity.Property(p => p.RequisitosTemperatura).HasColumnName("requisitos_temperatura");
             entity.Property(p => p.Cuidados).HasColumnName("cuidados");
             entity.Property(p => p.FotoPlanta).HasColumnName("foto_url");
+            entity.Property(p => p.CompartilharLocalizacao).HasColumnName("compartilhar_localizacao").HasDefaultValue(false);
+            entity.Property(p => p.Latitude).HasColumnName("latitude");
+            entity.Property(p => p.Longitude).HasColumnName("longitude");
             entity.Property(p => p.DadosPlantNet).HasColumnName("dados_plantnet");
             entity.Property(p => p.DataIdentificacao).HasColumnName("data_identificacao");
             entity.Property(p => p.DataCriacao).HasColumnName("data_criacao").ValueGeneratedOnAdd().HasDefaultValueSql("CURRENT_TIMESTAMP");
