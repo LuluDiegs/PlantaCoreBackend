@@ -6,26 +6,38 @@ namespace PlantaCoreAPI.Application.Services;
 
 public sealed partial class PlantService
 {
-    private static PlantaDTOSaida MapearPlantaPara(Planta planta) => new()
+    private static PlantaDTOSaida MapearPlantaPara(Planta planta)
     {
-        Id = planta.Id,
-        NomeCientifico = planta.NomeCientifico,
-        NomeComum = planta.NomeComum,
-        Familia = planta.Familia,
-        Genero = planta.Genero,
-        Toxica = planta.Toxica,
-        DescricaoToxicidade = planta.DescricaoToxicidade,
-        ToxicaAnimais = planta.ToxicaAnimais,
-        DescricaoToxicidadeAnimais = planta.DescricaoToxicidadeAnimais,
-        ToxicaCriancas = planta.ToxicaCriancas,
-        DescricaoToxicidadeCriancas = planta.DescricaoToxicidadeCriancas,
-        RequisitosLuz = planta.RequisitosLuz,
-        RequisitosAgua = planta.RequisitosAgua,
-        RequisitosTemperatura = planta.RequisitosTemperatura,
-        Cuidados = planta.Cuidados,
-        FotoPlanta = planta.FotoPlanta,
-        DataIdentificacao = planta.DataIdentificacao
-    };
+        PlantaDTOSaida dto = new()
+        {
+            Id = planta.Id,
+            NomeCientifico = planta.NomeCientifico,
+            NomeComum = planta.NomeComum,
+            Familia = planta.Familia,
+            Genero = planta.Genero,
+            Toxica = planta.Toxica,
+            DescricaoToxicidade = planta.DescricaoToxicidade,
+            ToxicaAnimais = planta.ToxicaAnimais,
+            DescricaoToxicidadeAnimais = planta.DescricaoToxicidadeAnimais,
+            ToxicaCriancas = planta.ToxicaCriancas,
+            DescricaoToxicidadeCriancas = planta.DescricaoToxicidadeCriancas,
+            RequisitosLuz = planta.RequisitosLuz,
+            RequisitosAgua = planta.RequisitosAgua,
+            RequisitosTemperatura = planta.RequisitosTemperatura,
+            Cuidados = planta.Cuidados,
+            FotoPlanta = planta.FotoPlanta,
+            DataIdentificacao = planta.DataIdentificacao   
+        };
+
+        if (planta.CompartilharLocalizacao)
+        {
+            dto.CompartilharLocalizacao = planta.CompartilharLocalizacao;
+            dto.Latitude = planta.Latitude;
+            dto.Longitude = planta.Longitude;
+        }
+
+        return dto;
+    }
 
     private static Planta CriarPlantaDeEnriquecidos(Guid usuarioId, DadosPlantaEnriquecidos d, string? fotoOverride = null) =>
         Planta.Criar(
