@@ -36,46 +36,55 @@ public class PlantaController : ControllerBase
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
             return Unauthorized();
+
         if (entrada.Foto == null || entrada.Foto.Length == 0)
             return BadRequest(new { sucesso = false, mensagem = "Nenhuma foto enviada" });
+
         if (!entrada.Foto.ContentType.StartsWith("image/"))
             return BadRequest(new { sucesso = false, mensagem = "Arquivo deve ser uma imagem" });
+
         string? caminhoTemp = null;
         string? urlFoto = null;
+
         try
         {
             caminhoTemp = Path.Combine(Path.GetTempPath(), $"planta_{Guid.NewGuid()}_{entrada.Foto.FileName}");
             using (var fileStream = System.IO.File.Create(caminhoTemp))
                 await entrada.Foto.CopyToAsync(fileStream);
+
             try
             {
                 var bytes = await System.IO.File.ReadAllBytesAsync(caminhoTemp);
                 urlFoto = await _fileStorageService.FazerUploadFotoPlantaAsync(bytes, entrada.Foto.FileName, usuarioId);
             }
-
             catch { /* Log erro de upload se necessário */ }
+
             var resultadoIdentificacao = await _servicioPlanta.IdentificarPlantaAsync(usuarioId, new IdentificacaoDTOEntrada
             {
                 CaminhoTemp = caminhoTemp,
                 UrlImagem = urlFoto
             });
+
             if (!resultadoIdentificacao.Sucesso)
                 return BadRequest(resultadoIdentificacao);
+
             var plantaIdentificada = resultadoIdentificacao.Dados;
             var comentario = string.IsNullOrWhiteSpace(entrada.Comentario)
                 ? $"Identificação: {plantaIdentificada.NomeCientifico ?? plantaIdentificada.NomeComum ?? "Planta"}{(string.IsNullOrWhiteSpace(plantaIdentificada.NomeComum) ? "" : $" ({plantaIdentificada.NomeComum})")}"
                 : entrada.Comentario;
+
             if (entrada.CriarPostagem)
             {
                 var resultadoPostagem = await postService.CriarPostAsync(usuarioId, new CriarPostDTOEntrada
-            {
-                PlantaId = plantaIdentificada.Id,
-                Conteudo = comentario,
-                ComunidadeId = null,
-                Localizacao = entrada.Localizacao
-            });
+                {
+                    PlantaId = plantaIdentificada.Id,
+                    Conteudo = comentario,
+                    ComunidadeId = null
+                });
+
                 if (!resultadoPostagem.Sucesso)
                     return BadRequest(resultadoPostagem);
+
                 return Ok(new
                 {
                     sucesso = true,
@@ -135,7 +144,7 @@ public class PlantaController : ControllerBase
             return Unauthorized();
         if (entrada?.PlantaTrefleId <= 0)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { "plantaTrefleId obrigatório e deve ser maior que 0" }));
-       var resultado = await _servicioPlanta.AdicionarPlantaDoTrefleAsync(usuarioId, entrada.PlantaTrefleId, entrada.NomeCientifico, entrada.UrlImagem, entrada.Localizacao); 
+       var resultado = await _servicioPlanta.AdicionarPlantaDoTrefleAsync(usuarioId, entrada.PlantaTrefleId, entrada.NomeCientifico, entrada.UrlImagem); 
         if (!resultado.Sucesso)
             return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
         return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
@@ -250,6 +259,23 @@ public class PlantaController : ControllerBase
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId)) return Unauthorized();
 
         var resultado = await _servicioPlanta.GerarSalvarRecomendacaoPlantaAsync(entrada, usuarioId);
+        return Ok(ResponseHelper.Padrao(true, resultado));
+    }
+
+    [HttpPut("localizacao/{plantaId:guid}")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> AtualizarLocalizacao(
+        [FromBody] AtualizarLocalizacaoDTO entrada,
+        [FromRoute] Guid plantaId
+        )
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId)) return Unauthorized();
+
+        var resultado = await _servicioPlanta.AtualizarLocalizacaoAsync(entrada, plantaId, usuarioId);
         return Ok(ResponseHelper.Padrao(true, resultado));
     }
 }
