@@ -269,8 +269,7 @@ public class PlantaController : ControllerBase
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> AtualizarLocalizacao(
         [FromBody] AtualizarLocalizacaoDTO entrada,
-        [FromRoute] Guid plantaId
-        )
+        [FromRoute] Guid plantaId)
     {
         var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!Guid.TryParse(usuarioIdClaim, out var usuarioId)) return Unauthorized();
