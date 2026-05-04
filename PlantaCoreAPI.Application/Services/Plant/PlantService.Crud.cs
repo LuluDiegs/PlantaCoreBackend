@@ -59,7 +59,7 @@ public sealed partial class PlantService
         }
     }
 
-    public async Task<Resultado<PlantaDTOSaida>> AdicionarPlantaDoTrefleAsync(Guid usuarioId, int plantaTrefleId, string? nomeCientifico, string? urlImagem, string? localizacao = null)
+    public async Task<Resultado<PlantaDTOSaida>> AdicionarPlantaDoTrefleAsync(Guid usuarioId, int plantaTrefleId, string? nomeCientifico, string? urlImagem)
     {
         try
         {
@@ -80,7 +80,7 @@ public sealed partial class PlantService
             var dadosEnriquecidos = ExtrairDadosDoGemini(descricaoGemini, nomeCientificoCorreto, plantaTrefle);
             var fotoFinal = await BaixarESalvarFotoAsync(urlImagem, usuarioId);
             
-            var novaPlanta = CriarPlantaDeEnriquecidos(usuarioId, dadosEnriquecidos, localizacao, fotoFinal);
+            var novaPlanta = CriarPlantaDeEnriquecidos(usuarioId, dadosEnriquecidos, fotoFinal);
             
             await _repositorioPlanta.AdicionarAsync(novaPlanta);
             await _repositorioPlanta.SalvarMudancasAsync();

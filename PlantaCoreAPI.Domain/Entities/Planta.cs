@@ -21,8 +21,9 @@ public class Planta
     public string? RequisitosTemperatura { get; private set; }
     public string? Cuidados { get; private set; }
     public string? FotoPlanta { get; private set; }
-    [Column("localizacao")]
-    public string? Localizacao { get; private set; }
+    public bool CompartilharLocalizacao { get; private set; } = false;
+    public float? Latitude { get; private set; }
+    public float? Longitude { get; private set; }
     public string? DadosPlantNet { get; private set; }
     public DateTime DataIdentificacao { get; private set; }
     public DateTime DataCriacao { get; private set; }
@@ -47,7 +48,9 @@ public class Planta
         string? requisitosTemperatura = null,
         string? cuidados = null,
         string? fotoPlanta = null,
-        string? localizacao = null)
+        bool compartilharLocalizacao = false,
+        float? latitude = null,
+        float? longitude = null)
     {
         if (string.IsNullOrWhiteSpace(nomeCientifico))
             throw new Exceptions.DomainException("Nome científico é obrigatório");
@@ -71,7 +74,9 @@ public class Planta
             RequisitosTemperatura = requisitosTemperatura,
             Cuidados = cuidados,
             FotoPlanta = fotoPlanta,
-            Localizacao = localizacao?.Trim(),
+            CompartilharLocalizacao = compartilharLocalizacao,
+            Latitude = latitude,
+            Longitude = longitude,
             DataIdentificacao = DateTime.UtcNow,
             DataCriacao = DateTime.UtcNow
         };
@@ -80,7 +85,8 @@ public class Planta
     public void EnriquecerDados(string? nomeComum, string? familia, string? genero,
         bool toxica, string? descricaoToxicidade, bool toxicaAnimais, string? descricaoToxicidadeAnimais,
         bool toxicaCriancas, string? descricaoToxicidadeCriancas, string? requisitosLuz, string? requisitosAgua,
-        string? requisitosTemperatura, string? cuidados, string? fotoPlanta = null, string? localizacao = null)
+        string? requisitosTemperatura, string? cuidados, string? fotoPlanta = null, 
+        bool compartilharLocalizacao = false, float? latitude = null, float? longitude = null)
     {
         NomeComum = nomeComum ?? NomeComum;
         Familia = familia ?? Familia;
@@ -95,9 +101,21 @@ public class Planta
         RequisitosAgua = requisitosAgua ?? RequisitosAgua;
         RequisitosTemperatura = requisitosTemperatura ?? RequisitosTemperatura;
         Cuidados = cuidados ?? Cuidados;
-        Localizacao = localizacao ?? Localizacao;
+        CompartilharLocalizacao = compartilharLocalizacao;
+        Latitude = latitude ?? Latitude;
+        Longitude = longitude ?? Longitude;
 
         if (!string.IsNullOrWhiteSpace(fotoPlanta))
             FotoPlanta = fotoPlanta;
+    }
+
+    public void AtualizarLocalizacao(
+        bool compartilharLocalizacao = false,
+        float? latitude = null,
+        float? longitude = null)
+    {
+        CompartilharLocalizacao = compartilharLocalizacao;
+        Latitude = latitude;
+        Longitude = longitude;
     }
 }

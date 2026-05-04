@@ -70,13 +70,13 @@ public sealed partial class PlantService : IPlantService
         }
     }
 
-    public async Task<Resultado<PostDTOSaida>> PostarFotoIdentificacaoAsync(Guid usuarioId, Guid plantaId, string conteudo, string? localizacao = null) 
+    public async Task<Resultado<PostDTOSaida>> PostarFotoIdentificacaoAsync(Guid usuarioId, Guid plantaId, string conteudo) 
     {
         var planta = await _repositorioPlanta.ObterPorIdAsync(plantaId);
         if (planta == null)
             return Resultado<PostDTOSaida>.Erro("Planta não encontrada.");
             
-        var post = Post.Criar(usuarioId, conteudo, plantaId, null, localizacao);
+        var post = Post.Criar(usuarioId, conteudo, plantaId, null);
         
         await _repositorioPost.AdicionarAsync(post);
         await _repositorioPost.SalvarMudancasAsync();
@@ -88,7 +88,6 @@ public sealed partial class PlantService : IPlantService
             UsuarioId = post.UsuarioId,
             NomeUsuario = "",
             Conteudo = post.Conteudo,
-            Localizacao = post.Localizacao,
             TotalCurtidas = 0,
             TotalComentarios = 0,
             CurtiuUsuario = false,
@@ -108,8 +107,7 @@ public sealed partial class PlantService : IPlantService
                 Id = p.Id,
                 NomeCientifico = p.NomeCientifico,
                 NomeComum = p.NomeComum,
-                FotoPlanta = p.FotoPlanta,
-                Localizacao = p.Localizacao 
+                FotoPlanta = p.FotoPlanta
             });
     }
 
@@ -120,14 +118,40 @@ public sealed partial class PlantService : IPlantService
         {
             Id = p.Id,
             Conteudo = p.Conteudo,
-            Localizacao = p.Localizacao,
             UsuarioId = p.UsuarioId,
             DataCriacao = p.DataCriacao
         });
     }
 
-    public Task<Resultado<PostDTOSaida>> PostarFotoIdentificacaoAsync(Guid usuarioId, Guid plantaId, string conteudo)
+    public async Task<Resultado> AtualizarLocalizacaoAsync(AtualizarLocalizacaoDTO entrada, Guid plantaId, Guid usuarioId)
     {
-        throw new NotImplementedException();
+        try
+        {
+            Planta? planta = await _repositorioPlanta.ObterPorIdAsync(plantaId);
+            if (planta is null)
+            {
+                return Resultado.Erro("Planta não encontrada. Tente novamente.");
+            }
+
+            if (planta.UsuarioId != usuarioId)
+            {
+                return Resultado.Erro("Você não tem permissão para atualizar essa planta. Tente novamente.");
+            }
+
+            planta.AtualizarLocalizacao(
+                entrada.CompartilharLocalizacao,
+                entrada.Latitude,
+                entrada.Longitude);
+
+            await _repositorioPlanta.AtualizarAsync(planta);
+            await _repositorioPlanta.SalvarMudancasAsync();
+
+            return Resultado.Ok("Planta atualizada com sucesso");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao atualizar planta {PlantaId}", plantaId);
+            return Resultado.Erro("Ocorreu um erro interno. Tente novamente.");
+        }
     }
 }

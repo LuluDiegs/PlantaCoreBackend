@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using PlantaCoreAPI.Infrastructure.Dados;
@@ -11,9 +12,11 @@ using PlantaCoreAPI.Infrastructure.Dados;
 namespace PlantaCoreAPI.Infrastructure.Migrations
 {
     [DbContext(typeof(PlantaCoreDbContext))]
-    partial class PlantaCoreDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260502195509_AtualizaLocalizacao")]
+    partial class AtualizaLocalizacao
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -316,66 +319,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.HasIndex("PostId");
 
                     b.ToTable("hashtags", (string)null);
-                });
-
-            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Loja", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<string>("Cidade")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("cidade");
-
-                    b.Property<string>("Descricao")
-                        .HasColumnType("text")
-                        .HasColumnName("descricao");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("text")
-                        .HasColumnName("email");
-
-                    b.Property<string>("Endereco")
-                        .HasColumnType("text")
-                        .HasColumnName("endereco");
-
-                    b.Property<string>("Estado")
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)")
-                        .HasColumnName("estado");
-
-                    b.Property<string>("ImagemUrl")
-                        .HasColumnType("text")
-                        .HasColumnName("imagem_url");
-
-                    b.Property<string>("Nome")
-                        .IsRequired()
-                        .HasMaxLength(150)
-                        .HasColumnType("character varying(150)")
-                        .HasColumnName("nome");
-
-                    b.Property<bool>("SomenteOnline")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(false)
-                        .HasColumnName("somente_online");
-
-                    b.Property<string>("Telefone")
-                        .HasColumnType("text")
-                        .HasColumnName("telefone");
-
-                    b.Property<Guid>("UsuarioId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("usuario_id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UsuarioId")
-                        .HasDatabaseName("ix_lojas_usuario_id");
-
-                    b.ToTable("lojas", (string)null);
                 });
 
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.MembroComunidade", b =>
@@ -1140,18 +1083,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Navigation("Post");
                 });
 
-            modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.Loja", b =>
-                {
-                    b.HasOne("PlantaCoreAPI.Domain.Entities.Usuario", "Usuario")
-                        .WithMany("Lojas")
-                        .HasForeignKey("UsuarioId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired()
-                        .HasConstraintName("fk_lojas_usuario");
-
-                    b.Navigation("Usuario");
-                });
-
             modelBuilder.Entity("PlantaCoreAPI.Domain.Entities.MembroComunidade", b =>
                 {
                     b.HasOne("PlantaCoreAPI.Domain.Entities.Comunidade", "Comunidade")
@@ -1413,8 +1344,6 @@ namespace PlantaCoreAPI.Infrastructure.Migrations
                     b.Navigation("EventosCriados");
 
                     b.Navigation("EventosParticipando");
-
-                    b.Navigation("Lojas");
 
                     b.Navigation("Notificacoes");
 

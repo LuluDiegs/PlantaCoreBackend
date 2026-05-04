@@ -6,29 +6,40 @@ namespace PlantaCoreAPI.Application.Services;
 
 public sealed partial class PlantService
 {
-    private static PlantaDTOSaida MapearPlantaPara(Planta planta) => new()
+    private static PlantaDTOSaida MapearPlantaPara(Planta planta)
     {
-        Id = planta.Id,
-        NomeCientifico = planta.NomeCientifico,
-        NomeComum = planta.NomeComum,
-        Familia = planta.Familia,
-        Genero = planta.Genero,
-        Toxica = planta.Toxica,
-        DescricaoToxicidade = planta.DescricaoToxicidade,
-        ToxicaAnimais = planta.ToxicaAnimais,
-        DescricaoToxicidadeAnimais = planta.DescricaoToxicidadeAnimais,
-        ToxicaCriancas = planta.ToxicaCriancas,
-        DescricaoToxicidadeCriancas = planta.DescricaoToxicidadeCriancas,
-        RequisitosLuz = planta.RequisitosLuz,
-        RequisitosAgua = planta.RequisitosAgua,
-        RequisitosTemperatura = planta.RequisitosTemperatura,
-        Cuidados = planta.Cuidados,
-        FotoPlanta = planta.FotoPlanta,
-        Localizacao = planta.Localizacao, // ADICIONADO AQUI
-        DataIdentificacao = planta.DataIdentificacao
-    };
+        PlantaDTOSaida dto = new()
+        {
+            Id = planta.Id,
+            NomeCientifico = planta.NomeCientifico,
+            NomeComum = planta.NomeComum,
+            Familia = planta.Familia,
+            Genero = planta.Genero,
+            Toxica = planta.Toxica,
+            DescricaoToxicidade = planta.DescricaoToxicidade,
+            ToxicaAnimais = planta.ToxicaAnimais,
+            DescricaoToxicidadeAnimais = planta.DescricaoToxicidadeAnimais,
+            ToxicaCriancas = planta.ToxicaCriancas,
+            DescricaoToxicidadeCriancas = planta.DescricaoToxicidadeCriancas,
+            RequisitosLuz = planta.RequisitosLuz,
+            RequisitosAgua = planta.RequisitosAgua,
+            RequisitosTemperatura = planta.RequisitosTemperatura,
+            Cuidados = planta.Cuidados,
+            FotoPlanta = planta.FotoPlanta,
+            CompartilharLocalizacao = planta.CompartilharLocalizacao,
+            DataIdentificacao = planta.DataIdentificacao
+        };
 
-    private static Planta CriarPlantaDeEnriquecidos(Guid usuarioId, DadosPlantaEnriquecidos d, string? localizacao = null, string? fotoOverride = null) =>
+        if (planta.CompartilharLocalizacao)
+        {
+            dto.Latitude = planta.Latitude;
+            dto.Longitude = planta.Longitude;
+        }
+
+        return dto;
+    }
+
+    private static Planta CriarPlantaDeEnriquecidos(Guid usuarioId, DadosPlantaEnriquecidos d, string? fotoOverride = null) =>
         Planta.Criar(
             usuarioId,
             d.NomeCientifico,
@@ -45,8 +56,7 @@ public sealed partial class PlantService
             d.RequisitosAgua,
             d.RequisitosTemperatura,
             d.Cuidados,
-            fotoOverride ?? d.FotoPlanta,
-            localizacao); 
+            fotoOverride ?? d.FotoPlanta); 
 
     private async Task<string?> BaixarESalvarFotoAsync(string urlFoto, Guid usuarioId)
     {
