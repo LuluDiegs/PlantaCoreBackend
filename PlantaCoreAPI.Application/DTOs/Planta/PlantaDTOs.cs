@@ -25,6 +25,41 @@ public class PlantaDTOSaida
     public DateTime DataIdentificacao { get; set; }
 }
 
+public class UsuarioPlantaDTOSaida
+{
+    public Guid Id { get; set; }
+    public string Nome { get; set; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
+    public string? Biografia { get; set; }
+    public string? FotoPerfil { get; set; }
+}
+
+public class PlantaComUsuarioDTOSaida
+{
+    public Guid Id { get; set; }
+    public string NomeCientifico { get; set; } = null!;
+    public string? NomeComum { get; set; } 
+    public string? Familia { get; set; }
+    public string? Genero { get; set; }
+    public bool Toxica { get; set; }
+    public string? DescricaoToxicidade { get; set; }
+    public bool ToxicaAnimais { get; set; }
+    public string? DescricaoToxicidadeAnimais { get; set; }
+    public bool ToxicaCriancas { get; set; }
+    public string? DescricaoToxicidadeCriancas { get; set; }
+    public string? RequisitosLuz { get; set; }
+    public string? RequisitosAgua { get; set; }
+    public string? RequisitosTemperatura { get; set; }
+    public string? Cuidados { get; set; }
+    public string? FotoPlanta { get; set; }
+    public bool CompartilharLocalizacao { get; set; } = false;
+    public float? Latitude { get; set; }
+    public float? Longitude { get; set; }
+    public string? Localizacao { get; set; }
+    public DateTime DataIdentificacao { get; set; }
+    public UsuarioPlantaDTOSaida Usuario { get; set; } = new();
+}
+
 public class BuscaPlantaDTOEntrada
 {
     public string NomePlanta { get; set; } = null!;
