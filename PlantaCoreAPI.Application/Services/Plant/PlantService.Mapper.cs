@@ -39,6 +39,49 @@ public sealed partial class PlantService
         return dto;
     }
 
+    private static PlantaComUsuarioDTOSaida MapearPlantaComUsuarioPara(Planta planta)
+    {
+        UsuarioPlantaDTOSaida usuarioDto = new()
+        {
+            Id = planta.UsuarioId,
+            Nome = planta.Usuario.Nome,
+            Email = planta.Usuario.Email,
+            Biografia = planta.Usuario?.Biografia,
+            FotoPerfil = planta.Usuario?.FotoPerfil
+        };
+
+        PlantaComUsuarioDTOSaida dto = new()
+        {
+            Id = planta.Id,
+            NomeCientifico = planta.NomeCientifico,
+            NomeComum = planta.NomeComum,
+            Familia = planta.Familia,
+            Genero = planta.Genero,
+            Toxica = planta.Toxica,
+            DescricaoToxicidade = planta.DescricaoToxicidade,
+            ToxicaAnimais = planta.ToxicaAnimais,
+            DescricaoToxicidadeAnimais = planta.DescricaoToxicidadeAnimais,
+            ToxicaCriancas = planta.ToxicaCriancas,
+            DescricaoToxicidadeCriancas = planta.DescricaoToxicidadeCriancas,
+            RequisitosLuz = planta.RequisitosLuz,
+            RequisitosAgua = planta.RequisitosAgua,
+            RequisitosTemperatura = planta.RequisitosTemperatura,
+            Cuidados = planta.Cuidados,
+            FotoPlanta = planta.FotoPlanta,
+            CompartilharLocalizacao = planta.CompartilharLocalizacao,
+            DataIdentificacao = planta.DataIdentificacao,
+            Usuario = usuarioDto
+        };
+
+        if (planta.CompartilharLocalizacao)
+        {
+            dto.Latitude = planta.Latitude;
+            dto.Longitude = planta.Longitude;
+        }
+
+        return dto;
+    }
+
     private static Planta CriarPlantaDeEnriquecidos(Guid usuarioId, DadosPlantaEnriquecidos d, string? fotoOverride = null) =>
         Planta.Criar(
             usuarioId,
