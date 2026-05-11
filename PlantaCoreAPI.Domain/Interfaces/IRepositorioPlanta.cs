@@ -1,14 +1,16 @@
 using PlantaCoreAPI.Domain.Comuns;
+using PlantaCoreAPI.Domain.Entities;
 
 namespace PlantaCoreAPI.Domain.Interfaces;
 
-public interface IRepositorioPlanta : IRepositorio<Entities.Planta>
+public interface IRepositorioPlanta : IRepositorio<Planta>
 {
-    Task<Entities.Planta?> ObterPorNomeCientificoAsync(string nomeCientifico);
-    Task<Entities.Planta?> ObterPorNomeCientificoEUsuarioAsync(string nomeCientifico, Guid usuarioId);
-    Task<IEnumerable<Entities.Planta>> ObterPorUsuarioAsync(Guid usuarioId);
-    Task<PaginaResultado<Entities.Planta>> ObterPorUsuarioPaginadoAsync(Guid usuarioId, int pagina, int tamanho);
-    Task<IEnumerable<Entities.Planta>> BuscarPorNomeAsync(string termo);
-    Task<PaginaResultado<Entities.Planta>> BuscarPorUsuarioETermoAsync(Guid usuarioId, string termo, int pagina, int tamanho);
-    Task<IEnumerable<Entities.Planta>> ObterTodasParaLembreteAsync(int skip, int take);
+    Task<IEnumerable<Planta>> ObterTodosComUsuarioAsync();
+    Task<Planta?> ObterPorNomeCientificoAsync(string nomeCientifico);
+    Task<Planta?> ObterPorNomeCientificoEUsuarioAsync(string nomeCientifico, Guid usuarioId);
+    Task<IEnumerable<Planta>> ObterPorUsuarioAsync(Guid usuarioId);
+    Task<PaginaResultado<Planta>> ObterPorUsuarioPaginadoAsync(Guid usuarioId, int pagina, int tamanho);
+    Task<IEnumerable<Planta>> BuscarPorNomeAsync(string termo);
+    Task<PaginaResultado<Planta>> BuscarPorUsuarioETermoAsync(Guid usuarioId, string termo, int pagina, int tamanho);
+    Task<IEnumerable<Planta>> ObterTodasParaLembreteAsync(int skip, int take);
 }

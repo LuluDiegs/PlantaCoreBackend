@@ -27,6 +27,13 @@ public class RepositorioPlanta : IRepositorioPlanta
         return await _contexto.Plantas.ToListAsync();
     }
 
+    public async Task<IEnumerable<Planta>> ObterTodosComUsuarioAsync()
+    {
+        return await _contexto.Plantas
+            .Include(p => p.Usuario)
+            .ToListAsync();
+    }
+
     public async Task AdicionarAsync(Planta entidade)
     {
         await _contexto.Plantas.AddAsync(entidade);

@@ -50,6 +50,21 @@ public sealed partial class PlantService : IPlantService
         _repositorioRecomendacao = repositorioRecomendacao;
     }
 
+    public async Task<Resultado<IEnumerable<PlantaComUsuarioDTOSaida>>> BuscarTodasPlantasAsync()
+    {
+        try
+        {
+            var plantas = await _repositorioPlanta.ObterTodosComUsuarioAsync();
+            var dto = plantas.Select(MapearPlantaComUsuarioPara);
+            return Resultado<IEnumerable<PlantaComUsuarioDTOSaida>>.Ok(dto);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Erro ao buscar plantas");
+            return Resultado<IEnumerable<PlantaComUsuarioDTOSaida>>.Erro("Ocorreu um erro interno. Tente novamente.");
+        }
+    }
+
     public async Task<Resultado<PaginaResultado<PlantaDTOSaida>>> BuscarPlantasUsuarioAsync(Guid usuarioId, string termo, int pagina, int tamanho)
     {
         try

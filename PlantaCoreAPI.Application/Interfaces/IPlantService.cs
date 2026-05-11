@@ -8,6 +8,7 @@ namespace PlantaCoreAPI.Application.Interfaces;
 
 public interface IPlantService
 {
+    Task<Resultado<IEnumerable<PlantaComUsuarioDTOSaida>>> BuscarTodasPlantasAsync();
     Task<Resultado<PlantaDTOSaida>> IdentificarPlantaAsync(Guid usuarioId, IdentificacaoDTOEntrada entrada);
     Task<Resultado<PlantaDTOSaida>> BuscarPlantaAsync(Guid usuarioId, BuscaPlantaDTOEntrada entrada);
     Task<Resultado<ResultadoBuscaPlantaDTOSaida>> BuscarPlantasTrefleAsync(string nomePlanta, int pagina);
