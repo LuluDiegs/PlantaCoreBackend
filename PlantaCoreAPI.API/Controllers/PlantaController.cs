@@ -150,6 +150,23 @@ public class PlantaController : ControllerBase
         return Ok(ResponseHelper.Padrao<object>(true, null, meta: new { mensagem = resultado.Mensagem }));
     }
 
+    [HttpGet("todas-plantas")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> ListarTodasPlantas()
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId)) return Unauthorized();
+
+        var resultado = await _servicioPlanta.BuscarTodasPlantasAsync();
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, [resultado.Mensagem ?? "Erro"]));
+
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
+    }
+
     [HttpGet("minhas-plantas")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
