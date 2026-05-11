@@ -23,4 +23,6 @@ public interface IPlantService
     Task<Resultado<RecomendacaoPlantaComImagemDTO>> GerarRecomendacaoPlantaAsync(DadosRecomendacaoPlantaParaIA dados);
     Task<Resultado<RecomendacaoPlantaComImagemDTO>> GerarSalvarRecomendacaoPlantaAsync(DadosRecomendacaoPlantaParaIA dados, Guid usuarioId);
     Task<Resultado> AtualizarLocalizacaoAsync(AtualizarLocalizacaoDTO entrada, Guid plantaId, Guid usuarioId);
+    Task<Resultado<ExpedicaoPlantasProximasDTOSaida>> BuscarPlantasProximasAsync(Guid usuarioId, BuscarPlantasProximasDTOEntrada entrada);
+    Task<Resultado<CapturaExpedicaoDTOSaida>> CapturarPlantaProximaAsync(Guid usuarioId, CapturarPlantaProximaDTOEntrada entrada);
 }

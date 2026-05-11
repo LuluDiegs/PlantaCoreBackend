@@ -131,4 +131,17 @@ public class RepositorioPlanta : IRepositorioPlanta
             .Take(take)
             .ToListAsync();
     }
+
+    public async Task<IEnumerable<Planta>> ObterPlantasCompartilhadasAsync(Guid usuarioId)
+    {
+        return await _contexto.Plantas
+            .Include(p => p.Usuario)
+            .Where(p =>
+                p.UsuarioId != usuarioId &&
+                p.CompartilharLocalizacao &&
+                p.Latitude != null &&
+                p.Longitude != null)
+            .OrderByDescending(p => p.DataIdentificacao)
+            .ToListAsync();
+    }
 }

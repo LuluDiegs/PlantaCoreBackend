@@ -11,4 +11,5 @@ public interface IRepositorioPlanta : IRepositorio<Entities.Planta>
     Task<IEnumerable<Entities.Planta>> BuscarPorNomeAsync(string termo);
     Task<PaginaResultado<Entities.Planta>> BuscarPorUsuarioETermoAsync(Guid usuarioId, string termo, int pagina, int tamanho);
     Task<IEnumerable<Entities.Planta>> ObterTodasParaLembreteAsync(int skip, int take);
+    Task<IEnumerable<Entities.Planta>> ObterPlantasCompartilhadasAsync(Guid usuarioId);
 }
