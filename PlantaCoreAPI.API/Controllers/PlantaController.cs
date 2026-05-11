@@ -277,4 +277,40 @@ public class PlantaController : ControllerBase
         var resultado = await _servicioPlanta.AtualizarLocalizacaoAsync(entrada, plantaId, usuarioId);
         return Ok(ResponseHelper.Padrao(true, resultado));
     }
+
+    [HttpGet("expedicao/proximas")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> BuscarPlantasProximas([FromQuery] BuscarPlantasProximasDTOEntrada entrada)
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+
+        var resultado = await _servicioPlanta.BuscarPlantasProximasAsync(usuarioId, entrada);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados));
+    }
+
+    [HttpPost("expedicao/capturar")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> CapturarPlantaProxima([FromBody] CapturarPlantaProximaDTOEntrada entrada)
+    {
+        var usuarioIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!Guid.TryParse(usuarioIdClaim, out var usuarioId))
+            return Unauthorized();
+
+        var resultado = await _servicioPlanta.CapturarPlantaProximaAsync(usuarioId, entrada);
+        if (!resultado.Sucesso)
+            return BadRequest(ResponseHelper.Padrao<object>(false, null, null, new[] { resultado.Mensagem ?? "Erro" }));
+
+        return Ok(ResponseHelper.Padrao(true, resultado.Dados, new { mensagem = "Planta capturada com sucesso" }));
+    }
 }
